@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--命名空间，和接口关联-->
+<mapper namespace="net.sysu.mapper.GAMapper">
+    <resultMap type="net.sysu.GA.GA" id="GA">
+        <result column="minnum2" property="minnum2" jdbcType="VARCHAR" />
+        <result column="iteration" property="iteration"  />
+    </resultMap>
+
+    <insert id="insertGa">
+        insert into ga (minnum2,iteration)VALUES (#{minnum2},#{iteration})
+    </insert>
+
+    <select id="selectGa" resultType="net.sysu.GA.GA">
+        select * from ga
+    </select>
+</mapper>

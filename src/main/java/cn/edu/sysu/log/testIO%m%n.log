@@ -1,0 +1,6 @@
+00:28:33,556  INFO ADIController6:106 - 测试 log4j
+00:28:33,580  INFO ADIController6:164 - 出现次数最多的数字为：[182,182,182,182,208,229,229,229,229,263,]
+00:28:33,580  INFO ADIController6:165 - 该数字一共出现2次
+00:30:49,105  INFO ADIController6:106 - 测试 log4j
+00:31:46,200  INFO ADIController6:164 - 出现次数最多的数字为：[4,61,81,87,94,168,174,188,254,264,]
+00:31:46,201  INFO ADIController6:165 - 该数字一共出现2次

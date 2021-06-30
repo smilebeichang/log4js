@@ -1,0 +1,123 @@
+11:52:54,212  INFO ADIController6:106 - 测试 log4j
+11:52:54,231  INFO ADIController6:164 - 出现次数最多的数字为：[13,20,47,54,60,94,98,144,151,305,]
+11:52:54,231  INFO ADIController6:165 - 该数字一共出现2次
+11:53:55,020  INFO ADIController6:106 - 测试 log4j
+11:53:55,032  INFO ADIController6:164 - 出现次数最多的数字为：[2,55,60,77,144,154,220,224,265,301,]
+11:53:55,032  INFO ADIController6:165 - 该数字一共出现12次
+11:54:30,007  INFO ADIController6:106 - 测试 log4j
+11:54:30,030  INFO ADIController6:164 - 出现次数最多的数字为：[53,56,60,71,141,145,220,245,254,306,]
+11:54:30,030  INFO ADIController6:165 - 该数字一共出现5次
+11:54:59,733  INFO ADIController6:106 - 测试 log4j
+11:54:59,751  INFO ADIController6:164 - 出现次数最多的数字为：[2,55,71,101,185,215,220,252,254,280,]
+11:54:59,751  INFO ADIController6:165 - 该数字一共出现26次
+11:55:21,428  INFO ADIController6:106 - 测试 log4j
+11:55:21,440  INFO ADIController6:164 - 出现次数最多的数字为：[2,55,71,101,185,215,220,252,254,280,]
+11:55:21,440  INFO ADIController6:165 - 该数字一共出现22次
+11:55:48,118  INFO ADIController6:106 - 测试 log4j
+11:55:48,132  INFO ADIController6:164 - 出现次数最多的数字为：[36,53,71,77,84,190,220,254,280,306,]
+11:55:48,133  INFO ADIController6:165 - 该数字一共出现43次
+11:56:05,084  INFO ADIController6:106 - 测试 log4j
+11:56:05,099  INFO ADIController6:164 - 出现次数最多的数字为：[36,53,71,77,84,190,220,254,280,306,]
+11:56:05,099  INFO ADIController6:165 - 该数字一共出现82次
+11:56:20,261  INFO ADIController6:106 - 测试 log4j
+11:56:20,274  INFO ADIController6:164 - 出现次数最多的数字为：[36,53,71,77,84,190,220,254,280,306,]
+11:56:20,274  INFO ADIController6:165 - 该数字一共出现70次
+11:56:40,556  INFO ADIController6:106 - 测试 log4j
+11:56:40,564  INFO ADIController6:164 - 出现次数最多的数字为：[36,53,71,77,84,190,220,254,280,306,]
+11:56:40,565  INFO ADIController6:165 - 该数字一共出现34次
+11:57:01,611  INFO ADIController6:106 - 测试 log4j
+11:57:01,626  INFO ADIController6:164 - 出现次数最多的数字为：[23,36,53,84,190,220,254,280,289,306,]
+11:57:01,626  INFO ADIController6:165 - 该数字一共出现27次
+11:57:20,752  INFO ADIController6:106 - 测试 log4j
+11:57:20,761  INFO ADIController6:164 - 出现次数最多的数字为：[23,29,84,170,190,202,220,263,280,301,]
+11:57:20,762  INFO ADIController6:165 - 该数字一共出现59次
+11:57:36,196  INFO ADIController6:106 - 测试 log4j
+11:57:36,206  INFO ADIController6:164 - 出现次数最多的数字为：[23,29,84,170,190,202,220,263,280,301,]
+11:57:36,206  INFO ADIController6:165 - 该数字一共出现61次
+11:57:52,327  INFO ADIController6:106 - 测试 log4j
+11:57:52,343  INFO ADIController6:164 - 出现次数最多的数字为：[23,29,84,170,190,202,220,263,280,301,]
+11:57:52,344  INFO ADIController6:165 - 该数字一共出现41次
+11:58:12,923  INFO ADIController6:106 - 测试 log4j
+11:58:12,942  INFO ADIController6:164 - 出现次数最多的数字为：[23,29,84,137,140,170,190,202,220,263,]
+11:58:12,942  INFO ADIController6:165 - 该数字一共出现37次
+11:58:29,366  INFO ADIController6:106 - 测试 log4j
+11:58:29,379  INFO ADIController6:164 - 出现次数最多的数字为：[23,29,84,137,140,170,190,202,220,263,]
+11:58:29,379  INFO ADIController6:165 - 该数字一共出现28次
+11:58:45,160  INFO ADIController6:106 - 测试 log4j
+11:58:45,172  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,277,]
+11:58:45,173  INFO ADIController6:165 - 该数字一共出现29次
+11:59:00,291  INFO ADIController6:106 - 测试 log4j
+11:59:00,305  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,277,]
+11:59:00,305  INFO ADIController6:165 - 该数字一共出现32次
+11:59:16,497  INFO ADIController6:106 - 测试 log4j
+11:59:16,509  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+11:59:16,510  INFO ADIController6:165 - 该数字一共出现45次
+11:59:32,411  INFO ADIController6:106 - 测试 log4j
+11:59:32,420  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+11:59:32,421  INFO ADIController6:165 - 该数字一共出现84次
+11:59:46,862  INFO ADIController6:106 - 测试 log4j
+11:59:46,871  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+11:59:46,871  INFO ADIController6:165 - 该数字一共出现86次
+12:00:01,139  INFO ADIController6:106 - 测试 log4j
+12:00:01,149  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:00:01,150  INFO ADIController6:165 - 该数字一共出现88次
+12:00:15,827  INFO ADIController6:106 - 测试 log4j
+12:00:15,839  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:00:15,839  INFO ADIController6:165 - 该数字一共出现85次
+12:00:30,299  INFO ADIController6:106 - 测试 log4j
+12:00:30,312  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:00:30,312  INFO ADIController6:165 - 该数字一共出现79次
+12:00:45,352  INFO ADIController6:106 - 测试 log4j
+12:00:45,370  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:00:45,370  INFO ADIController6:165 - 该数字一共出现84次
+12:01:01,962  INFO ADIController6:106 - 测试 log4j
+12:01:01,971  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:01:01,971  INFO ADIController6:165 - 该数字一共出现87次
+12:01:16,390  INFO ADIController6:106 - 测试 log4j
+12:01:16,402  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:01:16,402  INFO ADIController6:165 - 该数字一共出现87次
+12:01:32,570  INFO ADIController6:106 - 测试 log4j
+12:01:32,586  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:01:32,586  INFO ADIController6:165 - 该数字一共出现77次
+12:01:48,513  INFO ADIController6:106 - 测试 log4j
+12:01:48,521  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:01:48,521  INFO ADIController6:165 - 该数字一共出现87次
+12:02:04,957  INFO ADIController6:106 - 测试 log4j
+12:02:04,969  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:02:04,969  INFO ADIController6:165 - 该数字一共出现88次
+12:02:20,873  INFO ADIController6:106 - 测试 log4j
+12:02:20,881  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:02:20,881  INFO ADIController6:165 - 该数字一共出现88次
+12:02:36,437  INFO ADIController6:106 - 测试 log4j
+12:02:36,447  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:02:36,447  INFO ADIController6:165 - 该数字一共出现82次
+12:02:51,413  INFO ADIController6:106 - 测试 log4j
+12:02:51,422  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:02:51,423  INFO ADIController6:165 - 该数字一共出现81次
+12:03:07,067  INFO ADIController6:106 - 测试 log4j
+12:03:07,080  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:03:07,080  INFO ADIController6:165 - 该数字一共出现82次
+12:03:25,695  INFO ADIController6:106 - 测试 log4j
+12:03:25,705  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:03:25,705  INFO ADIController6:165 - 该数字一共出现84次
+12:03:46,751  INFO ADIController6:106 - 测试 log4j
+12:03:46,760  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:03:46,760  INFO ADIController6:165 - 该数字一共出现73次
+12:04:06,939  INFO ADIController6:106 - 测试 log4j
+12:04:06,952  INFO ADIController6:164 - 出现次数最多的数字为：[23,84,137,140,170,190,202,220,263,285,]
+12:04:06,952  INFO ADIController6:165 - 该数字一共出现44次
+12:04:24,977  INFO ADIController6:106 - 测试 log4j
+12:04:24,991  INFO ADIController6:164 - 出现次数最多的数字为：[84,137,140,143,170,190,202,220,263,285,]
+12:04:24,991  INFO ADIController6:165 - 该数字一共出现74次
+12:04:40,391  INFO ADIController6:106 - 测试 log4j
+12:04:40,408  INFO ADIController6:164 - 出现次数最多的数字为：[84,137,140,143,170,190,202,220,263,285,]
+12:04:40,408  INFO ADIController6:165 - 该数字一共出现78次
+12:04:56,899  INFO ADIController6:106 - 测试 log4j
+12:04:56,914  INFO ADIController6:164 - 出现次数最多的数字为：[84,137,140,143,170,190,202,220,263,285,]
+12:04:56,914  INFO ADIController6:165 - 该数字一共出现81次
+12:05:11,895  INFO ADIController6:106 - 测试 log4j
+12:05:11,908  INFO ADIController6:164 - 出现次数最多的数字为：[84,137,140,143,170,190,202,220,263,285,]
+12:05:11,908  INFO ADIController6:165 - 该数字一共出现87次
+12:05:28,229  INFO ADIController6:106 - 测试 log4j
+12:05:28,239  INFO ADIController6:164 - 出现次数最多的数字为：[84,137,140,143,170,190,202,220,263,285,]
+12:05:28,239  INFO ADIController6:165 - 该数字一共出现83次

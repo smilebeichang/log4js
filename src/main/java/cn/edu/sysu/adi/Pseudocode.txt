@@ -1,0 +1,417 @@
+package cn.edu.sysu.adi;
+
+import cn.edu.sysu.utils.KLUtils;
+
+import java.sql.SQLException;
+import java.util.*;
+
+/**
+ * @Author : song bei chang
+ * @create 2021/6/8 23:13
+ */
+public abstract class Pseudocode {
+
+
+    /**
+     *  学习周进展20210610:
+     *      上周疑问：
+     *          1.迭代过程中,试卷出现高度一致的情况 （基数太小、交叉变异未能生效）
+     *          2.保留选择和精英策略  (适者生存)
+     *              2.1混淆了校验和选择和定义：获取优质解（比例题型长度、适应度）
+     *              2.2选择作用：以适应度为导向,适者生存的优秀者留下来。top K,过早收敛容易陷入局部最优（早熟）， 权衡多样性和适者生存两个指标==》轮盘赌策略，
+     *                 变异：为种群提供多样性的支持
+     *
+     *      本周进展：
+     *          3.长度校验和题型校验的剥离
+     *          4.out解取并集
+     *
+     *
+     */
+
+
+    public  void main(String[] args) {
+
+        //修补流程:
+        //    1. 长度校验
+        //    2. 题型校验
+        //    3. 属性校验
+        correct();
+        {
+            //1.长度校验
+            correctLength();
+            {
+                if (size() == 10){
+                    System.out.println("size正常,退出长度校验");
+                }else{
+                    System.out.println("size不匹配：进行长度修补 ");
+                    //依次校验各个题型的比例信息，并修补    eg:选择题
+                    while(typeChoseRation<expectedRatio && size() != 10){
+                        //where type = Chose
+                        String sql = " type = CHOSE order by RAND() limit 1 ";
+                        ArrayList<String> tmp = jdbcUtils.selectBySql(sql);
+                        //动态更新比例信息
+                        if(!set.contains(tmp)){
+                            set.addAll(tmp);
+                            typeChoseNum += 1;
+                            typeChoseRation  =  typeChoseNum/10.0;
+                        }
+                    }
+
+                    //随机选题
+                    while(size() != 10){
+                        //where 1=1
+                        String sql = " 1=1 order by RAND() limit 1 ";
+                        ArrayList<String> arrayList = jdbcUtils.selectBySql(sql);
+                        set.addAll(arrayList);
+                    }
+                }
+            }
+
+            //2.题型校验
+            correctType();
+            {
+                //=========================  1.0 指标统计   ================================
+                String typeFlag = "(1,0,0,-1)";
+
+                //=========================  2.0 解集统计   ================================
+                Set<String> outMore = new HashSet<>();
+                Set<String> outLess = new HashSet<>();
+
+                //=========================  3.0 执行修补操作   ================================
+                correctTypeLess();
+                correctTypeMore();
+                correctTypeMoreAndLess();
+
+            }
+
+
+            //3.属性校验
+            correctAttribute();
+            {
+                /*
+                 * =========================  1.0 指标统计   ================================
+                 * 数量-->比例-->flag  例如 attributeFlag = "(-1,-1,0,0,0)"
+                 */
+                String attributeFlag = getAttributeFlag(paperGenetic[w]);
+
+                int af1 = Integer.parseInt(attributeFlag.split(",")[0]);
+                int af2 = Integer.parseInt(attributeFlag.split(",")[1]);
+                int af3 = Integer.parseInt(attributeFlag.split(",")[2]);
+                int af4 = Integer.parseInt(attributeFlag.split(",")[3]);
+                int af5 = Integer.parseInt(attributeFlag.split(",")[4]);
+
+                /*
+                 * =========================  2.0 解集统计   ================================
+                 *  ①取出属性比例过多的集合的并集
+                 *  ②取出属性比例不足的集合的并集  outLess = tmp1  U  tmp2
+                 */
+                Set<String> outMore = getoutMore(ori,af1,af2,af3,af4,af5);
+
+                Set<String> outLess = getoutLess(ori,af1,af2,af3,af4,af5);
+
+
+                /*
+                 * =========================  3.0 执行修补操作   ================================
+                 *  outMore outLess 的关系判断
+                 *      1. outMore无  outLess有 则取 outLess
+                 *      2. outMore有  outLess无 则取 outMore
+                 *      3. outMore有  outLess有 则①取交集  ②按权重取
+                 *
+                 */
+
+                if(outMore.size()==0 && outLess.size()>0){
+                    ori = correctAttributeLess(outLess,jdbcUtils,ori,af1,af2,af3,af4,af5);
+                }
+
+
+                if(outMore.size()>0 && outLess.size()==0){
+                    ori = correctAttributeMore(outMore,jdbcUtils,ori,af1,af2,af3,af4,af5);
+                }
+
+                if(outMore.size()>0 && outLess.size()>0){
+                    ori = correctAttributeMoreAndLess(outMore,outLess,jdbcUtils,ori,af1,af2,af3,af4,af5);
+                }
+
+                paperGenetic[w] = ori;
+
+            }
+        }
+
+
+    }
+
+
+
+    /**
+     * 指标信息初步统计
+     *      数量-->比例-->flag
+     *
+     */
+    private String getAttributeFlag(HashSet<String> itemSet){
+
+        //属性个数
+        int attributeNum1  = 0;
+        int attributeNum2  = 0;
+        int attributeNum3  = 0;
+        int attributeNum4  = 0;
+        int attributeNum5  = 0;
+
+        //各个属性的数目
+        for (String s:itemSet) {
+
+            if("1".equals(s.split(":")[2].substring(1,2))){
+                attributeNum1 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(3,4))){
+                attributeNum2 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(5,6))){
+                attributeNum3 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(7,8))){
+                attributeNum4 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(9,10))){
+                attributeNum5 += 1;
+            }
+        }
+
+
+        //属性比例
+        double attributeRatio1 = attributeNum1/23.0;
+        double attributeRatio2 = attributeNum2/23.0;
+        double attributeRatio3 = attributeNum3/23.0;
+
+
+        int af1 ;
+        if(attributeRatio1>=0.2 && attributeRatio1<=0.4){
+            af1 = 0;
+        }else if(attributeRatio1<0.2){
+            af1 = -1;
+        }else {
+            af1 = 1;
+        }
+
+        int af2 ;
+        if(attributeRatio2>=0.2 && attributeRatio2<=0.4){
+            af2 = 0;
+        }else if(attributeRatio2<0.2){
+            af2 = -1;
+        }else {
+            af2 = 1;
+        }
+
+        int af3 ;
+        if(attributeRatio3>=0.1 && attributeRatio3<=0.3){
+            af3 = 0;
+        }else if(attributeRatio3<0.1){
+            af3 = -1;
+        }else {
+            af3 = 1;
+        }
+
+        //输出 attributeFlag
+        String attributeFlag = "("+af1+","+af2+","+af3+","+af4+","+af5+")";
+        System.out.println("目前属性占比情况： attributeFlag:"+attributeFlag);
+
+        return attributeFlag;
+
+    }
+
+
+
+
+    /**
+     *  修补算子
+     *  适用场景: 属性less
+     *  步骤:    1.根据flag信息,获取in解
+     *          2.寻找完美解
+     *               2.1 根据out解,获取题型信息,并按照题型对in解进行优先排序
+     *               2.2 ori解集 - out解 +  in解 = 新解(拿新解去再次校验)
+     *               2.3 判断是否终止寻找
+     *          3.寻找替补解
+     *               3.1 根据out解，获取各个属性的信息(题型、属性)
+     *               3.2 根据flag获取less的所有可能的组合lessCompose
+     *                       eg:(-1,0,-1,0,-1)  => 第一三五属性缺失
+     *                       可能的组合(p1)、(p3)、(p5)、(p1,p3)、(p1,p5)、(p3,p5)、(p1,p3,p5)
+     *               3.3 组合优先顺序排序
+     *                       (p1,p3,p5)、(p1,p3)、(p1,p5)、(p3,p5)、(p1)、(p3)、(p5)
+     *               3.4 根据out 和 lessCompose 查询题库中是否存在
+     *               3.5 判断是否终止寻找
+     */
+    private ArrayList<String> correctAttributeLess() throws SQLException {
+
+
+        //1.根据flag信息,获取in解  ( 替补的集合 )
+        StringBuilder sb = new StringBuilder();
+        if(af1>0){
+            sb.append(" p1=0 and ");
+        }else if (af1<0){
+            sb.append(" p1=1 and ");
+        }
+
+        if(af2>0){
+            sb.append(" p2=0 and ");
+        }else if (af2<0){
+            sb.append(" p2=1 and ");
+        }
+
+        String sql = sb.toString().substring(0, sb.toString().length() - 4);
+        ArrayList<String> inList = jdbcUtils.selectBySql(sql);
+
+        Boolean b = false;
+        // ori - out +in = pr0()
+        //2.寻找完美解 ( 使得比例能够均衡的解 )
+        for (int i = 0; i < outList.size(); i++) {
+
+            //2.1 根据out解,获取题型信息,并按照题型对in解进行优先排序
+            String type = outList.get(i).split(":")[1];
+            ArrayList<String> inListRe = rearrange(type, inList);
+
+            //2.2 ori解集 - out解 +  in解 = 新解(拿新解去再次校验)
+            for (int j = 0; j < inListRe.size(); j++) {
+
+                b = propCheck(ori,outList.get(i),inListRe.get(j));
+
+                if(b){
+                    //删除out解，添加in解
+                    for (int k = 0; k < ori.size(); k++) {
+                        if (ori.get(k).equals(outList.get(i))){
+                            ori.set(k,inListRe.get(j));
+                        }
+                    }
+                    //输出
+                    System.out.println("已找到符合要求的解，现退出循环,目前的解集为："+ori.toString());
+                    break;
+                }
+            }
+            //2.3 判断是否终止寻找
+            if (b){
+                break;
+            }
+        }
+
+        //3.寻找替补解  (①2   ②310   less  p1 p2  )
+        //  修补  不破坏了原有信息
+        if(!b) {
+
+            for (int i = 0; i < outList.size(); i++) {
+
+                //3.1 根据out解，获取各个属性的信息(题型、属性)
+                String t1 = " and type = '" + outList.get(i).split(":")[1] +"'";
+                String[] arr = outList.get(i).split(":")[2].split(",");
+                String a1 = "0".equals(arr[0].substring(1,2))?"": " and p1 = 1 ";
+                String a2 = "0".equals(arr[1])?"": " and p2 = 1 ";
+                String a3 = "0".equals(arr[2])?"": " and p3 = 1 ";
+                String a4 = "0".equals(arr[3])?"": " and p4 = 1 ";
+                String a5 = "0".equals(arr[4].substring(0,1))?"": " and p5 = 1 ";
+
+                String outString =  a1 + a2 + a3 + a4 + a5;
+
+
+
+                //3.2 根据flag获取less的所有可能的组合lessCompose
+                //    eg:(-1,0,-1,0,-1)  => 第一三五属性缺失
+                //    可能的组合(p1)、(p3)、(p5)、(p1,p3)、(p1,p5)、(p3,p5)、(p1,p3,p5)
+                ArrayList<String> lessTemp = new ArrayList<>();
+                if(af1==-1){
+                    lessTemp.add("p1");
+                }
+                if(af2==-1){
+                    lessTemp.add("p2");
+                }
+                if(af3==-1){
+                    lessTemp.add("p3");
+                }
+                if(af4==-1){
+                    lessTemp.add("p4");
+                }
+                if(af5==-1){
+                    lessTemp.add("p5");
+                }
+
+
+                //递归遍历 （获取所有的可能组合情况）
+                String[] lessArray = new String[lessTemp.size()];
+                Set<Set<String>> lessSet = new KLUtils().getSubCollection(lessArray);
+
+                //3.3 重新定义排序方法
+                ArrayList<Set<String>> lessCompose = new ArrayList<>(lessSet);
+
+                //按照组合顺序依次取出
+                //    eg： (p1,p3,p5)、(p1,p3)、(p1,p5)、(p3,p5)、(p1)、(p3)、(p5)
+                for (int i1 = lessCompose.size() -1 ; i1 >= 1; i1--) {
+                    String tmp1 = lessCompose.get(i1).toString().substring(1);
+                    String tmp2=tmp1.replaceAll(","," = 1 and ");
+                    String tmp3=tmp2.replace(")"," = 1 ");
+                    System.out.println(tmp3);
+
+                    //拼接 less ori type
+                    String sqlFinally = tmp3 + outString + t1;
+                    ArrayList<String> arrayList = jdbcUtils.selectBySql(sqlFinally);
+
+                    if(arrayList.size()>0){
+
+                        // 删除out解，添加in解
+                        for (int k = 0; k < ori.size(); k++) {
+                            if (ori.get(k).equals(outList.get(i))){
+                                ori.set(k,arrayList.get(0));
+                            }
+                        }
+
+                        System.out.println("找到合适解,退出循环");
+                        b = true;
+                        break;
+                    }else {
+                        System.out.println("未找到合适解,继续递归查找");
+                    }
+                }
+                if(b){
+                    break;
+                }
+            }
+        }
+
+        System.out.println("校验后的集合:"+ori.toString());
+
+        return  ori;
+
+    }
+
+
+
+    /**
+     * 校验总流程
+     */
+    abstract  void correct();
+
+    /**
+     * 长度校验
+     */
+    abstract  void correctLength();
+
+    /**
+     * 题型校验
+     */
+    abstract  void correctType();
+
+    /**
+     * 属性校验
+     */
+    abstract  void correctAttribute();
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+

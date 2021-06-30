@@ -1,0 +1,100 @@
+12:31:15,634  INFO ADIController5:98 - 测试 log4j
+12:31:15,652  INFO ADIController5:156 - 该数字一共出现2次
+12:31:27,069  INFO ADIController5:98 - 测试 log4j
+12:31:27,080  INFO ADIController5:156 - 该数字一共出现2次
+12:31:34,733  INFO ADIController5:98 - 测试 log4j
+12:31:34,745  INFO ADIController5:156 - 该数字一共出现1次
+12:31:42,345  INFO ADIController5:98 - 测试 log4j
+12:31:42,362  INFO ADIController5:156 - 该数字一共出现2次
+12:31:48,966  INFO ADIController5:98 - 测试 log4j
+12:31:48,980  INFO ADIController5:156 - 该数字一共出现1次
+12:31:55,956  INFO ADIController5:98 - 测试 log4j
+12:31:55,968  INFO ADIController5:156 - 该数字一共出现2次
+12:32:02,541  INFO ADIController5:98 - 测试 log4j
+12:32:02,554  INFO ADIController5:156 - 该数字一共出现2次
+12:32:09,476  INFO ADIController5:98 - 测试 log4j
+12:32:09,488  INFO ADIController5:156 - 该数字一共出现3次
+12:32:16,201  INFO ADIController5:98 - 测试 log4j
+12:32:16,213  INFO ADIController5:156 - 该数字一共出现2次
+12:32:23,390  INFO ADIController5:98 - 测试 log4j
+12:32:23,404  INFO ADIController5:156 - 该数字一共出现1次
+12:32:30,239  INFO ADIController5:98 - 测试 log4j
+12:32:30,250  INFO ADIController5:156 - 该数字一共出现2次
+12:32:37,211  INFO ADIController5:98 - 测试 log4j
+12:32:37,225  INFO ADIController5:156 - 该数字一共出现1次
+12:32:44,010  INFO ADIController5:98 - 测试 log4j
+12:32:44,024  INFO ADIController5:156 - 该数字一共出现2次
+12:32:50,868  INFO ADIController5:98 - 测试 log4j
+12:32:50,881  INFO ADIController5:156 - 该数字一共出现1次
+12:32:57,595  INFO ADIController5:98 - 测试 log4j
+12:32:57,609  INFO ADIController5:156 - 该数字一共出现3次
+12:33:04,143  INFO ADIController5:98 - 测试 log4j
+12:33:04,157  INFO ADIController5:156 - 该数字一共出现1次
+12:33:10,571  INFO ADIController5:98 - 测试 log4j
+12:33:10,587  INFO ADIController5:156 - 该数字一共出现2次
+12:33:17,592  INFO ADIController5:98 - 测试 log4j
+12:33:17,603  INFO ADIController5:156 - 该数字一共出现3次
+12:33:24,928  INFO ADIController5:98 - 测试 log4j
+12:33:24,940  INFO ADIController5:156 - 该数字一共出现2次
+12:33:31,326  INFO ADIController5:98 - 测试 log4j
+12:33:31,339  INFO ADIController5:156 - 该数字一共出现4次
+12:33:38,507  INFO ADIController5:98 - 测试 log4j
+12:33:38,516  INFO ADIController5:156 - 该数字一共出现1次
+12:33:45,397  INFO ADIController5:98 - 测试 log4j
+12:33:45,409  INFO ADIController5:156 - 该数字一共出现2次
+12:33:52,359  INFO ADIController5:98 - 测试 log4j
+12:33:52,373  INFO ADIController5:156 - 该数字一共出现2次
+12:34:00,251  INFO ADIController5:98 - 测试 log4j
+12:34:00,265  INFO ADIController5:156 - 该数字一共出现1次
+12:34:07,468  INFO ADIController5:98 - 测试 log4j
+12:34:07,482  INFO ADIController5:156 - 该数字一共出现1次
+12:34:14,372  INFO ADIController5:98 - 测试 log4j
+12:34:14,388  INFO ADIController5:156 - 该数字一共出现1次
+12:34:21,218  INFO ADIController5:98 - 测试 log4j
+12:34:21,231  INFO ADIController5:156 - 该数字一共出现2次
+12:34:27,877  INFO ADIController5:98 - 测试 log4j
+12:34:27,890  INFO ADIController5:156 - 该数字一共出现2次
+12:34:35,574  INFO ADIController5:98 - 测试 log4j
+12:34:35,578  INFO ADIController5:156 - 该数字一共出现2次
+12:34:43,185  INFO ADIController5:98 - 测试 log4j
+12:34:43,212  INFO ADIController5:156 - 该数字一共出现2次
+12:34:50,689  INFO ADIController5:98 - 测试 log4j
+12:34:50,704  INFO ADIController5:156 - 该数字一共出现2次
+12:34:57,654  INFO ADIController5:98 - 测试 log4j
+12:34:57,668  INFO ADIController5:156 - 该数字一共出现2次
+12:35:04,551  INFO ADIController5:98 - 测试 log4j
+12:35:04,563  INFO ADIController5:156 - 该数字一共出现2次
+12:35:11,624  INFO ADIController5:98 - 测试 log4j
+12:35:11,638  INFO ADIController5:156 - 该数字一共出现1次
+12:35:18,135  INFO ADIController5:98 - 测试 log4j
+12:35:18,148  INFO ADIController5:156 - 该数字一共出现2次
+12:35:24,468  INFO ADIController5:98 - 测试 log4j
+12:35:24,485  INFO ADIController5:156 - 该数字一共出现2次
+12:35:31,468  INFO ADIController5:98 - 测试 log4j
+12:35:31,482  INFO ADIController5:156 - 该数字一共出现1次
+12:35:38,396  INFO ADIController5:98 - 测试 log4j
+12:35:38,411  INFO ADIController5:156 - 该数字一共出现2次
+12:35:45,387  INFO ADIController5:98 - 测试 log4j
+12:35:45,401  INFO ADIController5:156 - 该数字一共出现2次
+12:35:52,621  INFO ADIController5:98 - 测试 log4j
+12:35:52,630  INFO ADIController5:156 - 该数字一共出现2次
+12:35:59,531  INFO ADIController5:98 - 测试 log4j
+12:35:59,546  INFO ADIController5:156 - 该数字一共出现2次
+12:36:06,593  INFO ADIController5:98 - 测试 log4j
+12:36:06,606  INFO ADIController5:156 - 该数字一共出现2次
+12:36:13,661  INFO ADIController5:98 - 测试 log4j
+12:36:13,675  INFO ADIController5:156 - 该数字一共出现2次
+12:36:20,736  INFO ADIController5:98 - 测试 log4j
+12:36:20,751  INFO ADIController5:156 - 该数字一共出现2次
+12:36:27,655  INFO ADIController5:98 - 测试 log4j
+12:36:27,670  INFO ADIController5:156 - 该数字一共出现1次
+12:36:34,566  INFO ADIController5:98 - 测试 log4j
+12:36:34,581  INFO ADIController5:156 - 该数字一共出现2次
+12:36:41,858  INFO ADIController5:98 - 测试 log4j
+12:36:41,885  INFO ADIController5:156 - 该数字一共出现3次
+12:36:48,900  INFO ADIController5:98 - 测试 log4j
+12:36:48,912  INFO ADIController5:156 - 该数字一共出现2次
+12:36:55,822  INFO ADIController5:98 - 测试 log4j
+12:36:55,835  INFO ADIController5:156 - 该数字一共出现1次
+12:37:02,062  INFO ADIController5:98 - 测试 log4j
+12:37:02,075  INFO ADIController5:156 - 该数字一共出现2次
