@@ -1,21 +1,22 @@
 package cn.edu.sysu.utils;
 
 
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 
 import java.io.*;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @Author : song bei chang
  * @create 2021/5/6 19:09
  */
 public class KLUtils {
+
+    /** 打印对象 **/
+    private Logger log = Logger.getLogger(KLUtils.class);
 
 
     /**
@@ -153,6 +154,47 @@ public class KLUtils {
         }
         return resultSet;
     }
+
+
+
+    /**
+     * 冒泡排序  打印top10
+     *
+     */
+    /**  散点图索引  */
+    private int scatterIndex = 0;
+    public void bubbleSort(double[] a) {
+        double temp ;
+        for(int i=0 ;i < a.length ;i++) {
+            for(int j=0 ; j< a.length-i -1;j++) {
+                if(a[j]>a[j+1]) {
+                    //互换位置
+                    temp = a[j];
+                    a[j] = a[j+1] ;
+                    a[j+1] = temp ;
+                }
+            }
+        }
+        //遍历数组排序  arr[0]=2.3626148494872097
+        for(int i=a.length -1 ;i >=90  ;i--) {
+            //System.out.printf("arr[%d]=%s\n",i,a[i]);
+            scatterIndex = scatterIndex +1 ;
+            log.info(scatterIndex + ":" + numbCohesion(a[i]));
+        }
+
+    }
+
+
+    /**
+     * 格式转换工具
+     */
+    public Double numbCohesion(Double adi){
+
+
+        return Double.valueOf(String.format("%.4f", adi));
+
+    }
+
 
 
 

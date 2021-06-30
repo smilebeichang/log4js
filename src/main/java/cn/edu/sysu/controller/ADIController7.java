@@ -55,6 +55,8 @@ public class ADIController7 {
     /**  散点图索引  */
     private int scatterIndex = 0;
 
+     private  KLUtils klUtils = new KLUtils();
+
     /**
      * 计算适应度值  ①计算方式 轮盘赌
      *             ②计算单位（单套试卷）
@@ -88,7 +90,7 @@ public class ADIController7 {
             for (int j = 0; j < 99; j++) {
                 //交叉
                 crossCover(papers,j);
-                //变异
+                //变异  新增了变异部分后，变得这么慢了吗 嵌套了一层 paperGenetic.length
                 mutate(papers,j);
             }
 
@@ -115,7 +117,7 @@ public class ADIController7 {
     private void countCalculations(String[][] paperGenetic) throws FileNotFoundException {
 
 
-        //log.info("测试 log4j");
+        log.info("测试 log4j");
 
         String[] array = new String[paperGenetic.length];
 
@@ -145,11 +147,11 @@ public class ADIController7 {
         }
 
         //输出每个个体出现的次数
-        for(Map.Entry<String, Integer> entry : map.entrySet()) {
-            String key = entry.getKey();
-            Integer count = entry.getValue();
-            //log.info("试题编号："+ key+"  次数："+count);
-        }
+        //for(Map.Entry<String, Integer> entry : map.entrySet()) {
+        //    String key = entry.getKey();
+        //    Integer count = entry.getValue();
+        //    log.info("试题编号："+ key+"  次数："+count);
+        //}
 
         //找出map的value中最大的数字，即数组中数字出现最多的次数
         //Collection<Integer> count = map.values();
@@ -165,8 +167,8 @@ public class ADIController7 {
                 maxKey = entry.getKey();
             }
         }
-        //log.info("出现次数最多的数对象为：" + maxKey);
-        //log.info("该数字一共出现" + maxCount + "次");
+        log.info("出现次数最多的数对象为：" + maxKey);
+        log.info("该数字一共出现" + maxCount + "次");
 
     }
 
@@ -584,27 +586,27 @@ public class ADIController7 {
 
         //  单点交叉(只保留交叉一个个体)
         int point = paperGenetic[1].length;
-        //for (int i = 0; i < paperGenetic.length-1; i++) {
-            if (Math.random() < papers.getPc()) {
-                String [] temp = new String[point];
-                int a = new Random().nextInt(point);
 
-                for (int j = 0; j < a; j++) {
-                    temp[j] = paperGenetic[k][j];
-                }
+        if (Math.random() < papers.getPc()) {
+            String [] temp = new String[point];
+            int a = new Random().nextInt(point);
 
-                for (int j = a; j < point; j++) {
-                    temp[j] = paperGenetic[k+1][j];
-                }
-                // 放在内存执行,每执行一次pc 则校验一次
-                // 对tmp进行排序
-                paperGenetic[k] = sortPatch(temp);
-                // 此处需要校验属性和类型
-                // 交叉和变异各执行一次全方面校验，可能就是这个原因导致的多样性如此之高，适应度无法得到充分保证
-                // 变异具有随机性
-                correct(k);
+            for (int j = 0; j < a; j++) {
+                temp[j] = paperGenetic[k][j];
             }
-        //}
+
+            for (int j = a; j < point; j++) {
+                temp[j] = paperGenetic[k+1][j];
+            }
+            // 放在内存执行,每执行一次pc 则校验一次
+            // 对tmp进行排序
+            paperGenetic[k] = sortPatch(temp);
+            // 此处需要校验属性和类型
+            // 交叉和变异各执行一次全方面校验，可能就是这个原因导致的多样性如此之高，适应度无法得到充分保证
+            // 变异具有随机性
+            correct(k);
+        }
+
     }
 
 
@@ -660,26 +662,26 @@ public class ADIController7 {
      */
     private void mutate(Papers papers,int j) throws SQLException {
 
-        System.out.println("================== mutate ==================");
+        //mutePlus(papers,j);
+        //System.out.println("================== mutate ==================")
 
-        //for (int i = 0; i < paperGenetic.length; i++) {
-            if (Math.random() < papers.getPm()) {
 
-                //使用限制性锦标赛拥挤小生境的变异替换掉原有变异  需要将变异后的种群返回
-                ArrayList<Object> rts = niche3.RTS(paperGenetic, j);
-                int similarPhenIndex = (int) rts.get(0);
-                paperGenetic = (String[][]) rts.get(1);
-                //执行变异后的修补操作
-                correct(similarPhenIndex);
+        if (Math.random() < papers.getPm()) {
 
-                //使用确定性拥挤小生境
-                //niche2.DET(paperGenetic);
+            //限制性锦标赛拥挤小生境
+            ArrayList<Object> rts = niche3.RTS(paperGenetic, j);
+            int similarPhenIndex = (int) rts.get(0);
+            paperGenetic = (String[][]) rts.get(1);
 
-            }
-        //}
+            //执行变异后的修补操作 如果替换，则校验子类。如果未替换。si可以不进行获得，且无需校验。但校验也无所谓
+            //难道这个个体大概率相似 不是,index 很随机
+            //System.out.println(similarPhenIndex)
+            correct(similarPhenIndex);
 
-        // 这个 需要检查，应该是要去掉的
-        //mutePlus(papers);
+            //确定性拥挤小生境
+            //niche2.DET(paperGenetic);
+
+        }
 
     }
 
@@ -700,7 +702,7 @@ public class ADIController7 {
             sortArray[i] = Integer.parseInt(temp1[i].split(":")[0]);
         }
         Arrays.sort(sortArray);
-        System.out.println("排序后的数组: "+Arrays.toString(sortArray));
+        //System.out.println("排序后的数组: "+Arrays.toString(sortArray));
 
         //根据id的位置，映射，重新排序 tmp2
         String[] temp2 = new String[typeNum];
@@ -723,17 +725,17 @@ public class ADIController7 {
      *     ①计算适应度：以试卷为单位，min*exp^1
      *     ②轮盘赌进行筛选 paperGenetic=newPaperGenetic;
      *
-     * 将适应度值打印出来看一下，方便后续比较
+     * 将适应度值打印
      *      打印的位置在哪里：①一进来就打印  可能变异矫正后,已经不是教优解了。
      *                     ②轮盘赌后打印，但其实其和一进来就执行打印差不多，只多了一层筛选而已。
-     *      打印什么呢？全部的fitness信息(上点图)，top10信息,sum|avg
+     *      打印什么呢？全部的fitness信息(散点图)，top10信息,sum|avg
      *
      *      精度取小数点后三位,  指标信息取前top10的avg
      *
      */
     public  void  selection(){
 
-        System.out.println("====================== select ======================");
+        //System.out.println("====================== select ======================")
 
         //100套试卷
         int paperSize = paperGenetic.length;
@@ -823,7 +825,7 @@ public class ADIController7 {
      */
     private double[] getFitness(int paperSize){
 
-        //log.info("适应值 log4j");
+        //log.info("适应值 log4j")
 
         // 所有试卷的适应度总和
         double fitSum = 0.0;
@@ -1045,35 +1047,9 @@ public class ADIController7 {
         }
 
         //冒泡排序 打印top10
-        //bubbleSort(fitTmp);
+        klUtils.bubbleSort(fitTmp);
 
         return  fitPro;
-    }
-
-
-    /**
-     * 冒泡排序  打印top10
-     *
-     */
-    private void bubbleSort(double[] a) {
-        double temp ;
-        for(int i=0 ;i < a.length ;i++) {
-            for(int j=0 ; j< a.length-i -1;j++) {
-                if(a[j]>a[j+1]) {
-                    //互换位置
-                    temp = a[j];
-                    a[j] = a[j+1] ;
-                    a[j+1] = temp ;
-                }
-            }
-        }
-        //遍历数组排序  arr[0]=2.3626148494872097
-        for(int i=a.length -1 ;i >=90  ;i--) {
-            //System.out.printf("arr[%d]=%s\n",i,a[i]);
-            scatterIndex = scatterIndex +1 ;
-            log.info(scatterIndex + ":" + numbCohesion(a[i]));
-        }
-
     }
 
 
@@ -2353,7 +2329,7 @@ public class ADIController7 {
      */
     private ArrayList<String> correctTypeLess(Set<String> outLess, JDBCUtils4 jdbcUtils, ArrayList<String> batchItemList, int tf1, int tf2, int tf3, int tf4) throws SQLException {
 
-            System.out.println("本套试卷 题型比例不足的情况。");
+            //System.out.println("本套试卷 题型比例不足的情况。");
 
             StringBuilder sb = new StringBuilder();
             if(tf1>0){
@@ -2433,7 +2409,7 @@ public class ADIController7 {
                     // 使用flagPerfect判断是否继续寻找完美解，退出outList循环
                     // 只替换一次 outList吗?  ①目前只替换一次，除非动态更新4个题型flag以及outList  ②动态更新的好处在于可以一次性将属性校验完成
                     if (flagPerfect){
-                        System.out.println("完美解找到,退出less题型校验");
+                        //System.out.println("完美解找到,退出less题型校验");
                         break;
                     }
 
@@ -2491,7 +2467,7 @@ public class ADIController7 {
      */
     private ArrayList<String> correctAttributeLess(Set<String> outLess, JDBCUtils4 jdbcUtils, ArrayList<String> bachItemList, int af1, int af2, int af3, int af4, int af5) throws SQLException {
 
-            System.out.println("本套试卷 属性比例不足的情况。");
+            //System.out.println("本套试卷 属性比例不足的情况。");
 
             //SQL 均用and没影响  影响范围:inList  and条件使得解集变少，但更高效
             StringBuilder sb = new StringBuilder();
@@ -2689,7 +2665,7 @@ public class ADIController7 {
      */
     public ArrayList<String> correctTypeMore(Set<String> outMore,JDBCUtils4 jdbcUtils,ArrayList<String> batchItemList,int tf1,int tf2,int tf3,int tf4) throws SQLException {
 
-            System.out.println("本套试卷 题型比例过多的情况。");
+            //System.out.println("本套试卷 题型比例过多的情况。");
 
             //  SQL 均用or应该没影响  影响范围:inList解集变多
             //  CHOSE FILL SHORT COMPREHENSIVE
@@ -2818,7 +2794,7 @@ public class ADIController7 {
     public ArrayList<String> correctAttributeMore(Set<String> outMore,JDBCUtils4 jdbcUtils,ArrayList<String> bachItemList,int af1,int af2,int af3,int af4,int af5) throws SQLException {
 
 
-            System.out.println("本套试卷 属性比例过高的情况。");
+            //System.out.println("本套试卷 属性比例过高的情况。");
             //System.out.println(outMore);
 
             //SQL 均用交集没影响  效率更高
@@ -3011,7 +2987,7 @@ public class ADIController7 {
     public ArrayList<String> correctTypeMoreAndLess(Set<String> outMore,Set<String> outLess,JDBCUtils4 jdbcUtils,ArrayList<String> batchItemList,int tf1,int tf2,int tf3,int tf4) throws SQLException {
 
 
-            System.out.println("本套试卷 题型比例既有多 又有少的情况。");
+            //System.out.println("本套试卷 题型比例既有多 又有少的情况。");
             //System.out.println(outMore);
             //System.out.println(outLess);
 
@@ -3650,7 +3626,7 @@ public class ADIController7 {
      */
     private String getAttributeFlag(HashSet<String> itemSet){
 
-        System.out.println("=================  指标信息初步统计  =====================");
+        //System.out.println("=================  指标信息初步统计  =====================");
 
         //属性个数
         int attributeNum1  = 0;
@@ -3857,69 +3833,53 @@ public class ADIController7 {
     }
 
 
-//    @Test
-//    public void set() throws SQLException {
-//
-//
-//        HashSet<String> setEnd = new HashSet<>();
-//        //随机选题
-//        while(setEnd.size() != 100){
-//            //  where 1=1
-//            String sql = " 1=1 order by RAND() limit 1 ";
-//            ArrayList<String> arrayList = jdbcUtils.selectBySql(sql);
-//            HashSet<String> tmp = new HashSet<>(arrayList);
-//            setEnd.addAll(tmp);
-//        }
-//    }
-
 
     /**
      * mutePlus
+     *   这个需要检查，应该是要去掉的
+     *   是否可以不进行变异，直接进行修补，好像不行，原始部分就已经是直接修补了
+     *   试试将变异概率设置为1 看看效果  无效
      */
-    public void  mutePlus(Papers papers) throws SQLException {
+    public void  mutePlus(Papers papers,int j) throws SQLException {
 
-        //将其植入，增大变异
+        // 将其植入，增大变异
         // 以试卷为单位、交换试卷的部分试题
-        String key  ="";
-        for (int i = 0; i < paperGenetic.length; i++) {
-            if(Math.random() < papers.getPm()){
-                Random random = new Random();
-                //length-1
-                int mutatePoint = random.nextInt((paperGenetic[1].length)-1);
-                //将Array 转 hashSet
-                Set<String> set = new HashSet<>(Arrays.asList( paperGenetic[i]));
-                //System.out.println(i+" 原试卷: "+set);
+        if(Math.random() < papers.getPm()){
+            Random random = new Random();
+            //length-1
+            int mutatePoint = random.nextInt((paperGenetic[1].length)-1);
+            Set<String> set = new HashSet<>(Arrays.asList( paperGenetic[j]));
 
-                //将要变异的元素   前提是试卷有序排列
-                String s = paperGenetic[i][mutatePoint];
-                //System.out.println("  remove element: "+ s);
-                set.remove(s);
-                int removeId = Integer.parseInt(s.split(":")[0]);
-                //System.out.println("  临时试卷：  "+set);
+            //将要变异的元素
+            String s = paperGenetic[j][mutatePoint];
+            set.remove(s);
+            int removeId = Integer.parseInt(s.split(":")[0]);
 
-                //单套试卷临时存储容器
-                String[] temp1 = new String[paperGenetic[i].length];
+            //单套试卷临时存储容器
+            String[] temp1 = new String[paperGenetic[j].length];
 
-                //生成一个不存在set中的key
-                while (set.size() != paperGenetic[i].length ){
-                    key = random.nextInt(310)+1+"";
-                    if (!(key+"").equals(removeId+"")){
-                        ArrayList<String> list = jdbcUtils.selectBachItem(key);
-                        set.add(list.get(0)+"");
+            //生成一个不存在set中的key
+            String key  ;
+            while (set.size() != paperGenetic[j].length ){
+                key = (1+ random.nextInt(310))+"";
+                if (!(key+"").equals(removeId+"")){
+                    ArrayList<String> list =  jdbcUtils.selectBachItem(key);
+                    try {
+                        //频繁建立链接，将导致无从数据中拿到数据 解决方案①thread.sleep  ②放在map中
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
+                    set.add(list.get(0)+"");
                 }
-                //System.out.println("  add element: "+ key);
-                set.toArray(temp1);
-
-                //排序修补
-                paperGenetic[i] =  sortPatch(temp1);
-
-                //执行变异后的修补操作
-                correct(i);
-
             }
+            set.toArray(temp1);
 
-            //System.out.println("  最终试卷： "+Arrays.toString(paperGenetic[i]));
+            //排序修补
+            paperGenetic[j] =  sortPatch(temp1);
+
+            //执行变异后的修补操作
+            correct(j);
         }
 
     }
