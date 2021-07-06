@@ -519,8 +519,8 @@ public class Niche3 {
         for (int i = 0; i < num; i++) {
             Set<String> set1 = new HashSet<>();
             // 将个体保存为map结构
-            Map<Integer, String[]> mapc1w = new HashMap<>(4);
-            while (set1.size() != 4) {
+            Map<Integer, String[]> mapc1w = new HashMap<>(10);
+            while (set1.size() != 10) {
                 int i1 = new Random().nextInt(paperGenetic.length);
                 if (!set1.contains(":"+i1)) {
                     set1.add(":"+i1 );

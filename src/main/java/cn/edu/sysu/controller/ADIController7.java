@@ -83,7 +83,7 @@ public class ADIController7 {
 
         // i 迭代次数  选择交叉变异，应该从个体的角度出发，若全局统一化处理，将导致可能校验的时候，有些解无法校验到
         // 解决方案：加一个嵌套循环，size为种群index,然后在交叉变异中使用index依次支持
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 250; i++) {
             //选择
             selection();
 
