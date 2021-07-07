@@ -33,11 +33,15 @@ import java.util.*;
  *             4. 目前的困难在哪里：
  *                  找文献，下载不了，不找了，大不了自己实现
  *                  通过适应度开始验证融合的效果
- *                  交叉变异有一部耗时严重，需要进一步确认
+ *                  FIXME 变异耗时严重，需要进一步确认是什么环节导致的 1min迭代一次 100min
  *
  * 4. 打印适应度值，绘制折线图
  *      1.全部打印  行不通，效果无法展示           not ok
- *      2.每隔10代全量打印一次，显示各个指标的位置   ok
+ *      2.每隔10代全量打印一次，显示各个指标的位置  not ok
+ *
+ * 5. 准备明天的汇报材料
+ *      这周完成了什么，尝试了什么，以及效果如何，遇到了什么难题
+ *
  *
  *
  *
@@ -50,14 +54,8 @@ public class Niche4 {
     private double[][]  paper_genetic =new double[200][10];
     private int POPULATION_SIZE = 200;
     private int GENE_SIZE = 10;
-    private int ITERATION_SIZE = 100;
 
-    //private static Log log = LogFactory.getLog(Niche4.class);
-    /**
-     * log4j:WARN No appenders could be found for logger (cn.edu.sysu.niche.Niche4).
-     * log4j:WARN Please initialize the log4j system properly.
-     * log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
-     */
+
     private static Logger log = Logger.getLogger(Niche4.class);
 
     /**
@@ -65,6 +63,8 @@ public class Niche4 {
      */
     @Test
     public void main()  {
+
+        int ITERATION_SIZE = 100;
 
         // 初始化
         init();
@@ -104,8 +104,6 @@ public class Niche4 {
 
             //System.out.println("====================== select ======================");
 
-            //200套试卷
-            //int paperSize = POPULATION_SIZE;
 
             //轮盘赌 累加百分比
             double[] fitPie = new double[POPULATION_SIZE];
@@ -268,6 +266,11 @@ public class Niche4 {
 
     /**
      * 打印个体的适应度值
+     *      1. 散点图（key|value）
+     *      2. 200 和 1000 之间的关系如何确定
+     *          2.1 设置为1000，显然不合适，而且这个1000 只是为了配合横坐标？
+     *          2.2 目前遇到的难题在于 wps内置的散点图，只有一个横坐标，无法叠加在一起进行效果的显示
+     *
      */
     private void fitnessCalculations(){
 
@@ -280,7 +283,7 @@ public class Niche4 {
                 sumnum = sumnum + paper_genetic[i][i1];
             }
 
-            log.info(sin1(sumnum/GENE_SIZE));
+            log.info(sumnum/GENE_SIZE + "==>"+ sin1(sumnum/GENE_SIZE));
 
         }
     }
@@ -332,6 +335,11 @@ public class Niche4 {
      *          计算基因片段的平均值，然后使用多峰函数计算
      *          平均值是将基因片段平均 还是将适应度值平均，其是存在差异的
      *          为了保证x的唯一，此处选择将基因片段平均
+     *                  1.基因片段平均导致的是 x呈现正态，故数据展现是存在偏差的，目前唯一希望的是，其五个峰，有三个峰能存在值，那么说明正态分布式有效的
+     *                    赋予权重可以解决问题，但权重的大小需要进一步计算   not ok
+     *                  2.如果堆积在一个点上，如何证明其是有效的呢？
+     *                    是否可以只通过无交叉只变异来证明呢。这样的话，每个x出现的概率是一致的
+     *                    但这样也有一个问题,如何判断相似性  not ok
      *
      */
     private double[] getFitness(){

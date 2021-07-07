@@ -116,7 +116,6 @@ public class Niche5 {
     private static double[][] paperGenetic =new double[200][10];
     private int POPULATION_SIZE = 200;
     private int GENE_SIZE = 10;
-    private int ITERATION_SIZE = 100;
 
 
 
@@ -155,14 +154,15 @@ public class Niche5 {
      * 如果f(c1)>f(d1),则用c1替换d1,否则保留d1;
      * 如果f(c2)>f(d2),则用c2替换d2,否则保留d2;
      *
+     * 表现型  适应度值，或者 minAdi
+     * 基因型  解(2,3,56,24,4,6,89,98,200,23)
      *      换成基因型吗:为了多样性
      *      替换表现型相似的个体，其后期跳出循环的可能性不大，以及逻辑上存在问题，多峰且各个峰值相等
      *      替换基因型相似的个体，其是否能维持多样性？ 待确认
      *
      */
     private void closestResemble(ArrayList<double[]> cList, ArrayList<Map<Integer, double[]>[]> cwList) {
-        //  表现型  适应度值，或者 minAdi
-        //  基因型  解(2,3,56,24,4,6,89,98,200,23)
+
         double[] c1 = cList.get(0);
 
         Map<Integer, double[]>[] cw1 = cwList.get(0);
@@ -176,16 +176,16 @@ public class Niche5 {
 
     /**
      * 在cw1中寻找c1的近似解  5个小生境  4*5元锦标赛  c1是一套试卷  cw1是c*w套试卷
-     * 根据基因型来找出最相似的值
+     * 根据基因型来找出最相似的解
      *
      */
     private void similarGene(double[] c1, Map<Integer, double[]>[] cw1) {
 
         double max = 0;
-        // 设置为0  可能会导致0号索引的数据一直在变化 解决方案：使得每次均能找到相似的个体
+        // 设置为0 可能会导致0号索引的数据一直在变化 解决方案：使得每次均能找到相似的个体  目前相似个体数能达到13 会不会太离谱了些
         int maxPhen = 0;
 
-        // 外层C小生境数，内层W元锦标赛
+        // 外层C小生境数，内层W锦标赛
         // FIXME 考虑一下，窗口大小究竟是 4*5 还是 4
         for (Map<Integer, double[]> aCw11 : cw1) {
 
@@ -238,14 +238,16 @@ public class Niche5 {
      */
     private int compareArrSameNum(double[] arr, double[] arr2) {
 
-        //用于计数
+        // 用于计数
         int c = 0;
-        //遍历arr数组的所有元素
+        // 遍历arr数组的所有元素
         for (int x = 0; x < arr.length; x++) {
-            //遍历arr2数组中的所有元素
+            // 看看这样是否能加快循环
+            String s1 = formatDouble(arr[x]);
+            // 遍历arr2数组中的所有元素
             for (int y = 0; y < arr2.length; y++) {
-                //计数+1，即相同元素的个数+1
-                if (formatDouble(arr[x]).equals(formatDouble(arr2[y]))) {
+                // 计数+1，即相同元素的个数+1
+                if (s1.equals(formatDouble(arr2[y]))) {
                     c++;
                 }
             }
@@ -276,9 +278,7 @@ public class Niche5 {
 
 
     /**
-     *  分别为c1从当前种群中随机选取c*w个体
-     *  当前种群和题库的关系
-     *  题库: 310 道题
+     *  分别为c1从当前种群中随机选取c*w个体   怎么会是从题库中搜索题呢，明显是当前种群
      *  种群: 4*5<=20（存在重复+交叉变异）
      *
      *  是否是20元锦标赛过大，待后续优化
@@ -292,7 +292,7 @@ public class Niche5 {
         int window = 4 * 5;
         Map<Integer, double[]>[] cwList1 = new HashMap[num];
 
-        // 基本单位:试卷。故随机生成一个下标即可 (需保存下标,方便后续替换 map(k,v))
+        // 基本单位:试卷,随机生成一个下标即可 (需保存下标,方便后续替换 map(k,v))
         // 数组裹map
         for (int i = 0; i < num; i++) {
             Set<String> set1 = new HashSet<>();
@@ -327,7 +327,7 @@ public class Niche5 {
 
     /**
      *  通过变异获得c1个体
-     *  随机变异
+     *  随机变异某个基因片段 + 完善交叉导致的基因长度缺失问题
      *
      */
     private ArrayList<double[]> mutate(double[] c1)  {
