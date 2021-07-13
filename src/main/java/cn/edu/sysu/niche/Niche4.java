@@ -27,11 +27,6 @@ import java.util.*;
  *          niche 当做评价因子来使用
  *          初始化 -- 选择 -- 交叉 -- 变异 -- 修补 -- niche
  *
- *     基本能跑，而且能够往适应度高的地方得出适应度值，很强
- *     接下来要处理的问题:
- *          1.保证多样性，延迟over time
- *          2.计算每个个体的数目,得出个体数目曲线图
- *
  *          人工计算终究不是回事，需要使用代码简化操作。如：abs小于0.02 则等于0.5
  *          第40代
  *              试题编号：0.1  次数：17
@@ -46,6 +41,11 @@ import java.util.*;
  *              试题编号：0.5  次数：116
  *              试题编号：0.7  次数：1
  *              试题编号：0.9  次数：17
+ *
+ *          今晚任务：
+ *              1.初步实现dc 和 rts  （rts是重点）
+ *              2.保证多样性，延迟over time   基本能跑，而且能够往适应度高的地方得出适应度值，很强
+ *              3.计算每个个体的数目,得出个体数目曲线图
  *
  */
 public class Niche4 {
@@ -92,12 +92,13 @@ public class Niche4 {
                 //elitistStrategy();
 
                 // 确定性拥挤小生境
-                dc(j);
+                //dc(j);
+                rts(j);
 
             }
 
             // 统计相似个体的数目
-            if(i%10==0){
+            if(i%20==0){
                 countCalculations(paper_genetic);
                 //fitnessCalculations();
             }
@@ -149,7 +150,6 @@ public class Niche4 {
             int newSelectId = 0;
             for (int i = 0; i < POPULATION_SIZE; i++) {
                 while (newSelectId < POPULATION_SIZE && randomId[newSelectId] < fitPie[i]){
-                    //需要确保fitPie[i] 和 paperGenetic[i] 对应的i 是同一套试卷
                     new_paper_genetic[newSelectId]   = paper_genetic[i];
                     newSelectId += 1;
                 }
@@ -177,8 +177,8 @@ public class Niche4 {
         System.out.println("=== crossCover begin ===");
 
         // 将变异系数变大,以及x1 x2 使用随机值
-        double pm = 0.8;
-        if (Math.random() < pm) {
+        double pc = 0.6;
+        if (Math.random() < pc) {
             // 保留交叉后的两新个体，并提升为全局变量
             double lemuda = Math.random();
             tmp1 = (lemuda * paper_genetic[k]) + ((1 - lemuda) * paper_genetic[k + 1]);
@@ -197,7 +197,8 @@ public class Niche4 {
 
         System.out.println("=== mutate begin ===");
 
-        if (Math.random() < 0.4) {
+        double pm = 0.8;
+        if (Math.random() < pm) {
             // 保留变异后的两新个体，并提升为全局变量 其实参数没必要过多纠结,其目的只是为了产生新个体
             double lemuda = Math.random();
             tmp1 = (lemuda * tmp1) + ((1 - lemuda) * Math.random());
@@ -296,8 +297,6 @@ public class Niche4 {
             fitPro[i] = fitTmp[i] / fitSum;
         }
 
-        //冒泡排序 打印top10
-        //bubbleSort(fitTmp);
 
         return  fitPro;
     }
@@ -351,15 +350,32 @@ public class Niche4 {
         cList.add(paper_genetic[i+1]);
 
 
-        // 限制拥挤小生境算法  为c1从当前种群中随机选取c*w个体  5个小生境  4*5元锦标赛
-        // ArrayList<Map<Integer, Double>[]> cwList = championship();
         // 确定性拥挤算法
         ArrayList<Double> cwList = deterministicCrowding();
 
         // 替换 or 保留
         // cList: 原始父代，  cwList:新个体 原始父代 和 交叉变异后的个体进行比较操作
-        // closestResemble(cList, cwList);
         closestResembledc(cList, cwList, i);
+
+    }
+
+    /**
+     * 限制性选择小生境
+     *
+     */
+    public void  rts(int i)  {
+
+        // 父代 c1 c2  限制拥挤小生境算法  为c1从当前种群中随机选取c*w个体  5个小生境  4*5元锦标赛
+        ArrayList<Map<Integer, Double>[]> cList = championship();
+
+
+        // 替补解
+        ArrayList<Double> cwList = deterministicCrowding();
+
+
+        // 替换 or 保留
+        // cList: 原始父代，  cwList:新个体   原始父代 和 交叉变异后的个体进行比较操作
+        closestResembleRts(cList, cwList);
 
     }
 
@@ -373,15 +389,18 @@ public class Niche4 {
      *      替换基因型相似的个体，其是否能维持多样性？ 待确认
      *
      */
-    private void closestResemble(ArrayList<Double> cList, ArrayList<Map<Integer, Double>[]> cwList) {
+    private void closestResembleRts(ArrayList<Map<Integer, Double>[]> cList, ArrayList<Double> cwList) {
         //  表现型  适应度值，或者 minAdi
         //  基因型  解(2,3,56,24,4,6,89,98,200,23)
-        double c1 = cList.get(0);
+        Map<Integer, Double>[] c11 = cList.get(0);
+        Map<Integer, Double>[] c12 = cList.get(1);
 
-        Map<Integer, Double>[] cw1 = cwList.get(0);
+        double cw21 = cwList.get(0);
+        double cw22 = cwList.get(0);
 
         // 选取基因型做相似性校验
-        similarGene(c1, cw1);
+        similarGene(c11, cw21);
+        similarGene(c12, cw22);
 
     }
 
@@ -399,8 +418,7 @@ public class Niche4 {
      */
     private void closestResembledc(ArrayList<Double> cList, ArrayList<Double> cwList,int i) {
 
-        //  表现型  适应度值，或者 minAdi
-        //  基因型  解(2,3,56,24,4,6,89,98,200,23)
+        // 使用基因型判断相似性
         double c1 = cList.get(0);
         double c2 = cList.get(1);
 
@@ -435,22 +453,19 @@ public class Niche4 {
 
 
 
-
-
     /**
-     * 在cw1中寻找c1的近似解  5个小生境  4*5元锦标赛  c1是一套试卷  cw1是c*w套试卷
+     * 在c1中寻找cw1的近似解  5个小生境  4*5元锦标赛  c1是c*w套试卷  cw1是1套试卷
      * 根据基因型来找出最相似的值
      *
      */
-    private void similarGene(double c1, Map<Integer, Double>[] cw1) {
+    private void similarGene(Map<Integer, Double>[] c1, double cw1) {
 
         double max = 9999;
         // 设置为0  可能会导致0号索引的数据一直在变化 解决方案：使得每次均能找到相似的个体
         int maxPhen = 0;
 
         // 外层C小生境数，内层W元锦标赛
-        // FIXME 考虑一下，窗口大小究竟是 4*5 还是 4
-        for (Map<Integer, Double> aCw11 : cw1) {
+        for (Map<Integer, Double> aCw11 : c1) {
 
             double c2;
             // 遍历map
@@ -460,7 +475,7 @@ public class Niche4 {
                     c2 = aCw11.get(key);
 
                     // 获取最相似的解  相似的判定标准：基因型
-                    double sameNum = compareArrSameNum(c1, c2);
+                    double sameNum = compareArrSameRts(c2,cw1);
                     if (max > sameNum) {
                         max = sameNum;
                         maxPhen = key;
@@ -490,9 +505,9 @@ public class Niche4 {
      *      难点在于 可能基因型都只有一个元素不一样  故基因型的判断可能需要将改变了近似相等
      *      会是这里导致 速度变慢的吗？
      */
-    private double compareArrSameNum(double arr, double arr2) {
+    private double compareArrSameRts(double arr, double arr2) {
 
-        return  Math.abs(arr - arr2);
+        return  Math.abs(sin1(arr) - sin1(arr2));
     }
 
 
@@ -502,8 +517,6 @@ public class Niche4 {
     /**
      *  分别为c1从当前种群中随机选取c*w个体
      *  当前种群和题库的关系
-     *  题库: 310 道题
-     *  种群: 4*5<=20（存在重复+交叉变异）
      *
      *  是否是20元锦标赛过大，待后续优化
      *  Map<Integer, double[]>  key是paperGenetic的索引，value是基因型
