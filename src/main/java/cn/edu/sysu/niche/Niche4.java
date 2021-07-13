@@ -21,10 +21,10 @@ import java.util.*;
  *
  * FIXME 本周任务
  *     4.1 校验niche效果 + 相似度指标的确定
- *          交叉变异: r表达式 rx1+(1-r)x2       abs(x1 -x2)
+ *          交叉变异: r表达式 rx1+(1-r)x2       abs(x1 - x2)
  *
  *     4.2 niche 和 修补 的冲突
- *          niche 当做评价因子来使用,
+ *          niche 当做评价因子来使用
  *          初始化 -- 选择 -- 交叉 -- 变异 -- 修补 -- niche
  *
  *     基本能跑，而且能够往适应度高的地方得出适应度值，很强
@@ -63,7 +63,6 @@ public class Niche4 {
     double tmp1;
     double tmp2;
 
-    //private static Log log = LogFactory.getLog(Niche4.class);
     private  Logger log = Logger.getLogger(Niche4.class);
 
     /**
@@ -119,7 +118,7 @@ public class Niche4 {
             //轮盘赌 累加百分比
             double[] fitPie = new double[POPULATION_SIZE];
 
-            //每套试卷的适应度占比  基因片段平均值的适应度值
+            //每套试卷的适应度占比
             double[] fitPro = getFitness();
 
             //累加初始值
@@ -177,14 +176,14 @@ public class Niche4 {
 
         System.out.println("=== crossCover begin ===");
 
-        double pm = 0.4;
+        // 将变异系数变大,以及x1 x2 使用随机值
+        double pm = 0.8;
         if (Math.random() < pm) {
             // 保留交叉后的两新个体，并提升为全局变量
             double lemuda = Math.random();
-             tmp1 = (lemuda * paper_genetic[k]) + ((1 - lemuda) * paper_genetic[k + 1]);
-             tmp2 = (lemuda * paper_genetic[k]) + ((1 - lemuda) * paper_genetic[k + 1]);
+            tmp1 = (lemuda * paper_genetic[k]) + ((1 - lemuda) * paper_genetic[k + 1]);
+            tmp2 = ((1 - lemuda) * paper_genetic[k]) + (lemuda * paper_genetic[k + 1]);
         }
-
     }
 
 
@@ -199,10 +198,10 @@ public class Niche4 {
         System.out.println("=== mutate begin ===");
 
         if (Math.random() < 0.4) {
-            // 保留变异后的两新个体，并提升为全局变量
+            // 保留变异后的两新个体，并提升为全局变量 其实参数没必要过多纠结,其目的只是为了产生新个体
             double lemuda = Math.random();
             tmp1 = (lemuda * tmp1) + ((1 - lemuda) * Math.random());
-            tmp2 = (lemuda * tmp2) + ((1 - lemuda) * Math.random());
+            tmp2 = ((1 - lemuda) * tmp2) + (lemuda * Math.random());
 
         }
 
@@ -255,7 +254,7 @@ public class Niche4 {
      * 随机生成初代种群
      *      200个体  单基因
      */
-    public  void  init( ) {
+    private void  init() {
         System.out.println("=== init begin ===");
         for (int i = 0; i < POPULATION_SIZE; i++) {
             paper_genetic[i] = Math.random();
@@ -352,7 +351,7 @@ public class Niche4 {
         cList.add(paper_genetic[i+1]);
 
 
-        // 为c1从当前种群中随机选取c*w个体  5个小生境  4*5元锦标赛
+        // 限制拥挤小生境算法  为c1从当前种群中随机选取c*w个体  5个小生境  4*5元锦标赛
         // ArrayList<Map<Integer, Double>[]> cwList = championship();
         // 确定性拥挤算法
         ArrayList<Double> cwList = deterministicCrowding();
