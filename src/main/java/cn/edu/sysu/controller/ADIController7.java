@@ -1,4 +1,4 @@
-package cn.edu.sysu.gmall_publisher.controller;
+package cn.edu.sysu.controller;
 
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.niche.Niche3;
@@ -42,7 +42,6 @@ public class ADIController7 {
     /* 100套试卷 10道题  */
     private static String[][] paperGenetic =new String[100][10];
 
-
     private  JDBCUtils4 jdbcUtils = new JDBCUtils4();
 
     /* 小生境对象 */
@@ -66,7 +65,7 @@ public class ADIController7 {
     @Test
     public  void ori() throws SQLException, FileNotFoundException {
 
-        //选择100套的原因，只有基数够大，才能为交叉变异提供相对较多的原始材料  打算先以100套试卷为变更基础,最后正序取前三
+        //选择100套的原因，基数够大，能为交叉变异提供相对较多的原始材料
         //抽取试卷  100套、每套试卷10题
         Papers papers = new Papers();
         papers.setPc(0.6);
@@ -260,8 +259,7 @@ public class ADIController7 {
      *      1.题型构造解决 （完全随机模式,不考虑下限比例）
      *      2.属性构造解决 （完全随机模式,不考虑下限比例）
      *      3.设置属性比例  可以通过惩罚系数来设定  超出,则急剧减少
-     *      4.缺陷在于无法设置权重 => 解决方案：在初始化的时候，就不一定保证题型和属性符合要求，使用GA
-     *            迭代和轮盘赌解决。
+     *      总结：在初始化的时候，不需要保证题型和属性符合要求，使用GA迭代和轮盘赌解决
      *
      *
      */
@@ -279,7 +277,7 @@ public class ADIController7 {
         HashSet<String> itemSet = new HashSet<>();
 
         // 题库310道题  50:100:100:50:10   硬性约束：长度  软性约束：题型，属性比例
-        // 获取题库所有试题  [8:CHOSE:(1,0,0,0,0), 3:CHOSE:(0,0,0,1,0)]
+        // 获取题库所有试题  [8:CHOSE:(1,0,0,0,0),....]
         bankList = getBank();
 
         for (int j = 0; j < paperNum; j++) {
@@ -733,7 +731,7 @@ public class ADIController7 {
      *      精度取小数点后三位,  指标信息取前top10的avg
      *
      */
-    public  void  selection(){
+    public  void   selection(){
 
         //System.out.println("====================== select ======================")
 
@@ -816,8 +814,7 @@ public class ADIController7 {
     /**
      * 每套试卷的适应度占比
      *
-     * 1.selection 计算适应度值,
-     * 2.elitistStrategy 保存全局变量(全局最优  局部最优)
+     * selection 计算适应度值
      *     方案  进行乘以一个exp 来进行适应度值的降低，高等数学里以自然常数e为底的指数函数
      *     题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
      *     属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
@@ -1146,12 +1143,12 @@ public class ADIController7 {
 
 
     /**
-     * 1.计算每道试题的适应度值比例
+     * 1.根据已选试题，计算题库中每道试题的适应度值比例
      * 2.每道题的概率为 1*penalty^n,总概率为310道题叠加
-     *      2.1  初始化的时候将全局的310题查询出来,（id,type,pattern）
+     *      2.1  初始化的时候将全局的310题查询出来（id:type:pattern）
      *      2.2  求出每道试题的概率 1 * 惩罚系数
      *      2.3  求出每道试题的适应度占比
-     *  题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
+     *  题型比例 选择[0.2,0.4]   填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
      *  属性比例 第1属性[0.2,0.4]第2属性[0.2,0.4] 第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
      *
      */
@@ -1166,8 +1163,8 @@ public class ADIController7 {
         // 每道试题的适应度占比   疑问:1/310 会很小,random() 这样产生的值是否符合要求
         double[] fitPro = new double[bankList.size()];
 
-        // 是否会因为数据库属性排列的规则，导致随机选取的题目不具有代表性  50~150均为填空题,这样的话，题目就算概率受到惩罚系数的影响，因为基数大导致影响波动变小
-        // 解决方案:题目顺序打乱（修改数据库的属性排序、查询返回的结果进行随机化、bankList使用hashSet接收）
+        // 数据库属性排列的规则,因为基数大,导致随机选取的题目不具有代表性
+        // 解决方案:题目顺序打乱（修改数据库的属性排序）
 
             //题型个数
             int typeChose  = 0;
@@ -1243,15 +1240,14 @@ public class ADIController7 {
 
             // 题型和属性比例 和轮盘赌搭建关系：
             //      已抽取的属性个数越多，则惩罚系数越大 且各个属性是累乘关系
-            //      比例和一个固定值做比较即可
-            //      eg: typeChose/10    AttributeRatio1/23
+            //      比例和一个固定值做比较即可  eg: typeChose/10    AttributeRatio1/23
             //      如果未超出比例，则按照正常流程走，一旦超过，则适应度值急剧下降
-
             for (int j = 0; j < bankList.size(); j++) {
                 double penalty = 1;
                 String[] splits = bankList.get(j).split(":");
 
-                //题型比例
+                // 题型比例
+                // 为什么小于也要做惩罚，因为选取了一次，需要实时统计比例信息，并获取惩罚系数
                 if(splits[1].contains(TYPE.CHOSE+"")){
                     if(typeChoseRation<0.4){
                         penalty = penalty * Math.pow(0.5,typeChose);
@@ -1343,7 +1339,7 @@ public class ADIController7 {
 
 
     /**
-     * 返回题库所有试题 id,type,pattern
+     * 返回题库所有试题 id:type:pattern
      *
      */
     private ArrayList<String> getBank() throws SQLException {
