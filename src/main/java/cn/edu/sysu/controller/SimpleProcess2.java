@@ -1,4 +1,4 @@
-package cn.edu.sysu.controller;
+package cn.edu.sysu.gmall_publisher.controller;
 
 import cn.edu.sysu.pojo.Papers;
 import cn.edu.sysu.pojo.Questions;

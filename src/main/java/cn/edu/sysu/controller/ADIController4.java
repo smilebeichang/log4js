@@ -1,8 +1,7 @@
-package cn.edu.sysu.controller;
+package cn.edu.sysu.gmall_publisher.controller;
 
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.pojo.Papers;
-import cn.edu.sysu.pojo.QuorumPeer;
 import cn.edu.sysu.utils.JDBCUtils4;
 import cn.edu.sysu.utils.KLUtils;
 import org.junit.Test;

@@ -1,4 +1,4 @@
-package cn.edu.sysu.controller;
+package cn.edu.sysu.gmall_publisher.controller;
 
 import org.apache.log4j.Logger;
 
