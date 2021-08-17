@@ -572,9 +572,9 @@ public class ADIController7 {
 
 
     /**
-     * 交叉  此处不涉及适应度
+     * 交叉+修补  此处不涉及适应度
      *      ①交叉的单位:  试题
-     *      ②交叉的结果： 长度,题型,属性比例 进一步用修补算子进行修补
+     *      ②修补的方面:  长度,题型,属性比例
      *
      *          random.nextInt(100)  指生成一个介于[0,n)的int值
      *          选择（轮盘赌）：择优录取+多样式减低
@@ -599,8 +599,7 @@ public class ADIController7 {
             // 放在内存执行,每执行一次pc 则校验一次
             // 对tmp进行排序
             paperGenetic[k] = sortPatch(temp);
-            // 此处需要校验属性和类型
-            // 交叉和变异各执行一次全方面校验，可能就是这个原因导致的多样性如此之高，适应度无法得到充分保证
+            // 此处需要校验属性和类型 交叉和变异各执行一次全方面修补，可能就是这个原因导致的多样性如此之高，适应度无法得到充分保证
             // 变异具有随机性
             correct(k);
         }
@@ -1648,11 +1647,11 @@ public class ADIController7 {
 
             //System.out.println("第 "+w+" 题, 交叉/变异导致size不匹配：开始进行长度修补 ");
 
-            //只考虑下限影响范围是什么？
+            //只考虑下限影响范围
             double typeLower1 = 0.1;
             double typeLower2 = 0.2;
 
-            //分别将题型的数量进行统计
+            //题型数量进行统计
             //在idea中，会为重新分配过地址的变量加上下划线，是为了快速发现那些变量被重新分配了地址
             int typeChose  = 0;
             int typeFill   = 0;
@@ -1785,6 +1784,7 @@ public class ADIController7 {
         //ArrayList<String> 转 hashSet<String>
         HashSet<String> itemSet = new HashSet<>(bachItemList);
 
+        // 获取个体的题型指标信息
         String attributeFlag = getAttributeFlag(itemSet);
 
         int af1 = Integer.parseInt(attributeFlag.split(",")[0]);
@@ -1956,7 +1956,6 @@ public class ADIController7 {
      *      无需保证迭代过程中实时的维持一致性，保证每次迭代的选取时题型比例适当即可，即最终一致性
      *
      *
-     *
      *      3.0 执行修补操作
      *      目标：将in解替换out解
      *      方法：去题库中搜索，取出新解集后，循环遍历，然后重新计算是否符合要求，这样将会导致计算很冗余
@@ -1975,6 +1974,7 @@ public class ADIController7 {
         // 只是转换，不会导致size上的变动
         HashSet<String> setBegin = new HashSet<>(Arrays.asList(paperGenetic[w]));
 
+        // 获取个体的题型指标信息
         String typeFlag = getTypeFlag(setBegin);
 
         int tf1 = Integer.parseInt(typeFlag.split(",")[0]);

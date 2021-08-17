@@ -57,6 +57,12 @@
             <artifactId>mysql-connector-java</artifactId>
             <version>5.1.47</version>
         </dependency>
+        <dependency>
+            <groupId>com.ibm.icu</groupId>
+            <artifactId>icu4j</artifactId>
+            <version>60.2</version>
+            <scope>compile</scope>
+        </dependency>
 
     </dependencies>
 </project>

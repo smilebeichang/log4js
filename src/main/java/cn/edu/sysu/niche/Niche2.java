@@ -3,13 +3,11 @@ package cn.edu.sysu.niche;
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.controller.ADIController6;
 import cn.edu.sysu.utils.JDBCUtils4;
-import org.apache.commons.lang3.ArrayUtils;
 
 
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.zip.DeflaterOutputStream;
 
 /**
  * @Author : song bei chang

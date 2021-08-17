@@ -1,7 +1,7 @@
 package cn.edu.sysu.adi;
 
-import cn.edu.sysu.controller.ADIController;
 
+import cn.edu.sysu.controller.ADIController;
 
 import java.sql.SQLException;
 import java.util.*;
