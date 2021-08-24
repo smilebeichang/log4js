@@ -86,7 +86,7 @@ public class DNDR2 {
             // 将群体中的个体分配到不同小生境中
             distributeNiche();
             // 判断哪些峰需要合并(矩阵+凹点问题)
-            judgeMerge();
+            int[][] judgeMergeArray = judgeMerge();
 
             //selectionRts();
 
@@ -447,19 +447,58 @@ public class DNDR2 {
      * 判断哪些峰需要合并(矩阵+凹点问题) mapArrayList leaderSet
      *    用距离公式来表示任意两个小生境之间的关系,得出一个距离关系的w矩阵
      *
+     *    使用什么来保存矩阵关系呢？
+     *    直接使用一个二维数组吧,但二维数组的长度是确定的，所以最好的方式是此方法返回一个二维数组，而不是使用全局变量
+     *
+     *
+     *
      */
-    private void judgeMerge() {
-        // 遍历获取距离关系,并生成矩阵
-        for (String s1 : leaderSet) {
-            for (String s2 : leaderSet) {
-                if (!s1.equals(s2)){
-                    // 将距离存在一个集合之中，然后选取最小值(0,1),可以参考之前的矩阵
-                    double distance = Double.valueOf(s1.split("_")[1]) - Double.valueOf(s2.split("_")[1]);
+    private int[][] judgeMerge() {
 
-
-                }
+        // 将E-脏数据去除
+        HashSet<String> nl = new HashSet<>();
+        for (String s : leaderSet) {
+            if (!s.contains("E-")){
+                nl.add(s);
             }
         }
+        System.out.println(leaderSet.size()+" vs "+nl.size());
+
+        // 距离关系w矩阵
+        int[][] distanceMatrix =new int[nl.size()][nl.size()];
+
+        // set 转 arrayList
+        List<String> leaderList = new ArrayList<>(nl);
+        System.out.println(leaderList);
+
+        // 遍历获取距离关系,并生成矩阵
+        for (int i=0;i < leaderList.size(); i++) {
+            double min = 9999; int a=0; int b=0;
+            for (int j=0;j < leaderList.size(); j++) {
+
+                if (!leaderList.get(i).equals(leaderList.get(j))){
+                    // 将距离存在一个集合之中，然后选取最小值(0,1),可以参考之前的矩阵
+                    double distance = Math.abs(Double.valueOf(leaderList.get(i).split("_")[1]) - Double.valueOf(leaderList.get(j).split("_")[1]));
+                    // 取出最小值
+                    if (min > distance){
+                       a = i; b = j; min = distance;
+                    }
+                }
+            }
+            System.out.println(a+","+b);
+            // 将ab有值时,赋值为1,其余赋值为0
+            distanceMatrix[a][b]=1;
+
+        }
+        // 先尝试遍历二维数组试试
+        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
+                System.out.print(distanceMatrix[i1][i2]+" , ");
+            }
+            System.out.println();
+
+        }
+        return distanceMatrix;
 
 
     }
