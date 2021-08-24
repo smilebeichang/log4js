@@ -1,9 +1,9 @@
 package cn.edu.sysu.niche;
 
 import com.sun.istack.internal.NotNull;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
-import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -71,7 +71,7 @@ public class DNDR2 {
      *  1.稳态GA
      */
     @Test
-    public void main() throws SQLException {
+    public void main() {
 
         // 初始化
         init();
@@ -86,9 +86,13 @@ public class DNDR2 {
             // 将群体中的个体分配到不同小生境中
             distributeNiche();
             // 判断哪些峰需要合并(矩阵+凹点问题)
-            int[][] judgeMergeArray = judgeMerge();
+            HashSet<String> hs = judgeMerge();
+            // 合并
+            merge(hs);
 
             //selectionRts();
+
+
 
 
 
@@ -98,16 +102,33 @@ public class DNDR2 {
 
     }
 
+    /**
+     * 合并
+     *    集合调整
+     *    半径调整1
+     *    个体剔除操作
+     *    半径调整2
+     */
+    public void merge(HashSet<String> hs) {
+        // 集合是否还需进一步去重,待进一步考量
+        for (String h : hs) {
+            mapArrayList.get(h.split(":")[0]);
+            mapArrayList.get(h.split(":")[1]);
+            System.out.println("++++++++++");
+        }
 
+
+
+    }
 
 
     /**
      * 随机生成初代种群
      *      200个体  单基因
      *      优化方案1：初始化一次，存入文件中，后续统一调用。但时间上估计不会相差太大。只是200个个体而已
-     *      优化方案2：初始化时保证0.001.这样可以方便后续的计算。
+     *      优化方案2：初始化时保证0.001.这样可以方便后续的计算
      *
-     *      个体的越多,越具有代表性。
+     *      个体的越多,越具有代表性
      */
     private void  init() {
         System.out.println("=== init POPULATION_SIZE ===");
@@ -143,6 +164,18 @@ public class DNDR2 {
         return Double.valueOf(String.format("%.3f", adi));
 
     }
+
+
+    @Test
+    public void ttt(){
+        /*System.out.println(sin1(0.602));
+        System.out.println(sin1(0.703));*/
+        System.out.println(sin1(0.997)*0.9);
+        System.out.println(6.463107308182912E-4 > 5.5157804095745435E-8);
+    }
+
+
+
 
 
     /**
@@ -392,7 +425,9 @@ public class DNDR2 {
      *
      *  后续步骤：
      *      1.选取leader
+     *           最后有些个体其实不应该成为leader，暂时不深究，待后续完成
      *      2.选取member
+     *           保证数据总数不变
      */
     private void distributeNiche() {
 
@@ -400,6 +435,7 @@ public class DNDR2 {
         for (int i = 0; i < sortList.size(); i++) {
             if (leaderSet.size()==0){
                 leaderSet.add(sortList.get(i));
+                System.out.println("leader: "+sortList.get(i));
             }else{
                 double a  = Double.valueOf(sortList.get(i).split("_")[1]);
                 // 需要使用一个计数器，进行判断是否符合全部要求
@@ -421,86 +457,165 @@ public class DNDR2 {
 
         // 选取member ①每选完一个leader之后立即进行选取，可以避免无效的迭代 ②选完全部leader之后再进行，可以避免ConcurrentModificationException
         // 是否存在一个点分布在两个小生境中  no
-        //         现象：存在一个值在两个小生境中   0.4 分别在0.301和0.0407中
-        //         原因: leader选取出了点问题,最后有些个体其实不应该成为leader，暂时不深究，待后续完成
+        //     现象：存在一个值在两个小生境中   0.4 分别在0.301和0.0407中
+        //     解决方案：每次判断完后，对这个个体标记，表明已经清除
         // 选取member
-        // 输出leader
+        int sum = 0;
         for (String leader : leaderSet) {
             ArrayList<String> memberList = new ArrayList<>();
             double b  = Double.valueOf(leader.split("_")[1]);
-            for (String s : sortList) {
-                double a  = Double.valueOf(s.split("_")[1]);
-                if(Math.abs(a-b)<radius){
-                    memberList.add(s);
+            for (int i=0;i<sortList.size();i++) {
+                String s = sortList.get(i);
+                if (!StringUtils.isBlank(s)){
+                    double a  = Double.valueOf(s.split("_")[1]);
+                    if(Math.abs(a-b)<radius){
+                            memberList.add(s);
+                            sortList.set(i, "");
+                    }
                 }
             }
             mapArrayList.put(leader, memberList);
+            sum = memberList.size() + sum;
         }
 
 
-        // System.out.println(mapListArrayList);
+        System.out.println(sum);
 
 
     }
 
     /**
      * 判断哪些峰需要合并(矩阵+凹点问题) mapArrayList leaderSet
-     *    用距离公式来表示任意两个小生境之间的关系,得出一个距离关系的w矩阵
+     *    用距离公式来表示任意两个小生境之间的关系,得出一个距离关系的w矩阵,因为是矩阵,所以后续需进一步去重
      *
      *    使用什么来保存矩阵关系呢？
-     *    直接使用一个二维数组吧,但二维数组的长度是确定的，所以最好的方式是此方法返回一个二维数组，而不是使用全局变量
+     *    此方法返回一个动态大小的二维数组，而不是使用全局变量
      *
+     *    待优化：其实没必要返回距离关系矩阵，只要将要合并的集合返回即可，可能是一个，也可能是多个
      *
      *
      */
-    private int[][] judgeMerge() {
+    private HashSet<String> judgeMerge() {
 
-        // 将E-脏数据去除
-        HashSet<String> nl = new HashSet<>();
+        // 将E-脏数据去除,目的:其不具有成为leader的资格,但去除的话,将导致数据量变少,丢失正确性
+        /*HashSet<String> nl = new HashSet<>();
         for (String s : leaderSet) {
             if (!s.contains("E-")){
                 nl.add(s);
             }
-        }
-        System.out.println(leaderSet.size()+" vs "+nl.size());
+        }*/
+
+        //System.out.println(leaderSet.size()+" vs "+nl.size());
 
         // 距离关系w矩阵
-        int[][] distanceMatrix =new int[nl.size()][nl.size()];
+        int[][] distanceMatrix =new int[leaderSet.size()][leaderSet.size()];
 
         // set 转 arrayList
-        List<String> leaderList = new ArrayList<>(nl);
-        System.out.println(leaderList);
+        List<String> leaderList = new ArrayList<>(leaderSet);
+        //System.out.println(leaderList);
 
         // 遍历获取距离关系,并生成矩阵
         for (int i=0;i < leaderList.size(); i++) {
             double min = 9999; int a=0; int b=0;
+            Double aDouble = Double.valueOf(leaderList.get(i).split("_")[1]);
             for (int j=0;j < leaderList.size(); j++) {
 
                 if (!leaderList.get(i).equals(leaderList.get(j))){
                     // 将距离存在一个集合之中，然后选取最小值(0,1),可以参考之前的矩阵
-                    double distance = Math.abs(Double.valueOf(leaderList.get(i).split("_")[1]) - Double.valueOf(leaderList.get(j).split("_")[1]));
+                    double distance = Math.abs(aDouble - Double.valueOf(leaderList.get(j).split("_")[1]));
                     // 取出最小值
                     if (min > distance){
                        a = i; b = j; min = distance;
                     }
                 }
             }
-            System.out.println(a+","+b);
-            // 将ab有值时,赋值为1,其余赋值为0
-            distanceMatrix[a][b]=1;
 
+
+            // 随机选取5个点进行凹点验证
+            Double bDouble = Double.valueOf(leaderList.get(b).split("_")[1]);
+            //System.out.println(aDouble +","+ bDouble);
+
+            // 多个随机值当中,只要存在凹点,证明这两个相邻的小生境是独立的,不需要合并
+            // 为了消除噪音干扰，定义了一个忍受因子 sf=0.9
+            // 凹点问题就是为了解决独立因子吗？  yes
+            double sf = 0.9;
+
+            // 一次循环均为正常,则需要合并
+            boolean flag = true ;
+            for (int j = 0; j < 5; j++) {
+                double lemuda = Math.random();
+                double cDouble = (lemuda * aDouble) + ((1 - lemuda) * bDouble);
+                //System.out.println(cDouble);
+                // 计算适应度值,并进行比较  判断逻辑存在问题吗？
+                Double aFitness = SIN_MAP.get(numbCohesion(aDouble));
+                Double bFitness = SIN_MAP.get(numbCohesion(bDouble));
+                Double cFitness = SIN_MAP.get(numbCohesion(cDouble));
+                //System.out.println(cFitness +","+sf*aFitness+","+sf*bFitness);
+
+
+                if (cFitness<sf*aFitness && cFitness<sf*bFitness){
+                    //System.out.println("存在凹点");
+                    flag = false;
+                }else{
+                    //System.out.println("正常");
+                }
+            }
+
+            // 需要合并的最终因子
+            if(flag){
+                // 将ab有值时,赋值为1,其余赋值为0
+                distanceMatrix[a][b]=1;
+
+            }
         }
-        // 先尝试遍历二维数组试试
+
+        // 打印 遍历二维数组
         for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
             for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
                 System.out.print(distanceMatrix[i1][i2]+" , ");
             }
             System.out.println();
-
         }
-        return distanceMatrix;
 
 
+        // 待优化：去重的逻辑很简单，不取整个矩阵，只要根据对角线划分即可  not ok
+        /**
+         * 0 , 0 , 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 1 ,
+         * 0 , 0 , 0 , 0 , 0 , 1 ,
+         * 0 , 0 , 0 , 0 , 0 , 0 ,
+         * 0 ,
+         * 0 , 0 ,
+         * 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 0 ,
+         */
+
+        // 获取将要合并的两个峰的下标
+        HashSet<String> hs = new HashSet<>();
+        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+            for (int i2 = 0; i2 < distanceMatrix.length; i2++) {
+                // 通过对ab排序,将小数字放在前面,然后使用set,就解决了重复的问题
+                // 合并去重的情况也需要进一步考虑 [0.798_0.9, 0.696_0.798] 即 0,2 和 2,5 待进一步考量
+                if(distanceMatrix[i1][i2] == 1){
+                    if(i1<i2){
+                        //System.out.println(i1+","+i2);
+                        //hs.add(leaderList.get(i1).split("_")[1]+"_"+leaderList.get(i2).split("_")[1]);
+                        hs.add(leaderList.get(i1)+":"+leaderList.get(i2));
+                    }else {
+                        //System.out.println(i2+","+i1);
+                        //hs.add(leaderList.get(i2).split("_")[1]+"_"+leaderList.get(i1).split("_")[1]);
+                        hs.add(leaderList.get(i2)+":"+leaderList.get(i1));
+                    }
+                }
+            }
+        }
+        System.out.println(hs.size());
+        System.out.println(hs.toString());
+        return hs;
     }
 
 
