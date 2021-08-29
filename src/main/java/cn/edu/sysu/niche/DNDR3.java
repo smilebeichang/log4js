@@ -13,7 +13,7 @@ import java.util.*;
  *
  *  《A Diverse Niche radii Niching Technique for Multimodal Function Optimization》
  *
- * FIXME 本周任务 复现自适应小生境的代码
+ * 上周任务 复现自适应小生境的代码
  *
  *      初始化 -- 选择 -- 交叉 -- 变异 -- 修补
  *           |<----     niche      ---->|
@@ -37,12 +37,19 @@ import java.util.*;
  *                  2)若候选小生境数小于2，则 R = R  / r.
  *
  *
- * FIXME 下周任务:
- *       1.代入GA 继续完成(难点:基因型转换)
- *       2.修补算子
+ * FIXME 本周任务:
+ *       1.学校代码实现
+ *          优化合并峰(先选择最近峰完成操作后，在执行第二次峰的计算 无非效率慢一点。迭代的过程慢一点就可以了)
+ *               判断哪些峰需要合并,选出一个最最近点，进行执行合并
+ *               合并完成后，再进行判断是否还有需要继续合并的峰
+ *
+ *       2.代入GA 继续完成(难点:基因型转换)
+ *          概率性选择10道题 二进制选择
+ *
+ *       3.修补算子
  *
  */
-public class DNDR2 {
+public class DNDR3 {
 
 
     /**
@@ -233,7 +240,7 @@ public class DNDR2 {
             sortList.add(SIN_MAP.get(v)+"_"+v);
         }
 
-        Comparator comp = new MyComparator();
+        Comparator comp = new MyComparator3();
         // empty String
         Collections.sort(sortList,comp);
 
@@ -592,14 +599,12 @@ public class DNDR2 {
 
     }
 
-
-
 }
 
 /**
  * 比较器类
  */
-class MyComparator implements Comparator{
+class MyComparator3 implements Comparator{
     @Override
     public int compare(Object str1, Object str2) {
         return  Double.valueOf(str2.toString().split("_")[0]).compareTo(Double.valueOf(str1.toString().split("_")[0]));
