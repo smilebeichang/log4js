@@ -10,7 +10,7 @@ import java.util.Arrays;
 public class Niche {
 
     /**
-     *  算法 小生境
+     *  小生境
      *
      * （1）设置进化代数计数器；随机生成M个初始群体P（t），并求出各个个体的适应度F （i=1，2，M）。
      *

@@ -113,11 +113,6 @@ import java.util.stream.Collectors;
  *         流程的校验和适应度值的计算：
  *              因为变异/多样性过大,是否能维持住全局最优。
  *
- *
- *
- *
- *
- *
  */
 public class Niche2 {
 

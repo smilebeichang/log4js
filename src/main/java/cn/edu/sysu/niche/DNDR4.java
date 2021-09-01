@@ -1,9 +1,13 @@
 package cn.edu.sysu.niche;
 
+import cn.edu.sysu.adi.TYPE;
+import cn.edu.sysu.pojo.Papers;
+import cn.edu.sysu.utils.JDBCUtils4;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -46,15 +50,19 @@ import java.util.*;
  *              方案二：若存在相同的峰,直接选择最小的一个进行,另外一个过滤掉暂时不做处理即可
  *          此处选择方案二：相对简单些,不用考虑迭代, 验证迭代过程中总个体数是否发生了变化  ok
  *
+ *
+ *       2. 使用现有的double算子,进行迭代操作,相似性：横坐标。交叉变异：不大好实现 not ok
+ *
  *       2.代入GA 继续完成(难点:基因型转换)
  *          概率性选择10道题 二进制选择
+ *          相似性：相似的题目数   交叉变异：正常执行
  *
  *
  *
  *       3.修补算子
  *
  */
-public class DNDR3 {
+public class DNDR4 {
 
 
     /**
@@ -104,11 +112,32 @@ public class DNDR3 {
     private Logger log = Logger.getLogger(DNDR3.class);
 
 
+
+    /* 100套试卷 10道题  */
+    private static String[][] paperGenetic =new String[100][10];
+
+    private JDBCUtils4 jdbcUtils = new JDBCUtils4();
+
+    private static ArrayList<String> bankList = new ArrayList();
+
+
+
+
     /**
      *  主程序
      */
     @Test
-    public void main() {
+    public void main() throws SQLException {
+
+        //选择100套的原因，基数够大，能为交叉变异提供相对较多的原始材料
+        //抽取试卷  100套、每套试卷10题
+        Papers papers = new Papers();
+        papers.setPc(0.6);
+        papers.setPm(0.8);
+
+        //初始化试卷(长度，题型，属性比例)
+        //轮盘赌
+        initItemBank4();
 
         // 百万级别的循环耗时1s
         initSin();
@@ -122,6 +151,8 @@ public class DNDR3 {
 
             // 迭代次数  目前只迭代一次
             for (int i = 0; i < ITERATION_SIZE; i++) {
+
+
 
                 // 适应度值排序 0.9992_0.101
                 sortFitness();
@@ -137,8 +168,11 @@ public class DNDR3 {
 
                 // 调整初始半径
                 //adjustRadius();
-
                 log.info("小生境个数: "+ mapArrayList.size());
+
+                // FIXME  选择交叉变异如何嵌入其中 应该是先动态生成小生境,然后进行选择交叉变异 mapArrayList
+
+
 
             }
 
@@ -784,12 +818,359 @@ public class DNDR3 {
 
 
 
+    /**
+     *
+     * 使用构造法选取题目  (轮盘赌）
+     *      1.题型构造解决 （完全随机模式,不考虑下限比例）
+     *      2.属性构造解决 （完全随机模式,不考虑下限比例）
+     *      3.设置属性比例  可以通过惩罚系数来设定  超出,则急剧减少
+     *      总结：在初始化的时候，不需要保证题型和属性符合要求，使用GA迭代和轮盘赌解决
+     *
+     *
+     */
+    private void initItemBank4() throws SQLException {
+
+        System.out.println("====== 开始选题,构成试卷  轮盘赌构造  ======");
+
+        // 试卷|个体大小  提供遗传变异的基本单位
+        int  paperNum = paperGenetic.length;
+
+        // 试题|基因大小
+        int questionsNum = 10 ;
+
+        // 单套试卷的集合
+        HashSet<String> itemSet = new HashSet<>();
+
+        // 题库310道题  50:100:100:50:10   硬性约束：长度  软性约束：题型，属性比例
+        // 获取题库所有试题  [8:CHOSE:(1,0,0,0,0),....]
+        bankList = getBank();
+
+        for (int j = 0; j < paperNum; j++) {
+
+            //清空上一次迭代的数据
+            itemSet.clear();
+
+            for (int i = 0; i < questionsNum; i++) {
+                //减少频繁的gc
+                String item ;
+                //去重操作
+                while (itemSet.size() == i) {
+                    //获取试题id   轮盘赌构造
+                    int sqlId = roulette(itemSet);
+
+                    item = jdbcUtils.selectOneItem(sqlId+1);
+                    itemSet.add(item);
+                }
+            }
+
+            // 将hashSet转ArrayList 并排序
+            ArrayList<String> list = new ArrayList<>(itemSet);
+
+            // idList容器
+            ArrayList<Integer> idList = new ArrayList<>();
+            for (int i = 0; i <list.size() ; i++) {
+                idList.add(Integer.valueOf(list.get(i).split(":")[0]));
+            }
+
+            //list  排序  目前这套试卷抽取到的试题id
+            Collections.sort(idList);
+
+
+            // 根据id从数据库中查询相对应的试题
+            String ids = idList.toString().substring(1,idList.toString().length()-1);
+            ArrayList<String> bachItemList = jdbcUtils.selectBachItem(ids);
+
+
+            // 交叉变异的对象是 试题   即试卷=个体  试题=基因
+            String[] itemArray = new String[bachItemList.size()];
+            for (int i = 0; i < bachItemList.size(); i++) {
+                itemArray[i] = bachItemList.get(i);
+            }
+            // 赋值  把题库提升为全局变量，方便整体调用 容器：二维数组
+            paperGenetic[j] = itemArray;
+
+        }
+
+
+    }
+
+    /**
+     * 返回题库所有试题 id:type:pattern
+     *
+     */
+    private ArrayList<String> getBank() throws SQLException {
+
+        return jdbcUtils.select();
+
+    }
+
+
+    /**
+     *   逻辑判断 ：轮盘赌构造选题
+     *        1.id不能重复
+     *        2.题型|属性比例 影响适应度
+     *
+     */
+    private int roulette(HashSet<String> itemSet)  {
+
+
+        //轮盘赌 累加百分比
+        double[] fitPie = new double[bankList.size()];
+
+        //计算每道试题的适应度占比   1*0.5*0.8
+        double[] fitnessArray = getRouletteFitness(itemSet);
+
+        //id去重操作
+        HashSet<Integer> idSet = new HashSet<>();
+
+        //迭代器遍历HashSet
+        Iterator<String> it = itemSet.iterator();
+        while(it.hasNext()) {
+            idSet.add(Integer.valueOf(it.next().split(":")[0]));
+        }
+
+        //累加初始值
+        double accumulate = 0;
+
+        //试题占总试题的适应度累加百分比
+        for (int i = 0; i < bankList.size(); i++) {
+            fitPie[i] = accumulate + fitnessArray[i];
+            accumulate += fitnessArray[i];
+        }
+
+        //累加的概率为1   数组下标从0开始
+        fitPie[310-1] = 1;
+
+        //随机生成的random概率值  [0,1)
+        double randomProbability = Math.random();
+
+        //轮盘赌 越大的适应度，其叠加时增长越快，即有更大的概率被选中
+        int answerSelectId = 0;
+        int i = 0;
+
+        while (i < bankList.size() && randomProbability > fitPie[i]){
+            //id 去重
+            if(idSet.contains(i)){
+                i += 1;
+            }else{
+                i ++;
+                answerSelectId   = i;
+            }
+        }
+
+        return answerSelectId;
+
+    }
+
+
+
+    /**
+     * 1.根据已选试题，计算题库中每道试题的适应度值比例
+     * 2.每道题的概率为 1*penalty^n,总概率为310道题叠加
+     *      2.1  初始化的时候将全局的310题查询出来（id:type:pattern）
+     *      2.2  求出每道试题的概率 1 * 惩罚系数
+     *      2.3  求出每道试题的适应度占比
+     *  题型比例 选择[0.2,0.4]   填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
+     *  属性比例 第1属性[0.2,0.4]第2属性[0.2,0.4] 第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
+     *
+     */
+    private double[] getRouletteFitness(HashSet<String> itemSet)  {
+
+        // 所有试题的适应度总和
+        double fitSum = 0.0;
+
+        // 每道试题的适应度值
+        double[] fitTmp = new double[bankList.size()];
+
+        // 每道试题的适应度占比   疑问:1/310 会很小,random() 这样产生的值是否符合要求
+        double[] fitPro = new double[bankList.size()];
+
+        // 数据库属性排列的规则,因为基数大,导致随机选取的题目不具有代表性
+        // 解决方案:题目顺序打乱（修改数据库的属性排序）
+
+        //题型个数
+        int typeChose  = 0;
+        int typeFill   = 0;
+        int typeShort  = 0;
+        int typeCompre = 0;
+
+
+        //此次迭代各个题型的数目
+        for (String s:itemSet) {
+            //System.out.println(s);
+
+            //计算每种题型个数
+            if(TYPE.CHOSE.toString().equals(s.split(":")[1])){
+                typeChose += 1;
+            }
+            if(TYPE.FILL.toString().equals(s.split(":")[1])){
+                typeFill += 1;
+            }
+            if(TYPE.SHORT.toString().equals(s.split(":")[1])){
+                typeShort += 1;
+            }
+            if(TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])){
+                typeCompre += 1;
+            }
+        }
+
+        //题型比例
+        double typeChoseRation  =  typeChose/10.0;
+        double typeFileRation   =  typeFill/10.0;
+        double typeShortRation  =  typeShort/10.0;
+        double typeCompreRation =  typeCompre/10.0;
+
+
+        //属性个数
+        int attributeNum1  = 0;
+        int attributeNum2  = 0;
+        int attributeNum3  = 0;
+        int attributeNum4  = 0;
+        int attributeNum5  = 0;
+
+        //此次迭代各个属性的数目
+        for (String s:itemSet) {
+            //System.out.println(s);
+
+            //计算每种题型个数
+            if("1".equals(s.split(":")[2].substring(1,2))){
+                attributeNum1 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(3,4))){
+                attributeNum2 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(5,6))){
+                attributeNum3 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(7,8))){
+                attributeNum4 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(9,10))){
+                attributeNum5 += 1;
+            }
+        }
+        //System.out.println("ar1: "+attributeNum1+"\tar2: "+attributeNum2+"\tar3: "+attributeNum3+"\tar4: "+attributeNum4+"\tar5: "+attributeNum5);
+
+        //属性比例
+        double attributeRatio1 = attributeNum1/23.0;
+        double attributeRatio2 = attributeNum2/23.0;
+        double attributeRatio3 = attributeNum3/23.0;
+        double attributeRatio4 = attributeNum4/23.0;
+        double attributeRatio5 = attributeNum5/23.0;
+
+
+
+        // 题型和属性比例 和轮盘赌搭建关系：
+        //      已抽取的属性个数越多，则惩罚系数越大 且各个属性是累乘关系
+        //      比例和一个固定值做比较即可  eg: typeChose/10    AttributeRatio1/23
+        //      如果未超出比例，则按照正常流程走，一旦超过，则适应度值急剧下降
+        for (int j = 0; j < bankList.size(); j++) {
+            double penalty = 1;
+            String[] splits = bankList.get(j).split(":");
+
+            // 题型比例
+            // 为什么小于也要做惩罚，因为选取了一次，需要实时统计比例信息，并获取惩罚系数
+            if(splits[1].contains(TYPE.CHOSE+"")){
+                if(typeChoseRation<0.4){
+                    penalty = penalty * Math.pow(0.5,typeChose);
+                }else {
+                    penalty = penalty * Math.pow(0.5,typeChose*typeChose);
+                }
+            }
+            if(splits[1].contains(TYPE.FILL+"")){
+                if(typeFileRation<0.4){
+                    penalty = penalty * Math.pow(0.5,typeFill);
+                }else {
+                    penalty = penalty * Math.pow(0.5,typeFill*typeFill);
+                }
+            }
+            if(splits[1].contains(TYPE.SHORT+"")){
+                if(typeShortRation<0.3){
+                    penalty = penalty * Math.pow(0.5,typeShort);
+                }else {
+                    penalty = penalty * Math.pow(0.5,typeShort*typeShort);
+                }
+            }
+            if(splits[1].contains(TYPE.COMPREHENSIVE+"")){
+                if(typeCompreRation<0.3){
+                    penalty = penalty * Math.pow(0.5,typeCompre);
+                }else {
+                    penalty = penalty * Math.pow(0.5,typeCompre*typeCompre);
+                }
+            }
+
+            //属性比例
+            if("1".equals(splits[2].substring(1,2))){
+                if(attributeRatio1<0.4){
+                    penalty = penalty * Math.pow(0.8,attributeNum1);
+                }else {
+                    penalty = penalty * Math.pow(0.8,attributeNum1*attributeNum1);
+                }
+            }
+            if("1".equals(splits[2].substring(3,4))){
+                if(attributeRatio2<0.4){
+                    penalty = penalty * Math.pow(0.8,attributeNum2);
+                }else {
+                    penalty = penalty * Math.pow(0.8,attributeNum2*attributeNum2);
+                }
+            }
+            if("1".equals(splits[2].substring(5,6))){
+                if(attributeRatio3<0.3){
+                    penalty = penalty * Math.pow(0.8,attributeNum3);
+                }else {
+                    penalty = penalty * Math.pow(0.8,attributeNum3*attributeNum3);
+                }
+            }
+            if("1".equals(splits[2].substring(7,8))){
+                if(attributeRatio4<0.3){
+                    penalty = penalty * Math.pow(0.8,attributeNum4);
+                }else {
+                    penalty = penalty * Math.pow(0.8,attributeNum4*attributeNum4);
+                }
+            }
+            if("1".equals(splits[2].substring(9,10))){
+                if(attributeRatio5<0.3){
+                    penalty = penalty * Math.pow(0.8,attributeNum5);
+                }else {
+                    penalty = penalty * Math.pow(0.8,attributeNum5*attributeNum5);
+                }
+            }
+
+
+            //个体值 和 总和
+            fitTmp[j] = penalty ;
+            fitSum = fitSum + penalty ;
+
+        }
+
+        // 计算出每道试题的各自比例
+        for (int i = 0; i < bankList.size(); i++) {
+            fitPro[i] = fitTmp[i] / fitSum;
+        }
+
+        //返回类型为 double[] 转 ArrayList<Double>  可以省略
+        //ArrayList<Double> arrayList = new ArrayList<>(fitPro.length);
+        //for (double anArr : fitPro) {
+        //    arrayList.add(anArr);
+        //}
+        //System.out.println(arrayList.toString());
+
+
+        return  fitPro;
+    }
+
+
+
+
+
+
+
 }
 
 /**
  * 比较器类
  */
-class MyComparator3 implements Comparator{
+class MyComparator4 implements Comparator{
     @Override
     public int compare(Object str1, Object str2) {
         return  Double.valueOf(str2.toString().split("_")[0]).compareTo(Double.valueOf(str1.toString().split("_")[0]));
