@@ -167,7 +167,7 @@ public class DNDR5 {
         // 初始化
         //init();
 
-        // 初始化试卷(长度，题型，属性比例) 轮盘赌  赋值二维数组 String[][] paperGenetic =new String[200][20]
+        // 初始化试卷(长度，题型，属性比例) 轮盘赌  赋值二维数组 String[][] paperGenetic = new String[200][20]
         initItemBank4();
 
             // 迭代次数
@@ -182,9 +182,21 @@ public class DNDR5 {
                 //sortFitness();
                 sortFitnessForGene();
 
-                // 将群体中的个体分配到不同小生境中 leader + members
+                // 将群体中的个体分配到不同小生境中 leader + members   FIXME 此方法有误，需进一步验证
                 // distributeNiche();
                 distributeNicheForGene();
+
+
+                // 暂时不做合并操作（合并+判断） 为什么不做合并操作呢？为了简化难度吗 后期再优化
+
+                // 判断哪些峰需要合并(矩阵+凹点问题)
+                //   HashSet<String> hs = judgeMerge();
+
+                // 合并
+                //   merge(hs);
+                // 调整初始半径
+                //adjustRadius();
+                log.info("小生境个数: "+ mapArrayListForGene.size());
 
                 /**
                  * FIXME:
@@ -196,32 +208,62 @@ public class DNDR5 {
                  *  交叉变异：选择小生境个数大于2的那部分在小生境内执行
                  *           =1的进行全局的交叉变异
                  *
+                 *  需在各个小生境中进行选择|交叉|变异 mapArrayList mapArrayListForGene
+                 *
+                 *
+                 *  GA 操作的范围: 小生境内 or 全局
+                 *      方案: 挨个对个体进行判断,
+                 *              选择： size 决定了 选择的范围
+                 *              交叉|变异： 因为只变化一个个体，故，确定好了选择范围后，直接进行就好，无需考虑第二个个体
+                 *
+                 *  写一个时间计划表：
+                 *      什么时候写完代码，什么时候进行其他模型的比较，什么时候完成初稿  ok
+                 *
                  */
 
 
-                  // 暂时不做合并操作（合并+判断）
+                // ①遍历，然后获取该个体所在的小生境个数，然后塞到不同集合中
+                HashMap<String,ArrayList<String>> inListHashMap = new HashMap<>();
+                ArrayList<String> outList = new ArrayList<>();
+                Iterator <Map.Entry< String,ArrayList<String> >> iterator = mapArrayListForGene.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry< String,ArrayList<String> > entry = iterator.next();
+                    System.out.println(entry.getKey());
+                    System.out.println(entry.getValue());
+                    // 遍历value,看是否小生境个数 >= 2
+                    if(entry.getValue().size() >= 2){
+                        inListHashMap.put(entry.getKey(), entry.getValue());
+                    }else {
+                        //outList.add(entry.getKey());
+                        outList.addAll(entry.getValue());
+                    }
+                }
 
-                  // 判断哪些峰需要合并(矩阵+凹点问题)
-                  //   HashSet<String> hs = judgeMerge();
 
-                  // 合并
-                  //   merge(hs);
-                  // 调整初始半径
-                  //adjustRadius();
-                  //log.info("小生境个数: "+ mapArrayList.size());
+                // ②对不同的集合进行不同的选择 (小生境内 | 小生境外)
+                // 此处选择和之前不大一样了，之前是一次性选择出所有，这里是挨个进行选择
+                // 方案一: 每出一个个体进行选择一次，循环执行200次
+                // 方案二：将小生境个数>=2的个体挑出来，这部分个体进行小生境内选择；其余部分进行小生境外选择
+
+                // 进行小生境内的选择
+                selectionIn(inListHashMap);
+                // 进行小生境外的选择
+                selectionOut(outList);
+
+                // 问题一: 为什么会存在相同的value
+                // 问题二: 总数对不上，2(29+439)+197
 
 
-                // 在各个小生境中进行选择|交叉|变异 mapArrayList mapArrayListForGene
-                // 选择
-                selection();
+                // 暂时将 交叉变异设置为全局模式，待后续优化
                 // 交叉
                 // 通过索引j,来确保交叉变异的均为同一个个体
-                for (int j = 0; j < paperGenetic.length-1 ; j++) {
+/*                for (int j = 0; j < paperGenetic.length-1 ; j++) {
                     //交叉
                     crossCover(papers,j);
                     //变异  新增了变异部分后，变得这么慢了吗 嵌套了一层 paperGenetic.length
                     mutate(papers,j);
-                }
+                }*/
+
             }
 
     }
@@ -439,7 +481,7 @@ public class DNDR5 {
      *
      *  步骤：
      *      1.选取leader
-     *           --疑问： 最后有些个体其实不应该成为leader,待后续进行合并和剔除操作
+     *           --注释: 最后有些个体其实不应该成为leader,待后续进行合并和剔除操作
      *
      *      2.选取member
      *           保证数据总数不变
@@ -480,8 +522,9 @@ public class DNDR5 {
                     // 思考：使用什么来进行判断相似性？题目个数还是比例信息
                     // 题目个数？是没意义的,几乎都为0.
                     // 比例信息？估计也够呛,因为每轮都是经过校验的.
-                    for(String a:ListB){
+                        // count 在此处置为0，是否会有偏差，需上移动
                         counter=0;
+                    for(String a:ListB){
                         for(String b:ListA){
                             if(a.equals(b)){
                                 counter++;
@@ -507,7 +550,7 @@ public class DNDR5 {
             String aids  = leader.split("_")[1];
             for (int i=0;i<sortListForGene.size();i++) {
                 String s = sortListForGene.get(i);
-                // 判空操作是因为后续会做标记,将value值重置为空
+                // 判空操作是因为后续会做标记,将value值重置为空  FIXME s 是key_value，此处只判断value可能存在偏差
                 if (!StringUtils.isBlank(s)){
                     String bids  = s.split("_")[1];
 
@@ -516,26 +559,27 @@ public class DNDR5 {
                     List<String> ListB = stringToList(bids);
 
                     // 假设上面ListA和ListB都存在数据  计算A与B之间的相似个数
-                    for(String a:ListA){
+                        // mark 在此处置为0，是否会有偏差，需上移动
                         int mark=0;
+                    for(String a:ListA){
                         for(String b:ListB){
                             if(a.equals(b)){
                                 mark++;
                             }
                         }
-                        //先在A中去查B里面全部数据，如果匹配，然后存放在集合里，然后做标记  此处标记为1
-                        if(mark>0){
-                            memberList.add(s);
-                            // java.lang.NumberFormatException: empty String
-                            // 是否可以直接移除
-                            sortListForGene.set(i, "");
-                        }
                     }
-
+                    // 先在A中去匹配B里面全部数据，若匹配，则存放在集合里，并做标记  此处标记为null
+                    // FIXME 原本是 >0
+                    if(mark>=2){
+                        memberList.add(s);
+                        // java.lang.NumberFormatException: empty String
+                        // 是否可以直接移除
+                        sortListForGene.set(i, "");
+                    }
                 }
             }
             mapArrayListForGene.put(leader, memberList);
-            // 验证个体总数是否丢失
+            // 验证个体总数是否丢失  FIXME sum存在偏差，待验证
             sum = memberList.size() + sum;
         }
         System.out.println("此次迭代个体总数目："+sum);
@@ -1627,6 +1671,141 @@ public class DNDR5 {
         paperGenetic=newPaperGenetic;
 
     }
+
+
+
+    /**
+     * 小生境内选择
+     * 选择: 以适应度为导向,轮盘赌为策略, 适者生存和多样性的权衡
+     *
+     *   ①计算适应度：以试卷为单位，min*exp^1
+     *   ②轮盘赌进行筛选 paperGenetic = newPaperGenetic;
+     *
+     */
+    public  void   selectionIn(HashMap<String,ArrayList<String>> inListHashMap){
+
+        System.out.println("====================== select ======================");
+
+        // 200套试卷
+        int paperSize = paperGenetic.length;
+
+        // 累加百分比,为轮盘赌做准备
+        double[] fitPie = new double[paperSize];
+
+        // 每套试卷的适应度占比  min*exp^1
+        double[] fitPro = getFitness(paperSize);
+
+        // 累加初始值
+        double accumulate = 0;
+
+        // 试卷占总试卷的适应度累加百分比
+        for (int i = 0; i < paperSize; i++) {
+            fitPie[i] = accumulate + fitPro[i];
+            accumulate += fitPro[i];
+        }
+
+        // 累加的概率为1 数组下标从0开始
+        fitPie[paperSize-1] = 1;
+
+        // 初始化容器 随机生成的random概率值
+        double[] randomId = new double[paperSize];
+
+        // 不需要去重
+        for (int i = 0; i < paperSize; i++) {
+            randomId[i] = Math.random();
+        }
+
+        // 排序
+        Arrays.sort(randomId);
+
+
+        // 轮盘赌 越大的适应度,其叠加时增长越快,即有更大的概率被选中
+        // 同一套试卷可能会被选取多次（轮盘赌的意义）
+        // GA 的通病：多样性的维持
+        //      择优录取,个体越来越相似,所以才需要变异,但变异后的个体，因为经过轮盘赌,也不一定能够保存下来
+        String[][] newPaperGenetic =new String[paperSize][];
+        int newSelectId = 0;
+
+        for (int i = 0; i < paperSize; i++) {
+            while (newSelectId < paperSize && randomId[newSelectId] < fitPie[i]){
+                // 需要确保fitPie[i] 和 paperGenetic[i] 对应的i 是同一套试卷
+                newPaperGenetic[newSelectId]   = paperGenetic[i];
+                newSelectId += 1;
+            }
+        }
+
+        // 重新赋值种群的编码
+        paperGenetic=newPaperGenetic;
+
+    }
+
+
+    /**
+     * 小生境外选择
+     * 选择: 以适应度为导向,轮盘赌为策略, 适者生存和多样性的权衡
+     *
+     *   ①计算适应度：以试卷为单位，min*exp^1
+     *   ②轮盘赌进行筛选 paperGenetic = newPaperGenetic;
+     *
+     */
+    public  void   selectionOut(ArrayList<String> outList){
+
+        System.out.println("====================== select ======================");
+
+        // 200套试卷
+        int paperSize = paperGenetic.length;
+
+        // 累加百分比,为轮盘赌做准备
+        double[] fitPie = new double[paperSize];
+
+        // 每套试卷的适应度占比  min*exp^1
+        double[] fitPro = getFitness(paperSize);
+
+        // 累加初始值
+        double accumulate = 0;
+
+        // 试卷占总试卷的适应度累加百分比
+        for (int i = 0; i < paperSize; i++) {
+            fitPie[i] = accumulate + fitPro[i];
+            accumulate += fitPro[i];
+        }
+
+        // 累加的概率为1 数组下标从0开始
+        fitPie[paperSize-1] = 1;
+
+        // 初始化容器 随机生成的random概率值
+        double[] randomId = new double[paperSize];
+
+        // 不需要去重
+        for (int i = 0; i < paperSize; i++) {
+            randomId[i] = Math.random();
+        }
+
+        // 排序
+        Arrays.sort(randomId);
+
+
+        // 轮盘赌 越大的适应度,其叠加时增长越快,即有更大的概率被选中
+        // 同一套试卷可能会被选取多次（轮盘赌的意义）
+        // GA 的通病：多样性的维持
+        //      择优录取,个体越来越相似,所以才需要变异,但变异后的个体，因为经过轮盘赌,也不一定能够保存下来
+        String[][] newPaperGenetic =new String[paperSize][];
+        int newSelectId = 0;
+
+        for (int i = 0; i < paperSize; i++) {
+            while (newSelectId < paperSize && randomId[newSelectId] < fitPie[i]){
+                // 需要确保fitPie[i] 和 paperGenetic[i] 对应的i 是同一套试卷
+                newPaperGenetic[newSelectId]   = paperGenetic[i];
+                newSelectId += 1;
+            }
+        }
+
+        // 重新赋值种群的编码
+        paperGenetic=newPaperGenetic;
+
+    }
+
+
 
     /**
      * 每套试卷的适应度占比
