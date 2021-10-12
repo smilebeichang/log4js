@@ -13,7 +13,7 @@ import java.util.*;
 
 /**
  * @Author : song bei chang
- * @create 2021/8/20 22:01
+ * @create : 2021/10/10 15:32
  *
  *
  * 《A Diverse Niche radii Niching Technique for Multimodal Function Optimization》
@@ -34,7 +34,7 @@ import java.util.*;
  *          选取leader ok,选取follower 判断标准出了问题
  *
  *      2.使用文献的方式来实现
-
+ *
  *      初始化 -- 选择 -- 交叉 -- 变异 -- 修补
  *            |<----     niche      ---->|
  *
@@ -83,8 +83,10 @@ import java.util.*;
  *       3.修补算子
  *
  */
-public class DNDR4 {
+public class DNDR5 {
 
+
+    private Logger log = Logger.getLogger(DNDR5.class);
 
     /**
      * 控制是否进行半径的修改
@@ -105,7 +107,7 @@ public class DNDR4 {
      *    paper_genetic double[]格式
      *    保留了小数点后三位
      */
-    private double[]  paper_genetic =new double[200];
+    private double[]  paper_genetic = new double[200];
     private int POPULATION_SIZE = 200;
     private Map<Double,Double> SIN_MAP = new HashMap<>(1000);
 
@@ -132,8 +134,6 @@ public class DNDR4 {
      */
     private HashSet<String> leaderSet = new HashSet();
     private HashSet<String> leaderSetForGene = new HashSet();
-
-    private Logger log = Logger.getLogger(DNDR4.class);
 
 
 
@@ -182,7 +182,7 @@ public class DNDR4 {
                 //sortFitness();
                 sortFitnessForGene();
 
-                // 将群体中的个体分配到不同小生境中
+                // 将群体中的个体分配到不同小生境中 leader + members
                 // distributeNiche();
                 distributeNicheForGene();
 
@@ -198,21 +198,20 @@ public class DNDR4 {
                  *
                  */
 
-                /**
-                 * 暂时不做合并操作（合并+判断）
-                 *
-                 * // 判断哪些峰需要合并(矩阵+凹点问题)
-                 *    HashSet<String> hs = judgeMerge();
-                 *
-                 * // 合并
-                 *    merge(hs);
-                 * // 调整初始半径
-                 * //adjustRadius();
-                 * //log.info("小生境个数: "+ mapArrayList.size());
-                 *
-                 */
 
-                // 在各个小生境中进行选择|交叉|变异 mapArrayList
+                  // 暂时不做合并操作（合并+判断）
+
+                  // 判断哪些峰需要合并(矩阵+凹点问题)
+                  //   HashSet<String> hs = judgeMerge();
+
+                  // 合并
+                  //   merge(hs);
+                  // 调整初始半径
+                  //adjustRadius();
+                  //log.info("小生境个数: "+ mapArrayList.size());
+
+
+                // 在各个小生境中进行选择|交叉|变异 mapArrayList mapArrayListForGene
                 // 选择
                 selection();
                 // 交叉
@@ -337,7 +336,7 @@ public class DNDR4 {
             sortList.add(SIN_MAP.get(v)+"_"+v);
         }
 
-        Comparator comp = new MyComparator3();
+        Comparator comp = new MyComparator();
         // empty String
         Collections.sort(sortList,comp);
 
@@ -361,7 +360,7 @@ public class DNDR4 {
         int paperSize = paperGenetic.length;
         getFitnessForGene(paperSize);
 
-        Comparator comp = new MyComparator4();
+        Comparator comp = new MyComparator();
         // empty String
         Collections.sort(sortListForGene,comp);
 
@@ -434,6 +433,7 @@ public class DNDR4 {
         System.out.println("此次迭代个体总数目："+sum);
     }
 
+
     /**
      * 将群体中的个体分配到不同小生境中 1.0_0.3
      *
@@ -456,6 +456,7 @@ public class DNDR4 {
             if (leaderSetForGene.size()==0){
                 leaderSetForGene.add(sortListForGene.get(i));
                 System.out.println("leader: "+sortListForGene.get(i));
+
             }else{
 
                 String aids  = sortListForGene.get(i).split("_")[1];
@@ -514,7 +515,7 @@ public class DNDR4 {
                     List<String> ListA = stringToList(aids);
                     List<String> ListB = stringToList(bids);
 
-                    // 假设上面ListA和ListB都存在数据
+                    // 假设上面ListA和ListB都存在数据  计算A与B之间的相似个数
                     for(String a:ListA){
                         int mark=0;
                         for(String b:ListB){
@@ -522,7 +523,7 @@ public class DNDR4 {
                                 mark++;
                             }
                         }
-                        //先在A中去查B里面全部数据，如果匹配了就做标记，然后存放在存在的集合里
+                        //先在A中去查B里面全部数据，如果匹配，然后存放在集合里，然后做标记  此处标记为1
                         if(mark>0){
                             memberList.add(s);
                             // java.lang.NumberFormatException: empty String
@@ -1013,7 +1014,7 @@ public class DNDR4 {
      * 使用构造法选取题目  (轮盘赌）
      *      1.题型构造解决 （不考虑下限比例）
      *      2.属性构造解决 （不考虑下限比例）
-     *      3.设置属性比例  可以通过惩罚系数来设定  超出,则急剧减少
+     *      设置比例  可以通过惩罚系数来设定  超出,则急剧减少
      *      总结：在初始化的时候，不需要完全保证题型和属性符合要求，后续使用GA迭代和轮盘赌解决即可
      *
      */
@@ -1047,7 +1048,7 @@ public class DNDR4 {
                 while (itemSet.size() == i) {
                     // 获取试题id   轮盘赌构造
                     int sqlId = roulette(itemSet);
-
+                    // 两个id相差1,保证选题无偏差
                     item = jdbcUtils.selectOneItem(sqlId+1);
                     itemSet.add(item);
                 }
@@ -1132,6 +1133,7 @@ public class DNDR4 {
 
         //轮盘赌 越大的适应度，其叠加时增长越快，即有更大的概率被选中
         int answerSelectId = 0;
+        // i 从0开始,故后续真正取数的时候需要+1
         int i = 0;
 
         while (i < bankList.size() && randomProbability > fitPie[i]){
@@ -1420,6 +1422,7 @@ public class DNDR4 {
                 }
             }
 
+            // 题型比例/10  属性比例/23 是固定值,到了后期需要修正
             // 题型比例
             double typeChoseRation  =  typeChose/10.0;
             double typeFileRation   =  typeFill/10.0;
@@ -1954,16 +1957,6 @@ public class DNDR4 {
 
 
 
-}
-
-/**
- * 比较器类
- */
-class MyComparator4 implements Comparator{
-    @Override
-    public int compare(Object str1, Object str2) {
-        return  Double.valueOf(str2.toString().split("_")[0]).compareTo(Double.valueOf(str1.toString().split("_")[0]));
-    }
 }
 
 

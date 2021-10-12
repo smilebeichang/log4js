@@ -138,7 +138,7 @@ public class DNDR3 {
                 // 调整初始半径
                 //adjustRadius();
 
-                log.info("小生境个数: "+ mapArrayList.size());
+                //log.info("小生境数目: "+ mapArrayList.size());
 
             }
 
@@ -326,6 +326,7 @@ public class DNDR3 {
             sum = memberList.size() + sum;
         }
         System.out.println("此次迭代个体总数目："+sum);
+        log.info("此次迭代个体总数目: "+ sum);
     }
 
     /**
@@ -673,7 +674,7 @@ public class DNDR3 {
         }
 
         sum = sum +  sideList.size() ;
-        System.out.println("个体总数："+sum);
+        //System.out.println("个体总数："+sum);
 
         // 更新计数器
         if(mapArrayList.size() == nn){

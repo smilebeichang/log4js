@@ -125,6 +125,7 @@ public class Niche3 {
     /**
      * 限制性锦标赛选择算法 restricted tournament selection
      * 目前变异无效,需要查明原因
+     *      此处的小生境 不是真正意味上的小生境,其是分组,然后在组内进行锦标赛选择
      *
      */
     public ArrayList<Object>  RTS(String[][] paperGenetictmp,int i) throws SQLException {
@@ -229,6 +230,10 @@ public class Niche3 {
     /**
      * 在cw1中寻找c1的近似解  4个小生境  10元锦标赛  c1是一套试卷  cw1是c*w套试卷
      * 根据adi来找出最相似的值 返回索引，替换全局基因
+     *      adi：适应度值*exp惩罚系数
+     *      FIXME  为什么通过ADI来判断相似性呢？ 选取表现型做相似性校验
+     *
+     *
      *
      * 替换的是minPhen,属性校验的也应该是minPhen
      * 解决方案：①将minPhen返回，ADI层进行修补
@@ -246,7 +251,7 @@ public class Niche3 {
             //cwList.get(0)[1].get(2)
             String[] itemArray;
             for (int j = 0; j < aCw11.size(); j++) {
-                //map的每个value,直接赋值给数组,拿适应值求出相似个体 57:FILL:(0,0,1,0,1):0.0:0.0:0.18002:0.0:0.0174
+                //map的每个value,直接赋值给数组,拿ADI求出相似个体 57:FILL:(0,0,1,0,1):0.0:0.0:0.18002:0.0:0.0174
                 for (Object o : aCw11.keySet()) {
                     int key = (int) o;
                     itemArray = aCw11.get(key);
@@ -474,6 +479,10 @@ public class Niche3 {
 
     }
 
+    /**
+     * 使用基因型做相似性判断
+     *
+     */
     private void similarGene(String[] c1, ArrayList[] cw1){
 
         HashSet c1Set = new HashSet<>(10);
@@ -503,18 +512,18 @@ public class Niche3 {
 
     /**
      *  分别为c1从当前种群中随机选取c*w个体
-     *  当前种群和题库的关系
-     *  题库: 310 道题
+     *  当前题库种群和题库的关系
+     *  : 310 道题
      *  种群: 4*10<=40（存在重复+交叉变异）
      *
      */
     private ArrayList<Map<Integer, String[]>[]> championship()  {
 
-        //4个小生境  10元锦标赛
+        //4个小生境,10元锦标赛, 此处修改为了1
         int num = 1 ;
         Map<Integer, String[]>[] cwList1 = new HashMap[num];
 
-        //基本单位:试卷。故随机生成一个下标即可 (需保存下标,方便后续替补 map(k,v))
+        //基本单位:试卷。故随机生成一个下标 (需保存下标,方便后续替补 map(k,v))
         //数组 map
         for (int i = 0; i < num; i++) {
             Set<String> set1 = new HashSet<>();

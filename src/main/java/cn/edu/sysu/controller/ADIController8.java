@@ -20,7 +20,7 @@ import java.util.*;
  * @create 2021/05/18 0:17
  *
  * 比较部分：1.重叠率达到50%的时间,文献  或者 max相似个体的数目
- *          2.平均适应度值（后期考虑）
+ *         2.平均适应度值（后期考虑）
  *
  * 流程的校验和适应度值的计算：
  *          因为变异/多样性过大,是否能维持住全局最优？
@@ -30,7 +30,7 @@ import java.util.*;
  *              在校验的过程中,选择适应度高的个体进行保留
  *
  */
-public class ADIController7 {
+public class ADIController8 {
 
 
     /**  容器 全局最优 局部最优  */
@@ -48,13 +48,18 @@ public class ADIController7 {
     private Niche3 niche3 = new Niche3();
 
     /** 打印对象 */
-    //private Log log = LogFactory.getLog(ADIController7.class);
-    private  Logger log = Logger.getLogger(ADIController7.class);
+    private  Logger log = Logger.getLogger(ADIController8.class);
 
     /**  散点图索引  */
     private int scatterIndex = 0;
 
-     private  KLUtils klUtils = new KLUtils();
+    private  KLUtils klUtils = new KLUtils();
+
+
+    /**
+     * 迭代次数
+     */
+    private int ITERATION_SIZE = 250;
 
     /**
      * 计算适应度值  ①计算方式 轮盘赌
@@ -65,13 +70,12 @@ public class ADIController7 {
     @Test
     public  void ori() throws SQLException, FileNotFoundException {
 
-        //选择100套的原因，基数够大，能为交叉变异提供相对较多的原始材料
-        //抽取试卷  100套、每套试卷10题
+        //抽取试卷  100套、每套试卷10题  选择100套的原因，基数够大，能为交叉变异提供相对较多的原始材料
         Papers papers = new Papers();
         papers.setPc(0.6);
         papers.setPm(0.8);
 
-        //初始化试卷(长度，题型，属性比例)
+        //初始化试卷(长度,题型,属性比例)
         //原始
         //initItemBank();
         //轮盘赌
@@ -80,13 +84,14 @@ public class ADIController7 {
         //initItemBank5();
 
 
+
         // i 迭代次数  选择交叉变异，应该从个体的角度出发，若全局统一化处理，将导致可能校验的时候，有些解无法校验到
         // 解决方案：加一个嵌套循环，size为种群index,然后在交叉变异中使用index依次支持
-        for (int i = 0; i < 250; i++) {
-            //选择
+        for (int i = 0; i < ITERATION_SIZE; i++) {
+            //选择  FIXME 是否需要考虑进行小生境内的选取操作  关键是没有小生境啊
             selection();
 
-            for (int j = 0; j < 99; j++) {
+            for (int j = 0; j < paperGenetic.length-1 ; j++) {
                 //交叉
                 crossCover(papers,j);
                 //变异  新增了变异部分后，变得这么慢了吗 嵌套了一层 paperGenetic.length
@@ -260,6 +265,8 @@ public class ADIController7 {
      *      2.属性构造解决 （不考虑下限比例）
      *      3.设置属性比例  可以通过惩罚系数来设定  超出,则急剧减少
      *      总结：在初始化的时候，不需要保证题型和属性符合要求，后续使用GA迭代和轮盘赌解决
+     *
+     *      paperGenetic (id:type:pattern:adi1_r:adi2_r:adi3_r:adi4_r:adi5_r)
      *
      */
     private void initItemBank4() throws SQLException {
@@ -598,8 +605,8 @@ public class ADIController7 {
             // 放在内存执行,每执行一次pc 则校验一次
             // 对tmp进行排序
             paperGenetic[k] = sortPatch(temp);
-            // 此处需要校验属性和类型 交叉和变异各执行一次全方面修补，可能就是这个原因导致的多样性如此之高，适应度无法得到充分保证
-            // 变异具有随机性
+            // 此处需要校验属性和类型 交叉和变异各执行一次全方面修补，可能就是这个原因导致的多样性如此之高
+            // 变异具有随机性,适应度无法得到充分保证
             correct(k);
         }
 
@@ -615,7 +622,7 @@ public class ADIController7 {
      *          (2)校验题型, in/out  完美解、替补解（权重）
      *          (2)校验属性, in/out  完美解、替补解（权重 inListRe/inCompose）
      *
-     * 46:SHORT:(1,0,0,0,0):0.09500000000000001:0.0:0.0:0.0:0.0
+     * 46:SHORT:(1,0,0,0,0):0.095001:0.0:0.0:0.0:0.0
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
      * 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
      *
@@ -649,9 +656,9 @@ public class ADIController7 {
     /**
      * 变异  (长度，属性类型，属性比例)
      *      目的：为GA提供多样性
+     *      方法：以试卷为单位、交换试卷的部分试题
      *
-     * 以试卷为单位、交换试卷的部分试题
-     * 原有小生境是随机生成父代，并一定进行变异操作。和自带的逻辑存在偏差，
+     * 原有小生境是随机生成父代,并一定进行变异操作。和自带的逻辑存在偏差
      * 解决方案：
      *      ①迭代个体+if交叉概率+只变异一个个体
      *
@@ -660,7 +667,6 @@ public class ADIController7 {
 
         //mutePlus(papers,j);
         //System.out.println("================== mutate ==================")
-
 
         if (Math.random() < papers.getPm()) {
 
@@ -716,22 +722,23 @@ public class ADIController7 {
 
 
     /**
-     * 选择: 以适应度为导向,轮盘赌为策略，适者生存和多样性的权衡
+     * 选择: 以适应度为导向,轮盘赌为策略, 适者生存和多样性的权衡
      *
      *     ①计算适应度：以试卷为单位，min*exp^1
      *     ②轮盘赌进行筛选 paperGenetic=newPaperGenetic;
      *
      * 将适应度值打印
+     *      打印什么呢？全部的fitness信息(散点图), top10信息,sum|avg
+     *
      *      打印的位置在哪里：①一进来就打印  可能变异矫正后,已经不是教优解了。
-     *                     ②轮盘赌后打印，但其实其和一进来就执行打印差不多，只多了一层筛选而已。
-     *      打印什么呢？全部的fitness信息(散点图)，top10信息,sum|avg
+     *                     ②轮盘赌后打印, 但其实其和一进来就执行打印差不多，只多了一层筛选而已。
      *
      *      精度取小数点后三位,  指标信息取前top10的avg
      *
      */
     public  void   selection(){
 
-        //System.out.println("====================== select ======================")
+        System.out.println("====================== select ======================");
 
         //100套试卷
         int paperSize = paperGenetic.length;
@@ -765,22 +772,20 @@ public class ADIController7 {
         // 排序
         Arrays.sort(randomId);
 
-        //打印出随机抽取的random概率值
-        //printDoubleArray(randomId);
 
-        //轮盘赌 越大的适应度，其叠加时增长越快，即有更大的概率被选中
+        //轮盘赌 越大的适应度,其叠加时增长越快,即有更大的概率被选中
         // 同一套试卷可能会被选取多次（轮盘赌的意义）
         // GA 的通病：多样性的维持
         //      择优录取,个体越来越相似,所以才需要变异,但变异后的个体，因为经过轮盘赌,也不一定能够保存下来
         String[][] newPaperGenetic =new String[paperSize][];
         int newSelectId = 0;
+
         for (int i = 0; i < paperSize; i++) {
             while (newSelectId < paperSize && randomId[newSelectId] < fitPie[i]){
                 //需要确保fitPie[i] 和 paperGenetic[i] 对应的i 是同一套试卷
                 newPaperGenetic[newSelectId]   = paperGenetic[i];
                 newSelectId += 1;
 
-                // 适应度值的打印：
             }
         }
 
@@ -1012,26 +1017,6 @@ public class ADIController7 {
             fitSum = fitSum + minrum ;
 
 
-
-
-// ==================== elitistStrategy  ====================
-            //  全局最优：根据适应度判断
-            //  ①全局最优和局部最优的比较：应该不能直接比较和替换，评判标准不一样
-            //  计评判标准是 基于适应度值的 adi * exp
-            //  是否需要将精英策略移除
-            //  局部最优和全局最优  都只是一个容器  一个全局最优，多个局部最优（目前size是100，离谱）
-            //  tmp > 局部最优，则替换局部最优
-            //if(minrum > LocalOptimal[i]){
-            //    LocalOptimal[i] = minrum;
-            //}
-            //System.out.println("局部最优："+LocalOptimal[i]);
-
-            //  全局最优，从局部最优中取值  local > global,则替换全局最优
-            //for (double local : LocalOptimal) {
-            //    if(local > GlobalOptimal){
-            //        GlobalOptimal = local;
-            //    }
-            //}
         }
 
         //System.out.println("全局最优："+GlobalOptimal);
@@ -1636,15 +1621,11 @@ public class ADIController7 {
      */
     private void correctLength(int w) throws SQLException {
 
-
         //去重操作  (id:type:attributes:adi1_r:adi2_r:adi3_r:adi4_r:adi5_r)
         HashSet<String> setBegin = new HashSet<>(Arrays.asList(paperGenetic[w]));
 
-
         if (setBegin.size() == 10){
-
             //System.out.println("第 "+w+" 题, 交叉/变异后,size正常");
-
         }else{
 
             //System.out.println("第 "+w+" 题, 交叉/变异导致size不匹配：开始进行长度修补 ");
@@ -1960,7 +1941,7 @@ public class ADIController7 {
      *
      *      3.0 执行修补操作
      *      目标：将in解替换out解
-     *      方法：去题库中搜索，取出新解集后，循环遍历，然后重新计算是否符合要求，这样将会导致计算很冗余
+     *      方法：去题库中搜索，取出新解集后，循环遍历，然后重新计算是否符合要求 (这样将会导致计算很冗余)
      *      要求：
      *           1.完美解：删除/新增不影响其他类型和属性比例 （修改type）
      *           2.替补解：如果找不到，则在较优解中随机选取一个用作替补解 （修改type,修改attr,但符合比例要求）
@@ -1973,7 +1954,7 @@ public class ADIController7 {
     private void correctType(int w) throws SQLException {
 
         //==============  1.0 指标统计   ====================
-        // 只是转换，不会导致size上的变动
+        // 只是转换,不会导致size上的变动
         HashSet<String> setBegin = new HashSet<>(Arrays.asList(paperGenetic[w]));
 
         // 获取个体的题型指标信息
@@ -1987,7 +1968,7 @@ public class ADIController7 {
 
         //================  2.0 解集统计   =========================
 
-        //根据flagFlag 得出outMore/outLess解集
+        //根据typeFlag 得出outMore/outLess解集
         ArrayList<String> batchItemList = new ArrayList<>();
         Collections.addAll(batchItemList,paperGenetic[w]);
 
