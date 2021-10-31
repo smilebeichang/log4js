@@ -30,12 +30,12 @@ public class ADIController6 {
 
     /*  容器 全局最优 局部最优  */
     private static double GlobalOptimal = 0;
-    private static double[] LocalOptimal = new double[100];
+    private static double[] LocalOptimal = new double[200];
     private static ArrayList<String> bankList = new ArrayList();
 
 
     /* 100套试卷 10道题  */
-    private static String[][] paperGenetic =new String[100][10];
+    private static String[][] paperGenetic =new String[200][20];
 
 
     private  JDBCUtils4 jdbcUtils = new JDBCUtils4();

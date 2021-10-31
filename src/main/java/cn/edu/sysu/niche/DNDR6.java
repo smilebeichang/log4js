@@ -21,38 +21,41 @@ import java.util.*;
  * 《A Diverse Niche radii Niching Technique for Multimodal Function Optimization》
  *
  *
- * 反问：小生境 ---> 为了保证多样性
- * 自适应小生境 ---> 为了找到峰，然后保证多样性
+ * 目的：
+ *      小生境      ---> 为了保证多样性
+ *      自适应小生境 ---> 为了找到峰，然后保证多样性
  *
  * 目前进展：已经证明小生境确有这个功能，而且自适应小生境也的确能实现
- * 自适应小生境不完全基于标准函数，是通过惩罚系数实现适应度的计算，故其具有适配性
+ * 自适应小生境不完全基于标准函数，可通过惩罚系数实现适应度的计算，故其具有适配性
  *
  *
  * 复现自适应小生境的代码
- * 1.继续实现自己的代码(交叉变异不校验那种)
- *   不检验的时候，可以使用表现性作为相似性的判断，
- *   但校验之后呢,因为新个体都相似了，故可以在最后做一次总的变异。
- *   选取leader ok,选取follower 判断标准出了问题。（leader是适应度，follower是相似性）
+ *      1.继续实现自己的代码(交叉变异不校验那种)
+ *        不检验的时候，可以使用表现性作为相似性的判断，
+ *        但校验之后呢,因为新个体都相似了，故可以①使用基因型作为相似性的判断 ②仅在最后做一次总的变异
  *
- * 2.使用文献的方式来实现
- *      初始化 -- 选择 -- 交叉 -- 变异 -- 修补
- *      |<----     niche    ---->|
+ *        选取标准：
+ *          leader是适应度, follower是相似性
+ *
+ *      2.整体逻辑
+ *           初始化 -- 选择 -- 交叉 -- 变异 -- 修补
+ *           |<----     niche    ---->|
  *
  *
- * 本周任务:
- * 1.代码初步实现
+ *
+ * 1.代码实现思路
  *      优化合并峰(数据重复问题)
- *      方案一：(筛选-- 合并 -- 调整 -- 筛选 -- 合并)
+ *      方案一：(筛选--合并--调整)* N
  *          判断哪些峰需要合并,先选出一个最近点，进行合并。合并完成后，通过半径调整和个体剔除,再判断是否还有需要继续合并的峰
  *
- *      方案二：若存在相同的峰,直接选择最小的一个进行,另外一个过滤掉暂时不做处理即可
+ *      方案二：若存在相同的峰,直接选择最小的一个进行,剩余的过滤掉暂时不做处理
  *          此处选择方案二: 相对简单些,不用考虑迭代
  *
  * FIXME 本周任务:
  * 流程的校验和适应度值的计算：
  *      因为变异/多样性过大,是否能维持住全局最优？
- *      1.看代码逻辑,捋清思,准备在哪里做什么
- *      2.明天搞代码的具体实现
+ *      1.上午看代码逻辑,捋清思,准备在哪里做什么
+ *      2.下午晚上代码的具体实现
  *
  * 相似性：
  *      1.通过校验小生境个数来进行选择,选择是否进行小生境内的交叉变异
@@ -131,7 +134,7 @@ public class DNDR6 {
 
 
     /**
-     * 200套试卷 20道题
+     * 200套试卷 20道题  paperGenetic  vs  paper_genetic 的区别
      */
     private static String[][] paperGenetic = new String[200][20];
 
@@ -142,10 +145,13 @@ public class DNDR6 {
     private KLUtils klUtils = new KLUtils();
 
     /**
-     * 小生境对象
+     * 小生境对象(变异操作)
      */
-    private Niche3 niche3 = new Niche3();
+    private Niche5 niche5 = new Niche5();
 
+    /**
+     * 交叉变异全局系数
+     */
     private static  double PC = 0.6;
     private static  double PM = 0.8;
 
@@ -156,7 +162,7 @@ public class DNDR6 {
     @Test
     public void main() throws SQLException {
 
-        //抽取试卷  200套、每套试卷20题  为交叉变异提供原始材料
+        //抽取试卷  试卷200套,每套20题  为交叉变异提供原始材料
 
         // 百万级别的循环耗时1s
         //initSin();
@@ -196,38 +202,36 @@ public class DNDR6 {
             //  adjustRadius();
             log.info("小生境个数: " + mapArrayListForGene.size());
 
-            /**
+            /*
              * FIXME:
              * 相似性：
              *   1.通过判断小生境个数来进行选择,选择是否进行小生境内的交叉变异
              *   2.侧输出流。可以两个大的生成一个大的+小的
              *
              *
-             *  交叉变异：若小生境个数大于2的那部分在小生境内执行
-             *          若小生境个数=1的进行全局的交叉变异(自从代码优化后，发现没有=1的个体了)
+             * GA 操作的范围: 小生境内 or 全局
+             *          1.1 若小生境个数大于2,在各自的小生境内执行  选择|交叉|变异  mapArrayListForGene
+             *          1.2 若小生境个数=1,汇总到全局池,进行全局的交叉变异(自从代码优化后，发现没有=1的个体了)
              *
-             *  需在各个小生境中进行选择|交叉|变异  mapArrayListForGene
-             *
-             *
-             *  GA 操作的范围: 小生境内 or 全局
              *      方案: 挨个对个体进行判断,
-             *              选择： size 决定了 选择的范围
-             *              交叉|变异： 因为只变化一个个体，故，确定好了选择范围后，直接进行就好，无需考虑第二个个体
+             *           选择： size 决定了 选择的范围
+             *           交叉|变异： 因为只变化一个个体，故直接进行就好，无需考虑第二个个体
              *
              *  必须把代码完成，不然不好交差
              *
              */
 
 
-            // ①遍历，根据该个体所在的小生境个数，然后塞到不同集合中
+            // ①遍历，根据该个体所在小生境的种群个数，然后塞到不同集合中
             HashMap<String, ArrayList<String>> inListHashMap = new HashMap<>();
             ArrayList<String> outList = new ArrayList<>();
+
             Iterator<Map.Entry<String, ArrayList<String>>> iterator = mapArrayListForGene.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<String, ArrayList<String>> entry = iterator.next();
 
-                // 遍历value,看是否小生境个数 >= 2
-                if (entry.getValue().size() >= 2) {
+                // 遍历value,看是否小生境个数 >= 2   2太小，导致OutList集合大部分时间为空
+                if (entry.getValue().size() >= 5) {
                     inListHashMap.put(entry.getKey(), entry.getValue());
                 } else {
                     // 是需要addValue,但绝对不是连key不管   有leader 但没value的,leader 不包含在member中吗？
@@ -237,29 +241,39 @@ public class DNDR6 {
             }
 
 
+            // 选择
             // ②对不同的集合进行不同的选择 (小生境内 | 小生境外)
             // 此处选择和之前不大一样了，之前是一次性选择出所有，这里是挨个进行选择
             // 方案：将小生境个数>=2的个体挑出来，这部分个体进行小生境内选择；其余部分进行小生境外选择
 
             // 进行小生境内的选择   小生境内有多少个体就执行执行多少次选举，选出适应个体
             // 最好是进去啥,返回啥。保持原样不做修改,这样有利于后续的交叉变异
-            HashMap<String, ArrayList<String>>  inBack = selectionIn(inListHashMap);
+            HashMap<String, ArrayList<String>>  inSelect = selectionIn(inListHashMap);
 
-            ArrayList<String> outBack = new ArrayList<>();
+            ArrayList<String> outSelect = new ArrayList<>();
             // 进行小生境外的选择
             if(outList.size()>0){
-                 outBack  = selectionOut(outList);
+                outSelect  = selectionOut(outList);
             }
 
             // 问题一: 为什么会存在相同的value      已OK
             // 问题二: 总数对不上，2(29+439)+197   已OK
 
 
-            // 交叉变异:
-            // 方案: 小生境范围内进行交叉变异， 修改交叉变异的方案,返回新个体后，然后复原为 paperGenetic   因为适应度值排序，下一轮用得上 sortFitnessForGene
+            // 交叉
+            // 方案: 小生境范围内进行交叉变异,修改交叉变异的方案,返回新个体后，然后复原为 paperGenetic
+            // 因为下一轮需用得上适应度值排序 sortFitnessForGene
             // 进行小生境内交叉
-            HashMap<String, ArrayList<String>> stringArrayListHashMap = crossCoverIn(inBack);
-            ArrayList<String> arrayList = crossCoverOut(outBack);
+            HashMap<String, ArrayList<String>> inCross = crossCoverIn(inSelect);
+            // 进行小生境外交叉  方法内部进行了size判断
+            ArrayList<String> outCross = crossCoverOut(outSelect);
+
+            // 变异
+            // 进行小生境内交叉(采用的是 限制性锦标赛拥挤小生境)
+            HashMap<String, ArrayList<String>> inMutate = mutateIn(inCross);
+
+            // 进行小生境外交叉
+            mutateOut(outCross);
 
             for (int j = 0; j < paperGenetic.length-1 ; j++) {
                 //交叉  未校验
@@ -404,10 +418,6 @@ public class DNDR6 {
         //sortList.clear();
         sortListForGene.clear();
 
-        // 数组转list value_key
-        /*for (double v : paper_genetic) {
-            sortList.add(SIN_MAP.get(v)+"_"+v)
-        }*/
 
         // 遍历二维数组，获取其适应度，然后拼接上本身  sortListForGene.add(minrum + "_" + ids)
         int paperSize = paperGenetic.length;
@@ -488,17 +498,18 @@ public class DNDR6 {
 
     /**
      * 将群体中的个体分配到不同小生境中 1.0_0.3
-     * <p>
-     * 步骤：
-     * 1.选取leader
-     * --注释: 最后有些个体其实不应该成为leader,待后续进行合并和剔除操作
-     * <p>
-     * 2.选取member
-     * 保证数据总数不变
-     * 选完全部leader之后统一进行，可以避免ConcurrentModificationException  √
-     * <p>
-     * 问题现象：存在一个点分布在两个小生境中   0.4 分别在0.301和0.0407中
-     * 解决方案：每次判断完后，对这个个体标记已经清除
+     *
+     *      步骤：
+     *      1.选取leader
+     *          注释: 最后有些个体其实不应该成为leader,待后续进行合并和剔除操作
+     *
+     *      2.选取member
+     *          注释:需保证数据总数不变
+     *              问题现象：存在一个点分布在两个小生境中   0.4 分别在0.301和0.0407中
+     *              解决方案：每次判断完后，对这个个体标记已经清除
+     *          方案一: 选完全部leader之后统一进行，可以避免ConcurrentModificationException  √
+     *          方案二: 赋予到一个新的集合中
+     *
      */
     private void distributeNicheForGene() {
 
@@ -513,20 +524,19 @@ public class DNDR6 {
 
                 String aids = sortListForGene.get(i).split("_")[1];
 
-                // 使用一个计数器,判断是否符合全部要求
+                // 使用一个计数器,比对两个集合的相似题目数
                 int max = 0;
                 // 获取目前leader的信息
                 for (String leader : leaderSetForGene) {
 
-                    // b 的判断应该满足全部的leader
+                    // b 的判断应该和全部的leader进行判断
                     String bids = leader.split("_")[1];
-                    // 判断两套试卷的相似程度,如果相似个体数达到一定数目，则判定为是同一个小生境 如1
-                    // 将基因型转为list,使用list来判断相似个数
+                    // 判断两套试卷的相似程度,如果相似题目数达到一定数目，则判定为是同一个小生境 如3，将基因型转为list,使用list来判断相似个数
                     List<String> ListA = stringToList(aids);
                     List<String> ListB = stringToList(bids);
 
                     // 假设上面ListA 和 ListB都存在数据
-                    // counter 大部分为0,优化方案：将试题数扩大 10*2=20
+                    // counter 大部分为0,优化方案：将题目数扩大 10*2=20
                     // aids：3,4,9,28,34,36,43,52,59,102,116,126,129,138,145,213,230,233,247,267
                     // bids：8,10,17,18,24,25,26,39,71,72,81,84,92,102,107,141,143,150,273,303
 
@@ -546,7 +556,7 @@ public class DNDR6 {
                     max = Math.max(max, counter);
                 }
                 // 一边修改一边循环可能会出异常
-                // 重复的题目小于1,则不隶属于任何一个小生境,  FIXME 使用1可能过小 count 和 mark 需要相互对应
+                // 重复的题目小于3,则不隶属于任何一个小生境,  FIXME 使用1可能过小 count 和 mark 需要相互对应
                 if (max < 3) {
                     leaderSetForGene.add(sortListForGene.get(i));
                     System.out.println("leader: " + sortListForGene.get(i));
@@ -568,11 +578,11 @@ public class DNDR6 {
                 if (!StringUtils.isBlank(s)) {
                     String bids = s.split("_")[1];
 
-                    // 判断两套试卷的相似程度,如果相似个体数达到一定数目，则判定为是同一个小生境 如1
+                    // 判断两套试卷的相似程度: 如果相似题目数达到一定数目，则判定为是同一个小生境 如1
                     List<String> ListA = stringToList(aids);
                     List<String> ListB = stringToList(bids);
 
-                    // 假设上面ListA和ListB都存在数据  计算A与B之间的相似个数
+                    // 假设上面ListA和ListB都存在数据  计算A与B之间的相似题目数
                     // mark 在此处置为0，是否会有偏差，需上移动
                     int mark = 0;
                     for (String a : ListA) {
@@ -582,7 +592,7 @@ public class DNDR6 {
                             }
                         }
                     }
-                    // 先在A中去匹配B里面全部数据，若匹配，则存放在集合里，并做标记  此处标记为null
+                    // 如AB足够相似，则存放入集合里，并标记为null
                     // FIXME 原本是 >0
                     if (mark >= 3) {
                         memberList.add(s);
@@ -593,7 +603,7 @@ public class DNDR6 {
                 }
             }
             mapArrayListForGene.put(leader, memberList);
-            // 验证个体总数是否丢失  FIXME sum存在偏差，待验证
+            // 验证个体总数是否丢失  FIXME sum存在偏差，待验证，应累加leader+member的总和，防止leader存在，但无member的情况
             sum = memberList.size() + sum;
         }
         // 现象 sum = 200 始终成立，但leader成为了别人的member,以及自己不一定是自己的member
@@ -1057,26 +1067,26 @@ public class DNDR6 {
 
     /**
      * 使用构造法选取题目  (轮盘赌） 生成 paperGenetic
-     * 1.题型构造解决 （不考虑下限比例）
-     * 2.属性构造解决 （不考虑下限比例）
-     * 设置比例  可以通过惩罚系数来设定  超出,则急剧减少
-     * 总结：在初始化的时候，不需要完全保证题型和属性符合要求，后续使用GA迭代和轮盘赌解决即可
+     *      1.题型构造解决 （不考虑下限比例）
+     *      2.属性构造解决 （不考虑下限比例）
+     *      设置比例  可以通过惩罚系数来设定  超出,则急剧减少
+     *      总结：在初始化的时候，不需要完全保证题型和属性符合要求，后续使用GA迭代和轮盘赌解决即可
      */
     private void initItemBank4() throws SQLException {
 
         System.out.println("====== 开始选题,构成试卷  轮盘赌构造 ======");
 
-        // 试卷|个体大小  提供遗传变异的基本单位
+        // 试卷|个体大小  提供遗传变异的大单位
         int paperNum = paperGenetic.length;
 
-        // 试题|基因大小
+        // 题目|基因大小  交叉变异的基本单位
         int questionsNum = paperGenetic[1].length;
 
         // 单套试卷的集合
         HashSet<String> itemSet = new HashSet<>();
 
         // 题库310道题  50:100:100:50:10   硬性约束：长度  软性约束：题型、属性比例
-        // 获取题库所有试题  [8:CHOSE:(1,0,0,0,0),....] 旁路缓存的概念
+        // 获取题库所有题目  [8:CHOSE:(1,0,0,0,0),....] 旁路缓存的概念
         bankList = getBank();
 
         // 生成了二维数组 String[][] paperGenetic = new String[100][20]
@@ -1090,7 +1100,7 @@ public class DNDR6 {
                 String item;
                 // 去重操作
                 while (itemSet.size() == i) {
-                    // 获取试题id   轮盘赌构造
+                    // 获取题目id   轮盘赌构造
                     int sqlId = roulette(itemSet);
                     // 两个id相差1,保证选题无偏差
                     item = jdbcUtils.selectOneItem(sqlId + 1);
@@ -1107,16 +1117,16 @@ public class DNDR6 {
                 idList.add(Integer.valueOf(list.get(i).split(":")[0]));
             }
 
-            //list  排序  目前这套试卷抽取到的试题id
+            //list排序  目前抽取到集合为题目id
             Collections.sort(idList);
 
 
-            // 根据id从数据库中查询相对应的试题
+            // 根据id从数据库中查询相对应的题目
             String ids = idList.toString().substring(1, idList.toString().length() - 1);
             ArrayList<String> bachItemList = jdbcUtils.selectBachItem(ids);
 
 
-            // 交叉变异的针对的是试题   即试卷=个体  试题=基因
+            // 交叉变异的针对的是题目   即试卷=个体  题目=基因
             String[] itemArray = new String[bachItemList.size()];
             for (int i = 0; i < bachItemList.size(); i++) {
                 itemArray[i] = bachItemList.get(i);
@@ -1127,7 +1137,7 @@ public class DNDR6 {
     }
 
     /**
-     * 返回题库所有试题 id:type:pattern
+     * 返回题库所有题目 id:type:pattern
      */
     private ArrayList<String> getBank() throws SQLException {
 
@@ -1146,13 +1156,13 @@ public class DNDR6 {
         //轮盘赌 累加百分比
         double[] fitPie = new double[bankList.size()];
 
-        //计算每道试题的适应度占比   1*0.5*0.8
+        //计算每道题目的适应度占比   1*0.5*0.8
         double[] fitnessArray = getRouletteFitness(itemSet);
 
         //id去重操作
         HashSet<Integer> idSet = new HashSet<>();
 
-        //迭代器遍历HashSet  确保取出目前题目中不存在的试题
+        //迭代器遍历HashSet  确保取出目前题目中不存在的题目
         Iterator<String> it = itemSet.iterator();
         while (it.hasNext()) {
             idSet.add(Integer.valueOf(it.next().split(":")[0]));
@@ -1161,7 +1171,7 @@ public class DNDR6 {
         //累加初始值
         double accumulate = 0;
 
-        //试题占总试题的适应度累加百分比
+        //题目占总题目的适应度累加百分比
         for (int i = 0; i < bankList.size(); i++) {
             fitPie[i] = accumulate + fitnessArray[i];
             accumulate += fitnessArray[i];
@@ -1194,23 +1204,23 @@ public class DNDR6 {
 
 
     /**
-     * 1.根据已选试题，计算题库中每道试题的适应度值比例
+     * 1.根据已选题目，计算题库中每道题目的适应度值比例
      * 2.每道题的概率为 1*penalty^n,总概率为310道题叠加
      * 2.1  初始化的时候将全局的310题查询出来（id:type:pattern）
-     * 2.2  求出每道试题的概率 1 * 惩罚系数
-     * 2.3  求出每道试题的适应度占比
+     * 2.2  求出每道题目的概率 1 * 惩罚系数
+     * 2.3  求出每道题目的适应度占比
      * 题型比例 选择[0.2,0.4]   填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
      * 属性比例 第1属性[0.2,0.4]第2属性[0.2,0.4] 第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
      */
     private double[] getRouletteFitness(HashSet<String> itemSet) {
 
-        // 所有试题的适应度总和
+        // 所有题目的适应度总和
         double fitSum = 0.0;
 
-        // 每道试题的适应度值
+        // 每道题目的适应度值
         double[] fitTmp = new double[bankList.size()];
 
-        // 每道试题的适应度占比   疑问:1/310 会很小,random() 这样产生的值是否符合要求
+        // 每道题目的适应度占比   疑问:1/310 会很小,random() 这样产生的值是否符合要求
         double[] fitPro = new double[bankList.size()];
 
         // 数据库属性排列的规则,因为基数大,导致随机选取的题目不具有代表性
@@ -1368,7 +1378,7 @@ public class DNDR6 {
 
         }
 
-        // 计算出每道试题的各自比例
+        // 计算出每道题目的各自比例
         for (int i = 0; i < bankList.size(); i++) {
             fitPro[i] = fitTmp[i] / fitSum;
         }
@@ -2043,7 +2053,7 @@ public class DNDR6 {
 
     /**
      * 交叉+修补  此处不涉及适应度
-     * ①交叉的单位:  试题
+     * ①交叉的单位:  题目
      * ②修补的方面:  长度,题型,属性比例
      * <p>
      * random.nextInt(100)  指生成一个介于[0,n)的int值
@@ -2105,15 +2115,15 @@ public class DNDR6 {
 
     /**
      * 交叉  此处不涉及适应度
-     * ①交叉的单位:  试题
+     * ①交叉的单位:  题目
      *
-     * random.nextInt(100)  指生成一个介于[0,n)的int值
+     * random.nextInt(n)  指生成一个介于[0,n)的int值
      * 选择（轮盘赌）：择优录取+多样式减低
      * 交叉+变异：增加多样性(外部作用)
      *
      * List 是否需要转化为 paperGenetic[1]
-     * 交叉部分可以不转化，因为最小单位为试题，而不是试题里面的题型和属性
-     * 变异部分可以不转化，因为最小单位为试题，而不是试题里面的题型和属性
+     * 交叉部分可以不转化，因为最小单位为题目，而不是题目里面的题型和属性
+     * 变异部分可以不转化，因为最小单位为题目，而不是题目里面的题型和属性
      *
      */
     private ArrayList<String> crossCoverOut(ArrayList<String> outList) {
@@ -2247,7 +2257,7 @@ public class DNDR6 {
     /**
      * 变异  (长度，属性类型，属性比例)
      * 目的：为GA提供多样性
-     * 方法：以试卷为单位、交换试卷的部分试题
+     * 方法：以试卷为单位、交换试卷的部分题目
      * <p>
      * 原有小生境是随机生成父代,并一定进行变异操作。和自带的逻辑存在偏差
      * 解决方案：
@@ -2261,7 +2271,7 @@ public class DNDR6 {
         if (Math.random() < papers.getPm()) {
 
             //限制性锦标赛拥挤小生境
-            ArrayList<Object> rts = niche3.RTS(paperGenetic, j);
+            ArrayList<Object> rts = new Niche3().RTS(paperGenetic, j);
             int similarPhenIndex = (int) rts.get(0);
             paperGenetic = (String[][]) rts.get(1);
 
@@ -2276,6 +2286,65 @@ public class DNDR6 {
         }
 
     }
+
+
+    /**
+     * 变异  (长度，属性类型，属性比例)
+     *
+     */
+    private HashMap<String, ArrayList<String>> mutateIn(HashMap<String, ArrayList<String>> inCross) throws SQLException {
+
+        HashMap<String, ArrayList<String>> in = new HashMap<String,ArrayList<String>>();
+        //mutePlus(papers,j);
+        System.out.println("================== mutateIn ==================");
+
+        if (Math.random() < PM ) {
+
+            // 调用mutateOut
+
+        }
+
+        return in;
+
+    }
+
+
+    /**
+     * 变异  (长度，属性类型，属性比例)
+     *
+     * outCross:27.783779425230577_2,9,12,34,36,39,42,49,69,72,90,91,102,112,123,137,168,197,219,227
+     *
+     */
+    private ArrayList<String> mutateOut(ArrayList<String> outCross) throws SQLException {
+
+        ArrayList<String> out = new ArrayList<String>();
+        //mutePlus(papers,j);
+        System.out.println("================== mutateOut ==================");
+
+        if (Math.random() < PM && outCross.size() > 0 ) {
+
+            for (int j = 0; j < outCross.size()-1 ; j++) {
+
+                //限制性锦标赛拥挤小生境
+                ArrayList<Object> rts = niche5.RTS(outCross, j);
+                int similarPhenIndex = (int) rts.get(0);
+                paperGenetic = (String[][]) rts.get(1);
+
+                //执行变异后的修补操作 如果替换，则校验子类。如果未替换。si可以不进行获得，且无需校验。但校验也无所谓
+                //难道这个个体大概率相似 不是,index 很随机
+                //System.out.println(similarPhenIndex)
+                //correct(similarPhenIndex);
+
+                //确定性拥挤小生境
+                //niche2.DET(paperGenetic);
+
+            }
+        }
+
+        return out;
+
+    }
+
 
 
 }
