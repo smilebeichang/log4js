@@ -12,10 +12,9 @@ import java.sql.SQLException;
 import java.util.*;
 
 
-
 /**
  * @Author : song bei chang
- * @create : 2021/10/22 22:09
+ * @create : 2021/11/02 23:09
  *
  *
  * 《A Diverse Niche radii Niching Technique for Multimodal Function Optimization》
@@ -78,16 +77,16 @@ import java.util.*;
  *
  *      此版本代码整体逻辑：自适应的逻辑是自动调整相似阈值
  *           初始化 --- 适应度排序(适应度) --- 分配到不同小生境(相似性) --- 选择 -- 交叉 -- 变异 -- 修补
- *                |<----     niche    ---->|
+ *                 |<----     niche    ---->|
  *
  *
  * 3.修补算子
  *
  */
-public class DNDR6 {
+public class DNDR7 {
 
 
-    private Logger log = Logger.getLogger(DNDR6.class);
+    private Logger log = Logger.getLogger(DNDR7.class);
 
     /**
      * 控制是否进行半径的修改
@@ -170,10 +169,10 @@ public class DNDR6 {
         //抽取试卷  试卷200套,每套20题  为交叉变异提供原始材料
 
         // 百万级别的循环耗时1s
-        //initSin();
+        initSin();
 
         // 初始化
-        //init();
+        init();
 
         // 初始化试卷(长度，题型，属性比例) 轮盘赌生成二维数组 String[][] paperGenetic = new String[200][20]
         initItemBank4();
@@ -197,14 +196,14 @@ public class DNDR6 {
 
             // 暂时不做合并操作（合并+判断） 为了简化难度 后期优化
 
-            // 判断哪些峰需要合并(矩阵+凹点问题)
-            //   HashSet<String> hs = judgeMerge();
+            // 判断哪些峰需要合并(矩阵+凹点问题)  需将leaderSet 适配为 leaderSetForGene
+            HashSet<String> hs = judgeMerge();
 
             // 合并
-            //   merge(hs);
+            merge(hs);
 
             // 调整初始半径
-            //  adjustRadius();
+            adjustRadius();
             log.info("小生境个数: " + mapArrayListForGene.size());
 
             /*
@@ -629,8 +628,8 @@ public class DNDR6 {
      * 使用什么来保存矩阵关系呢？ 一个动态大小的二维数组
      * <p>
      * 优化:
-     * 1.将距离关系矩阵,进一步简化,只将要合并的集合返回即可
-     * 2.若存在共用相同的峰,直接选择最小的一个进行,另外一个过滤掉即可(集合的再次过滤)
+     *  1.将距离关系矩阵,进一步简化,只将要合并的集合返回即可
+     *  2.若存在共用相同的峰,直接选择最小的一个进行,另外一个过滤掉即可(集合的再次过滤)
      */
     private HashSet<String> judgeMerge() {
 
@@ -801,6 +800,192 @@ public class DNDR6 {
 
         return allHs;
     }
+
+
+
+    /**
+     * FIXME 待适配
+     * 判断哪些峰需要合并(矩阵+凹点问题) mapArrayList leaderSet
+     * 用距离公式来表示任意两个小生境之间的关系,得出一个距离关系w矩阵（注：因为是01矩阵,所以后续需进一步去重）
+     * <p>
+     * 使用什么来保存矩阵关系呢？ 一个动态大小的二维数组
+     * <p>
+     * 优化:
+     *  1.将距离关系矩阵,进一步简化,只将要合并的集合返回即可
+     *  2.若存在共用相同的峰,直接选择最小的一个进行,另外一个过滤掉即可(集合的再次过滤)
+     */
+    private HashSet<String> judgeMergeGene() {
+
+        // 距离关系w矩阵
+        int[][] distanceMatrix = new int[leaderSetForGene.size()][leaderSetForGene.size()];
+
+        // set 转 arrayList
+        List<String> leaderList = new ArrayList<>(leaderSetForGene);
+
+        // 遍历计算距离关系,并生成01矩阵
+        for (int i = 0; i < leaderList.size(); i++) {
+
+            double min = 9999;
+            int a = 0;
+            int b = 0;
+
+            // 之前距离是依据横坐标进行转换的，此处更改为 题目的相似数
+            Double aDouble = Double.valueOf(leaderList.get(i).split("_")[1]);
+
+            for (int j = 0; j < leaderList.size(); j++) {
+
+                if (!leaderList.get(i).equals(leaderList.get(j))) {
+                    // 将距离存在一个集合之中，然后选取最小值(0,1)
+                    double distance = Math.abs(aDouble - Double.valueOf(leaderList.get(j).split("_")[1]));
+                    // 取出最小值
+                    if (min > distance) {
+                        a = i;
+                        b = j;
+                        min = distance;
+                    }
+                }
+            }
+
+
+            // 随机选取5个点进行凹点验证
+            // 多个随机值当中,只要存在凹点,证明这两个相邻的小生境是独立的,不需要合并
+            // 为了消除噪音干扰,定义了一个忍受因子 sf=0.9
+            Double bDouble = Double.valueOf(leaderList.get(b).split("_")[1]);
+            double sf = 0.9;
+
+            // 本轮循环中未出现凹点,则需要合并
+            boolean flag = true;
+            final int GER_RND = 5;
+            for (int j = 0; j < GER_RND; j++) {
+                double lemuda = Math.random();
+                // 计算公式一致  ra+(1-r)b  和  a-r(a-b) = (1-r)a + rb
+                double cDouble = (lemuda * aDouble) + ((1 - lemuda) * bDouble);
+                // 计算适应度值,并进行比较
+                Double aFitness = SIN_MAP.get(numbCohesion(aDouble));
+                Double bFitness = SIN_MAP.get(numbCohesion(bDouble));
+                Double cFitness = SIN_MAP.get(numbCohesion(cDouble));
+                //System.out.println(cFitness +","+sf*aFitness+","+sf*bFitness)
+
+                // 存在凹点
+                if (cFitness < sf * aFitness && cFitness < sf * bFitness) {
+                    flag = false;
+                }
+            }
+
+            // 未出现凹点需要合并的最终因子,通过ab索引,赋值为1,其余赋值为0
+            if (flag) {
+                distanceMatrix[a][b] = 1;
+            }
+        }
+
+        // 打印 遍历二维数组
+        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
+                System.out.print(distanceMatrix[i1][i2] + " , ");
+            }
+            System.out.println();
+        }
+
+        /**
+         * 去重的逻辑很简单，不取整个矩阵，只要根据对角线划分即可  not ok
+         * 0 , 0 , 0 , 0 , 1 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 1 ,
+         * 1 , 0 , 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 1 ,
+         * 0 ,
+         * 0 , 0 ,
+         * 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 ,
+         * 1 , 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 1 ,
+         */
+
+
+        // 获取将要合并的两个峰的下标  hs去重
+        HashSet<String> hs = new HashSet<>();
+        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+            for (int i2 = 0; i2 < distanceMatrix.length; i2++) {
+                // 通过对ab排序,将小数字放在前面,然后使用set解决数据重复问题
+                // 需进一步考虑 [0.798_0.9, 0.696_0.798] 即 0,2 和 2,5 待进一步考量
+                if (distanceMatrix[i1][i2] == 1) {
+                    if (i1 < i2) {
+                        hs.add(leaderList.get(i1) + ":" + leaderList.get(i2));
+                    } else {
+                        hs.add(leaderList.get(i2) + ":" + leaderList.get(i1));
+                    }
+                }
+            }
+        }
+        System.out.println("验证去重效果 hs.size(): " + hs.size() + " hs.toString(): " + hs.toString());
+
+
+        // 在hs中统计各个峰值出现的次数
+        // hs.toString(): [0.964308398_0.507:6.9465303E-7_0.406]
+        // 将横坐标放置到list集合中
+        ArrayList<Double> indexList = new ArrayList<>();
+        for (String h : hs) {
+            // leader
+            String s1 = h.split(":")[0];
+            String s2 = h.split(":")[1];
+            double l1 = Double.valueOf(s1.split("_")[1]);
+            double l2 = Double.valueOf(s2.split("_")[1]);
+            // 存峰值的位置
+            indexList.add(l1);
+            indexList.add(l2);
+        }
+        // 统计次数大于1的峰
+        List<Double> gtOneList = frequencyGtOne(indexList);
+        System.out.println(gtOneList);
+
+        // 新增一个方法，将次数等于1的找出来
+        List<String> eqOneList = findEqOne(hs, gtOneList);
+
+        // 最终需要合并的集合容器
+        HashSet<String> allHs = new HashSet<>();
+        allHs.addAll(eqOneList);
+
+        // 2.分组计算出哪个最近,本质是进行一次过滤操作
+        // 将hs和doubleList遍历,重复的进行进一步选择,每一个doubleList只返回一个距离最近的  set.get() != null
+        // 对gtOneList做非空判断
+        if (gtOneList != null) {
+            for (Double aDouble : gtOneList) {
+                ArrayList<String> tmpList = new ArrayList<>();
+                // 将含有相同元素的集合分组
+                for (String h : hs) {
+                    if (h.contains(aDouble + "")) {
+                        tmpList.add(h);
+                    }
+                }
+                // 无需对tmpList做判空处理  tmpList至少为2
+                String t = null;
+                if (tmpList.size() != 0) {
+                    // 遍历tmpList,进行比较,只留下最近的一个
+                    double minDis = 9999;
+                    for (String tmp : tmpList) {
+                        String s1 = tmp.split(":")[0];
+                        String s2 = tmp.split(":")[1];
+                        double l1 = Double.valueOf(s1.split("_")[1]);
+                        double l2 = Double.valueOf(s2.split("_")[1]);
+                        if (minDis > Math.abs(l1 - l2)) {
+                            minDis = Math.abs(l1 - l2);
+                            t = tmp;
+                        }
+                    }
+                }
+                // 最近的一组t
+                System.out.println("最近的一组以及找到:" + t);
+                allHs.add(t);
+            }
+        }
+
+        System.out.println(allHs);
+
+        return allHs;
+    }
+
+
 
     /**
      * 查找 只出现一次的峰
@@ -1429,18 +1614,8 @@ public class DNDR6 {
             String[] itemList = paperGenetic[i];
             for (int j = 0; j < itemList.length; j++) {
 
-                /**
-                 * FiXME 待修复
-                 * -->itemList: [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
-                 * -->itemList.length: 20
-                 * j: 0
-                 * itemList[j]: null
-                 */
-                System.out.println("-->itemList: "+Arrays.asList(itemList));
+                System.out.println("-->itemList: "+itemList);
                 System.out.println("-->itemList.length: "+itemList.length);
-                System.out.println("j: "+j);
-                System.out.println("itemList[j]: "+itemList[j]);
-
                 String[] splits = itemList[j].split(":");
                 adi1r = adi1r + Double.parseDouble(splits[3]);
                 adi2r = adi2r + Double.parseDouble(splits[4]);

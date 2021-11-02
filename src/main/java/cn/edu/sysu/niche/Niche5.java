@@ -125,7 +125,7 @@ public class Niche5 {
     /**
      * 限制性锦标赛选择算法 restricted tournament selection
      * 目前变异无效,需要查明原因
-     *      此处的小生境 不是真正意味上的小生境,其是分组,然后在组内进行锦标赛选择
+     *      在组内进行锦标赛选择
      *
      */
     public ArrayList<Object>  RTS(ArrayList<String> outCross,int i) throws SQLException {
@@ -136,28 +136,43 @@ public class Niche5 {
         // 将原来的参数进行格式的变换,可以省去后续的不必要麻烦(可以在上层进行格式转化: 一次查询，多次使用)
         // outCross 转  paperGenetic[i]
         String s = outCross.get(i);
-        // 查询数据库
+        // 查询数据库  list.add(id+":"+type+":"+pattern+":"+adi1_r+":"+adi2_r+":"+adi3_r+":"+adi4_r+":"+adi5_r)
         ArrayList<String> bachItemList = jdbcUtils.selectBachItem(s);
 
-        // 交叉变异的针对的是题目   即试卷=个体  题目=基因
+        // ArrayList 转 String[]
         String[] itemArray = new String[bachItemList.size()];
         for (int j = 0; j < bachItemList.size(); j++) {
             itemArray[j] = bachItemList.get(j);
         }
 
-        //父代变异产生新个体c1 替换其中一道题
+        // FIXME 防止空指针，待后续优化
+        if (itemArray.length < 20){
+            ArrayList<String> bachItemListBak = jdbcUtils.selectBachItemBak(s);
+
+            // ArrayList 转 String[]
+            String[] itemArrayBak = new String[bachItemListBak.size()];
+            for (int j = 0; j < bachItemListBak.size(); j++) {
+                itemArrayBak[j] = bachItemListBak.get(j);
+            }
+            itemArray = itemArrayBak;
+        }
+
+        // 交叉变异的针对的是题目,展现的形式的试卷   即题目=基因、试卷=个体
+        // 父代变异产生新个体c1 本质:替换其中一道题目
         ArrayList<String[]> cList = mutate(itemArray);
 
-        //为c1从当前种群中随机选取c*w个体  4个小生境  10元锦标赛
-        //是否是10元锦标赛过大，待后续优化
-        ArrayList<Map<Integer, String[]>[]> cwList = championship();
+        // 为c1从当前种群中随机选取c*w个体  2个小生境  4元锦标赛
+        // 是否是4元锦标赛过大，待后续优化
+        ArrayList<Map<Integer, String[]>[]> cwList = championshipOut(outCross);
 
-        //替换
-        int similarPhenIndex = closestResemble(cList, cwList);
+        // 替换，并返回索引
+        String[] c1 = closestResemble(cList, cwList);
 
-        ArrayList<Object> result = new ArrayList<>(2);
-        result.add(similarPhenIndex);
-        result.add(paperGenetic);
+        ArrayList<Object> result = new ArrayList<>(1);
+
+        // 返回的对象需要修改  对象 paperGenetic 转 string
+        result.add(c1);
+
         return  result;
 
     }
@@ -181,10 +196,10 @@ public class Niche5 {
 
 
         //分别为c1/c2从当前种群中随机选取c*w个体  9个小生境  10元锦标赛
-        ArrayList<Map<Integer, String[]>[]> cwList = championship();
+        //ArrayList<Map<Integer, String[]>[]> cwList = championship();
 
         //替换
-        closestResemble(cList,cwList);
+        //closestResemble(cList,cwList);
 
     }
 
@@ -194,21 +209,23 @@ public class Niche5 {
      * 如果f(c1)>f(d1),则用c1替换d1,否则保留d1;
      * 如果f(c2)>f(d2),则用c2替换d2,否则保留d2;
      *
+     *      表现型  适应度值，或者 minAdi
+     *      基因型  解(2,3,56,24,4,6,89,98,200,23)
+     *
      */
-    private int closestResemble(ArrayList<String[]> cList, ArrayList<Map<Integer, String[]>[]> cwList) {
-        //  表现型  适应度值，或者 minAdi
-        //  基因型  解(2,3,56,24,4,6,89,98,200,23)
+    private String[] closestResemble(ArrayList<String[]> cList, ArrayList<Map<Integer, String[]>[]> cwList) {
+
         String[] c1 = cList.get(0);
 
         Map<Integer, String[]>[] cw1 = cwList.get(0);
 
         // 选取表现型做相似性校验
-        int similarPhenIndex = similarPhen(c1, cw1);
+        String[] r1 = similarPhen(c1, cw1);
 
-        //选取基因型做相似性校验
+        // 选取基因型做相似性校验
         //similarGene(c1,cw1);
 
-        return similarPhenIndex;
+        return r1;
 
     }
 
@@ -240,7 +257,7 @@ public class Niche5 {
 
 
     /**
-     * 在cw1中寻找c1的近似解  4个小生境  10元锦标赛  c1是一套试卷  cw1是c*w套试卷
+     * 在cw1中寻找c1的近似解  2个小生境  10元锦标赛  c1是一套试卷  cw1是c*w套试卷
      * 根据adi来找出最相似的值 返回索引，替换全局基因
      *      adi：适应度值*exp惩罚系数
      *      FIXME  为什么通过表现型ADI来判断相似性呢？
@@ -252,23 +269,22 @@ public class Niche5 {
      *         为了节省内存开销，采取第一种方案
      *
      */
-    private int similarPhen(String[] c1, Map<Integer, String[]>[] cw1) {
+    private String[] similarPhen(String[] c1, Map<Integer, String[]>[] cw1) {
 
         double minADI = getMinADI(c1);
         double min = 9999;
         int minPhen = 0;
 
-        //外层C小生境数，内层W元锦标赛
+        // 外层C小生境数，内层W元锦标赛
         for (Map<Integer, String[]> aCw11 : cw1) {
-            //cwList.get(0)[1].get(2)
+            // cwList.get(0)[1].get(2)
             String[] itemArray;
             for (int j = 0; j < aCw11.size(); j++) {
-                //map的每个value,直接赋值给数组,拿ADI求出相似个体 57:FILL:(0,0,1,0,1):0.0:0.0:0.18002:0.0:0.0174
+                // map的每个value,直接赋值给数组,拿ADI求出相似个体 57:FILL:(0,0,1,0,1):0.0:0.0:0.18002:0.0:0.0174
                 for (Object o : aCw11.keySet()) {
                     int key = (int) o;
                     itemArray = aCw11.get(key);
-
-                    //获取最相似的解 key
+                    // 获取最相似的解 key
                     double abs = Math.abs(minADI - getMinADI(itemArray));
                     if (min > abs) {
                         min = abs;
@@ -276,24 +292,26 @@ public class Niche5 {
                     }
                 }
             }
-
         }
 
-        //System.out.println("最相似的个体为："+minPhen + paperGenetic[minPhen]);
+
+        System.out.println("最相似的个体为："+minPhen + cw1[0].get(minPhen));
 
         // 替换c1 将abs放开，直接替换呢？看看是否还会导致大面积相似
         //if (minADI - getMinADI(paperGenetic[minPhen])<0){
-            //判断哪个小生境环境下存在最相似的个体  contain
+            //判断哪个多元小生境环境下存在最相似的个体  contain
             boolean flag = true;
             for (Map<Integer, String[]> aCw1 : cw1) {
                 if (aCw1.get(minPhen) != null && flag) {
-                    paperGenetic[minPhen] = c1;
+                    // 替换  替换的全局变量需做修改
+                    cw1[0].put(minPhen, c1);
+                    c1 = cw1[0].get(minPhen);
                     flag = false;
                 }
             }
         //}
 
-        return minPhen;
+        return c1;
 
     }
 
@@ -523,32 +541,40 @@ public class Niche5 {
     }
 
     /**
-     *  分别为c1从当前种群中随机选取c*w个体
-     *  当前题库种群和题库的关系
-     *  : 310 道题
-     *  种群: 4*10<=40（存在重复+交叉变异）
+     *  分别为c1从当前小生境中随机选取c*w个体
+     *  种群: 2*10<=20（不同小生境存在重复+交叉变异）
      *
      */
-    private ArrayList<Map<Integer, String[]>[]> championship()  {
+    private ArrayList<Map<Integer, String[]>[]> championshipOut(ArrayList<String> outCross) throws SQLException {
 
-        //4个小生境,10元锦标赛, 此处修改为了1
+        //2个小生境,4元锦标赛, 此处修改为了1
         int num = 1 ;
+        int nv = 2 ;
         Map<Integer, String[]>[] cwList1 = new HashMap[num];
 
-        //基本单位:试卷。故随机生成一个下标 (需保存下标,方便后续替补 map(k,v))
-        //数组 map
+
+        // 基本单位:试卷。故随机生成一个下标 (需保存下标,方便后续替补 map(k,v))
+        // 数组 map
         for (int i = 0; i < num; i++) {
             Set<String> set1 = new HashSet<>();
             // 将个体保存为map结构
-            Map<Integer, String[]> mapc1w = new HashMap<>(10);
-            while (set1.size() != 10) {
-                // FIXME 应该从同属于某一小生境中选取
-                int i1 = new Random().nextInt(paperGenetic.length);
+            Map<Integer, String[]> mapc1w = new HashMap<>(nv);
+            while (set1.size() != nv) {
+                //  从同属于某一小生境中选取不同的个体(如果size小于N元锦标赛，就会陷入死循环，待优化)
+                int i1 = new Random().nextInt(outCross.size());
                 if (!set1.contains(":"+i1)) {
                     set1.add(":"+i1 );
-                    //String s = ArrayUtils.toString(paperGenetic[i1])+"_"+i1;
-                    //c1w.add(s);
-                    mapc1w.put(i1,paperGenetic[i1]);
+
+                    String s = outCross.get(i1);
+                    // 查询数据库
+                    ArrayList<String> bachItemList = jdbcUtils.selectBachItem(s);
+
+                    String[] itemArray = new String[bachItemList.size()];
+                    for (int j = 0; j < bachItemList.size(); j++) {
+                        itemArray[j] = bachItemList.get(j);
+                    }
+
+                    mapc1w.put(i1,itemArray);
                 }
                 cwList1[i] = mapc1w;
             }
@@ -737,7 +763,7 @@ public class Niche5 {
 
     /**
      *  通过变异获得c1个体
-     *  随机变异
+     *  随机变异,去除某一道题，然后从题库中抽取,新增一道题
      *
      */
     private ArrayList<String[]> mutate(String[] c1) throws SQLException {
@@ -938,6 +964,9 @@ public class Niche5 {
         }
 
     }
+
+
+
 
 
 }

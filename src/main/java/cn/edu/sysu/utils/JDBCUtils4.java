@@ -242,6 +242,60 @@ public class JDBCUtils4 {
 
 
     /**
+     * 查询，并返回list
+     */
+    public  ArrayList<String> selectBachItemBak(String ids) throws SQLException {
+        ArrayList<String> list = new ArrayList<>();
+        Connection conn  = null;
+        PreparedStatement ps = null;
+        ResultSet rs ;
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+        } catch (Exception ex) {
+            //System.out.println("驱动加载失败");
+            ex.printStackTrace();
+        }
+
+        try {
+            conn =
+                    DriverManager.getConnection("jdbc:mysql://localhost/sysu?"+"user=root&password=root&useSSL=false");
+            ps = conn.prepareStatement("select * from sysu.adi20210528 order by RAND() limit 20  ;");
+            rs = ps.executeQuery();
+            //System.out.println("select * from sysu.adi20210528 where id in (" + ids +  ");");
+
+            while(rs.next()) {
+                int id = rs.getInt("id");
+                String type = rs.getString("type");
+                String pattern = rs.getString("pattern");
+                double adi1_r = rs.getDouble("adi1_r");
+                double adi2_r = rs.getDouble("adi2_r");
+                double adi3_r = rs.getDouble("adi3_r");
+                double adi4_r = rs.getDouble("adi4_r");
+                double adi5_r = rs.getDouble("adi5_r");
+
+                list.add(id+":"+type+":"+pattern+":"+adi1_r+":"+adi2_r+":"+adi3_r+":"+adi4_r+":"+adi5_r);
+            }
+
+        } catch (SQLException ex) {
+            //System.out.println("SQLException: " + ex.getMessage());
+            //System.out.println("SQLState: " + ex.getSQLState());
+            //System.out.println("VendorError: " + ex.getErrorCode());
+        }finally {
+            if(ps!= null) {
+                ps.close();
+            }
+            if(conn!= null) {
+                conn.close();
+            }
+        }
+        //System.out.println();
+        return list;
+    }
+
+
+
+
+    /**
      *  初始化修补查询，并返回list  查询优质解
      */
     public  ArrayList<String> selectInitFixItem( ArrayList<Integer> overIndex,ArrayList<Integer> bigIndex) throws SQLException {
