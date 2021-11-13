@@ -50,7 +50,7 @@ import java.util.*;
  *      方案二：若存在相同的峰,直接选择最小的一个进行,剩余的过滤掉暂时不做处理
  *          此处选择方案二: 相对简单些,不用考虑迭代
  *
- * FIXME 本周任务:
+ *
  * 流程的校验和适应度值的计算：
  *      因为变异/多样性过大,是否能维持住全局最优？
  *      1.上午看代码逻辑,捋清思,准备在哪里做什么
@@ -61,8 +61,8 @@ import java.util.*;
  *      2.侧输出流。可以两个大的转换成一个大的+小的
  *
  * 2.代入GA
- *      难点一: 基因型转换    解决方案：二进制选择 + 概率性
- *      难点二：相似性的判断   基因型(即题目的相似性) vs 表现型(即适应度,即满足各种约束条件的情况)
+ *      1.难点一: 基因型转换    解决方案：二进制选择 + 概率性
+ *        难点二：相似性的判断   基因型(即题目的相似性) vs 表现型(即适应度,即满足各种约束条件的情况)
  *
  *      自适应小生境的目的是可以根据小生境半径确定小生境的个数，然后在小生境内进行GA操作
  *
@@ -72,15 +72,14 @@ import java.util.*;
  *      相似性：            离leader的相似性   题目的相似个数
  *      小生境的半径：       横坐标0~1          题目相似个数
  *
- *      适应度排序(适应度) --- 分配到不同小生境(相似性) --- 判断合并(距离矩阵、凹点问题、去重操作)
- *      集合调整 --- 半径调整1 --- 半径调整2 --- 个体剔除操作
- *
- *      此版本代码整体逻辑：自适应的逻辑是自动调整相似阈值
- *           初始化 --- 适应度排序(适应度) --- 分配到不同小生境(相似性) --- 选择 -- 交叉 -- 变异 -- 修补
- *                 |<----     niche    ---->|
  *
  *
- * 3.修补算子
+ *      2.此版本整体逻辑
+ *           初始化 --- 适应度排序(适应度) --- 分配到不同小生境(相似性) ---  合并  --- 选择 -- 交叉 -- 变异 -- 修补
+ *                                        |<------------             niche              ------------>|
+ *
+ *                                     判断合并(距离矩阵、凹点问题、去重操作) ---- 合并 --- 半径调整 --- 个体剔除操作
+ *
  *
  */
 public class DNDR7 {
@@ -190,11 +189,7 @@ public class DNDR7 {
             sortFitnessForGene();
 
             // 将群体中的个体分配到不同小生境中 leader + members    mapArrayListForGene(key,value)
-            // distributeNiche();
             distributeNicheForGene();
-
-
-            // 暂时不做合并操作（合并+判断） 为了简化难度 后期优化
 
             // 判断哪些峰需要合并(矩阵+凹点问题)  需将leaderSet 适配为 leaderSetForGene
             HashSet<String> hs = judgeMerge();
@@ -204,6 +199,7 @@ public class DNDR7 {
 
             // 调整初始半径
             adjustRadius();
+
             log.info("小生境个数: " + mapArrayListForGene.size());
 
             /*
@@ -221,7 +217,6 @@ public class DNDR7 {
              *           选择： size 决定了 选择的范围
              *           交叉|变异： 因为只变化一个个体，故直接进行就好，无需考虑第二个个体
              *
-             *  必须把代码完成，不然不好交差
              *
              */
 
@@ -250,7 +245,7 @@ public class DNDR7 {
             // 此处选择和之前不大一样了，之前是一次性选择出所有，这里是挨个进行选择
             // 方案：将小生境个数>=2的个体挑出来，这部分个体进行小生境内选择；其余部分进行小生境外选择
 
-            // 进行小生境内的选择   小生境内有多少个体就执行执行多少次选举，选出适应个体
+            // 进行小生境内的选择   小生境内有多少个体就执行多少次选举，选出适应个体
             // 最好是进去啥,返回啥。保持原样不做修改,这样有利于后续的交叉变异
             HashMap<String, ArrayList<String>>  inSelect = selectionIn(inListHashMap);
 
@@ -269,14 +264,14 @@ public class DNDR7 {
             // 因为下一轮需用得上适应度值排序 sortFitnessForGene
             // 进行小生境内交叉
             HashMap<String, ArrayList<String>> inCross = crossCoverIn(inSelect);
-            // 进行小生境外交叉  方法内部进行了size判断
+            // 进行小生境外交叉  方法内部进行了size判断  单点交叉
             ArrayList<String> outCross = crossCoverOut(outSelect);
 
             // 变异
-            // 进行小生境内交叉(采用的是 限制性锦标赛拥挤小生境)
+            // 进行小生境内交叉
             HashMap<String, ArrayList<String[]>> inMutate = mutateIn(inCross);
 
-            // 进行小生境外交叉
+            // 进行小生境外交叉 (采用的是 限制性锦标赛拥挤小生境)
             ArrayList<String[]> outMutate = mutateOut(outCross);
 
             // 如何赋值给 paperGenetic 呢？将inMutate 和 outMutate
@@ -1071,6 +1066,7 @@ public class DNDR7 {
 
         // 个体剔除操作 + 半径调整2
         // 用于存储临时集合
+        // FIXME 2.侧输出流。可以两个大的生成一个大的+小的   侧输出流的数据需要进一步保存
         ArrayList<String> sideList = new ArrayList<>();
         int sum = 0;
 
@@ -1865,10 +1861,7 @@ public class DNDR7 {
 
     /**
      * 小生境内选择
-     * 选择: 以适应度为导向,轮盘赌为策略, 适者生存和多样性的权衡
-     * <p>
-     * ①计算适应度：以试卷为单位，min*exp^1
-     * ②轮盘赌进行筛选 inBack
+     * 调用 小生境外选择
      */
     public HashMap<String, ArrayList<String>> selectionIn(HashMap<String, ArrayList<String>> inListHashMap) {
 
@@ -1898,6 +1891,9 @@ public class DNDR7 {
      *
      * ①计算适应度：以试卷为单位，min*exp^1
      * ②轮盘赌进行筛选 返回 outBack
+     *
+     *       选择（轮盘赌）：择优录取+多样式减低
+     *       交叉+变异：增加多样性(外部作用)
      */
     public ArrayList<String> selectionOut(ArrayList<String> outList) {
 
@@ -2276,7 +2272,9 @@ public class DNDR7 {
 
 
     /**
-     * 交叉 底层调用 crossCoverOut
+     * 交叉
+     *
+     *  底层调用 crossCoverOut
      *
      */
     private HashMap<String, ArrayList<String>> crossCoverIn(HashMap<String, ArrayList<String>>  inListHashMap) throws SQLException {
@@ -2306,8 +2304,6 @@ public class DNDR7 {
      * ①交叉的单位:  题目
      *
      * random.nextInt(n)  指生成一个介于[0,n)的int值
-     * 选择（轮盘赌）：择优录取+多样式减低
-     * 交叉+变异：增加多样性(外部作用)
      *
      * List 是否需要转化为 paperGenetic[1]
      * 交叉部分可以不转化，因为最小单位为题目，而不是题目里面的题型和属性
@@ -2488,6 +2484,8 @@ public class DNDR7 {
     /**
      * 变异  (长度，属性类型，属性比例)
      *
+     * 底层调用mutateOut
+     *
      */
     private HashMap<String, ArrayList<String[]>> mutateIn(HashMap<String, ArrayList<String>> inCross) throws SQLException {
 
@@ -2531,7 +2529,7 @@ public class DNDR7 {
 
                 if(Math.random() < PM){
                     // 限制性锦标赛拥挤小生境
-                    // Fixme 传进去是单个个体，返回的单个个体，然后在此方法后做循环给容器赋值  返回string[]
+                    // Fixme 传进去是单个个体，返回的单个个体，然后在此方法后做循环给容器赋值  最终返回string[]
                     ArrayList<Object> rts = niche5.RTS(outCross, j);
 
                     // 设置一个全局变量，不断的给 paperGenetic 赋值
