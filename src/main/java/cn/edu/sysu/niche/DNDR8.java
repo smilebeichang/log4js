@@ -14,73 +14,65 @@ import java.util.*;
 /**
  * @Author : song bei chang
  * @create : 2021/11/13 17:09
- * <p>
- * <p>
+ * 
+ * 
  * 《A Diverse Niche radii Niching Technique for Multimodal Function Optimization》
- * <p>
- * <p>
+ * 
+ * 
  * 目的：
  * 小生境      ---> 为了保证多样性
  * 自适应小生境 ---> 为了找到峰，然后保证多样性
  * 自适应小生境的目的是可以根据小生境半径确定小生境的个数，然后在小生境内进行GA操作
- * <p>
+ * 
  * 目前进展：已经证明小生境确有这个功能，而且自适应小生境也的确能实现
  * 自适应小生境不完全基于标准函数，其可通过惩罚系数实现适应度的计算，故其具有适配性
- * <p>
- * <p>
+ * 
+ * 
  * 复现自适应小生境的代码
  * 1.继续实现自己的代码(交叉变异不校验那种)
  * 基因型(即题目的相似性) vs 表现型(即适应度,即满足各种约束条件的情况)
  * 因校验之后,新个体都表现型都相似了，故可以①使用基因型作为相似性的判断 ②仅在最后做一次总的变异
- * <p>
+ * 
  * 选取标准：
  * 选取leader是适应度, 选取follower是相似性
- * <p>
- * <p>
- * <p>
- * <p>
+ *
  * 1.代码实现思路 优化合并峰(数据重复问题)
  * 方案一：(筛选--合并--调整)* N
  * 判断哪些峰需要合并,先选出一个最近点，进行合并。合并完成后，通过半径调整和个体剔除,再判断是否还有需要继续合并的峰
- * <p>
- * 方案二：若存在相同的峰,直接选择最小的一个进行,剩余的过滤掉暂时不做处理
+ * 
+ * 方案二：若存在相同的峰,直接选择最小的一个进行,剩余的过滤掉暂时不做处理    √
  * 此处选择方案二: 相对简单些,不用考虑迭代
- * <p>
- * <p>
+ * 
+ * 
  * 代码实现思路 交叉变异的位置、合并方式
  * 1.通过校验小生境个数来进行选择,选择是否进行小生境内的交叉变异
  * 2.侧输出流。可以两个大的转换成一个大的+小的
- * <p>
+ * 
  * 2.代入GA
  * 1.难点一: 基因型转换    解决方案：二进制选择 + 概率性
  * 难点二：相似性的判断   表现型(即适应度,即满足各种约束条件的情况)
- * <p>
- * <p>
+ * 
+ * 
  * 原始               修订
  * 适应度：            标准函数计算        惩罚系数的计算
  * leader:            适应度最大的个体    适应度最大的个体
  * 相似性：            离leader的相似性    题目的相似个数
  * 小生境的半径：       横坐标0~1          题目相似个数（阈值）
- * <p>
- * <p>
+ * 
+ * 
  * 2.此版本整体逻辑
  * 初始化 --- 适应度排序(适应度) --- 分配到不同小生境(相似性) --- 选择 -- 交叉 -- 变异 -- 修补
- * |<------------       niche            ------------>|
- */
-
-/**
- * 相似性：
- * 1.通过判断小生境的种群大小,选择是否进行小生境内外的交叉变异
- * 2.侧输出流。可以两个大的生成一个大的+小的(合并  待实现)
- * <p>
- * <p>
- * GA 操作的范围: 小生境内 or 全局
- * 1.1 若小生境个数大于2,在各自的小生境内执行  选择|交叉|变异  mapArrayListForGene
- * 1.2 若小生境个数=1,汇总到全局池,进行全局的交叉变异(自从代码优化后，发现没有=1的个体了)
- * <p>
+ *           |<------------                 niche                   ------------>|
+ *
+ * 
  * 方案: 挨个对个体进行判断,
  * 选择： size 决定了 选择的方式范围
  * 交叉|变异： 因为只变化一个个体，故直接进行就好，无需考虑第二个个体
+ *
+ * GA 操作的范围: 小生境内 or 全局
+ * 1.1 若小生境个数>2,在各自的小生境内执行  选择|交叉|变异  mapArrayListForGene
+ * 1.2 若小生境个数<3,汇总到全局池,进行全局的交叉变异(自从代码优化后，发现没有=1的个体了)
+ *
  */
 public class DNDR8 {
 
@@ -100,16 +92,15 @@ public class DNDR8 {
      */
     private ArrayList<String> sortListForGene = new ArrayList<>(200);
 
+    /**
+     * set存leader
+     */
+    private HashSet<String> leaderSetForGene = new HashSet();
 
     /**
      * leader + followers  map(key是string存小生境leader, value是list存小生境member)
      */
     private HashMap<String, ArrayList<String>> mapArrayListForGene = new HashMap<>();
-
-    /**
-     * set存leader
-     */
-    private HashSet<String> leaderSetForGene = new HashSet();
 
 
     /**
@@ -147,7 +138,7 @@ public class DNDR8 {
         // 迭代次数
         for (int i = 0; i < ITERATION_SIZE; i++) {
 
-            // 置空leader容器
+            // 置空leader容器  迭代速率好慢啊  2分钟1代  mutateOut耗时严重
             iterationClear();
 
             // 适应度值排序 0.9992_2,6,...  ArrayList<String> sortListForGene = new ArrayList<>(200)
@@ -162,10 +153,10 @@ public class DNDR8 {
             HashSet<String> hs = judgeMerge();
 
             // 合并
-            // merge(hs);
+            //merge(hs);
 
             // 调整初始半径
-            adjustRadius();
+            //adjustRadius();
 
 
             // 根据各个小生境的种群大小，然后塞入到不同集合中
@@ -200,7 +191,11 @@ public class DNDR8 {
             HashMap<String, ArrayList<String>> inSelect = selectionIn(inListHashMap);
 
             // 进行小生境外的选择
+
             ArrayList<String> outSelect = selectionOut(outList);
+
+            // select size : 53
+            System.out.println("select size : "+inSelect.size()+outSelect.size());
 
             // 交叉
             // 进行小生境内交叉
@@ -209,6 +204,8 @@ public class DNDR8 {
             // 进行小生境外交叉  方法内部进行了size判断
             ArrayList<String> outCross = crossCoverOut(outSelect);
 
+            System.out.println("cross size : "+inCross.size()+outCross.size());
+
             // 变异
             // 进行小生境内交叉(采用的是 限制性锦标赛拥挤小生境)
             HashMap<String, ArrayList<String[]>> inMutate = mutateIn(inCross);
@@ -216,6 +213,7 @@ public class DNDR8 {
             // 进行小生境外交叉
             ArrayList<String[]> outMutate = mutateOut(outCross);
 
+            System.out.println("mute size : "+inMutate.size()+outMutate.size());
             // 将inMutate和outMutate赋值给 paperGenetic
             paperGenetic = mergeToGene(inMutate, outMutate);
 
@@ -238,11 +236,13 @@ public class DNDR8 {
 
     /**
      * 适应度值排序
+     *      参数: paperGenetic     (全局变量)
+     *      返回: sortListForGene  (全局变量)
      */
     private void sortFitnessForGene() {
 
-        // FIXME 数据清空  此处置空操作是否可以放在 init 一起处理
-        // sortListForGene.clear();
+        // 数据清空  此处置空操作是否可以放在 init 一起处理
+        // sortListForGene.clear()
 
 
         // 遍历二维数组，获取其适应度，然后拼接上本身  sortListForGene.add(minrum + "_" + ids)
@@ -258,11 +258,11 @@ public class DNDR8 {
 
     /**
      * 将群体中的个体分配到不同小生境中 1.0_0.3
-     * <p>
+     * 
      * 步骤：
      * 1.选取leader
      * 注释: 最后有些个体其实不应该成为leader,待后续进行合并和剔除操作
-     * <p>
+     * 
      * 2.选取member
      * 注释:需保证数据总数不变
      * 问题现象：存在一个点分布在两个小生境中   0.4 分别在0.301和0.0407中
@@ -710,7 +710,7 @@ public class DNDR8 {
 
     /**
      * 返回：每套试卷的适应度_ids
-     * <p>
+     *
      * 方案  进行乘以一个exp 来进行适应度值的降低，高等数学里以自然常数e为底的指数函数
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
      * 属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
@@ -748,10 +748,10 @@ public class DNDR8 {
                  * j: 0
                  * itemList[j]: null
                  */
-                System.out.println("-->itemList: " + Arrays.asList(itemList));
-                System.out.println("-->itemList.length: " + itemList.length);
-                System.out.println("j: " + j);
-                System.out.println("itemList[j]: " + itemList[j]);
+//                System.out.println("-->itemList: " + Arrays.asList(itemList));
+//                System.out.println("-->itemList.length: " + itemList.length);
+//                System.out.println("j: " + j);
+//                System.out.println("itemList[j]: " + itemList[j]);
 
                 String[] splits = itemList[j].split(":");
                 adi1r = adi1r + Double.parseDouble(splits[3]);
@@ -766,7 +766,7 @@ public class DNDR8 {
             }
 
             String ids = idsb.toString().substring(1);
-            System.out.println(ids);
+            //System.out.println(ids);
 
             // 题型个数
             String[] expList = paperGenetic[i];
@@ -1174,10 +1174,10 @@ public class DNDR8 {
     /**
      * 小生境外选择
      * 选择: 以适应度为导向,轮盘赌为策略, 适者生存和多样性的权衡
-     * <p>
+     * 
      * ①计算适应度：以试卷为单位，min*exp^1
      * ②轮盘赌进行筛选 返回 outBack
-     * <p>
+     * 
      * 选择（轮盘赌）：择优录取+多样式减低
      * 交叉+变异：增加多样性(外部作用)
      */
@@ -1185,6 +1185,7 @@ public class DNDR8 {
 
         System.out.println("====================== select Out ======================");
 
+        System.out.println("进入outList的size: "+ outList.size());
         ArrayList<String> outBack = new ArrayList<>();
 
         if (outList.size() > 0) {
@@ -1237,6 +1238,7 @@ public class DNDR8 {
             }
 
         }
+        System.out.println("归还outList的size: "+ outBack.size());
 
         return outBack;
 
@@ -1245,7 +1247,7 @@ public class DNDR8 {
 
     /**
      * 每套试卷的适应度占比
-     * <p>
+     * 
      * selection 计算适应度值
      * 方案  进行乘以一个exp 来进行适应度值的降低，高等数学里以自然常数e为底的指数函数
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
@@ -1463,18 +1465,18 @@ public class DNDR8 {
 
     /**
      * 每套试卷的适应度占比
-     * <p>
+     * 
      * selection 计算适应度值
      * 方案  进行乘以一个exp 来进行适应度值的降低，高等数学里以自然常数e为底的指数函数
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
      * 属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
-     * <p>
-     * <p>
+     * 
+     * 
      * 方案一:
      * 将 list 转化为 gene 数组( 其中借助select * from table,初次是没问题的，但其会随着交叉变异而个体的变化，故需定义一个全局变量 时刻维护 )
      * paperGenetic[i] = 1:FILL:(0,0,0,0,1):0.0:0.0:0.0:0.0:0.055000000000000035 * 20
      * value[i] = 19.941320442946314_8,16,19,21,29,30,35,50,62,69,76,107,108,133,136,173,207,222,242,299
-     * <p>
+     * 
      * 方案二:
      * 直接使用 list 计算,因为首位已经是计算过的适应度值  此处采用
      */
@@ -1515,7 +1517,7 @@ public class DNDR8 {
     /**
      * 交叉 底层调用 crossCoverOut
      */
-    private HashMap<String, ArrayList<String>> crossCoverIn(HashMap<String, ArrayList<String>> inListHashMap) {
+    private HashMap<String, ArrayList<String>> crossCoverIn(HashMap<String, ArrayList<String>> inListHashMap) throws SQLException {
 
 
         HashMap<String, ArrayList<String>> inBack = new HashMap<>();
@@ -1537,14 +1539,14 @@ public class DNDR8 {
     /**
      * 交叉  此处不涉及适应度
      * ①交叉的单位:  题目
-     * <p>
+     * 
      * random.nextInt(n)  指生成一个介于[0,n)的int值
-     * <p>
+     * 
      * List 是否需要转化为 paperGenetic[1]
      * 交叉部分可以不转化，因为最小单位为题目，而不是题目里面的题型和属性
      * 变异部分可以不转化，因为最小单位为题目，而不是题目里面的题型和属性
      */
-    private ArrayList<String> crossCoverOut(ArrayList<String> outList) {
+    private ArrayList<String> crossCoverOut(ArrayList<String> outList) throws SQLException {
 
         //  获取长度基本信息
         //  单点交叉(只保留交叉一个个体)
@@ -1585,9 +1587,9 @@ public class DNDR8 {
                             temp[j] = arr.get(i + 1)[j];
                         }
 
-                        // FIXME 对tmp的题目大小顺序进行排序,防止数量变小
-                        // arr.set(i,sortPatchOut(temp));
-                        arr.set(i, temp);
+                        // FIXME 交叉后 size校验,防止数量变小
+                        arr.set(i,correct(temp));
+                        // arr.set(i, temp);
 
                     }
                 } else {
@@ -1672,7 +1674,7 @@ public class DNDR8 {
 
     /**
      * 变异  (长度，属性类型，属性比例)
-     * <p>
+     * 
      * outCross:27.783779425230577_2,9,12,34,36,39,42,49,69,72,90,91,102,112,123,137,168,197,219,227
      */
     private ArrayList<String[]> mutateOut(ArrayList<String> outCross) throws SQLException {
@@ -1690,7 +1692,7 @@ public class DNDR8 {
 
                 if (Math.random() < PM) {
 
-                    // 限制性锦标赛拥挤小生境 Fixme 传进去是单个个体，返回的单个个体，然后在此方法后做循环给容器赋值  返回string[]
+                    // 限制性锦标赛拥挤小生境  传进去是单个个体，返回的单个个体
                     ArrayList<Object> rts = niche5.RTS(outCross, j);
 
                     String[] c1 = (String[]) rts.get(0);
@@ -1731,6 +1733,8 @@ public class DNDR8 {
         String[][] gene = new String[200][20];
         int index = 0;
 
+        // in+out的大小:46
+        System.out.println("in+out的大小:"+inMutate.size() + outMutate.size());
         for (Map.Entry<String, ArrayList<String[]>> entry : inMutate.entrySet()) {
 
             for (String[] strings : entry.getValue()) {
@@ -1751,7 +1755,7 @@ public class DNDR8 {
 
     /**
      * 判断哪些峰需要合并(矩阵+凹点问题)  leaderSetForGene
-     * 用距离w矩阵(动态大小的二维数组)来表示任意两个小生境之间的关系（注：因为是01矩阵,所以后续需进一步去重）
+     * 用距离w矩阵(动态大小的二维数组)来表示任意两个小生境之间的关系（注：01矩阵,后续需做去重处理）
      *
      *      1.获取距离矩阵
      *      2.将距离矩阵简化(去重、最小值),只将要合并的集合返回
@@ -1759,10 +1763,11 @@ public class DNDR8 {
     private HashSet<String> judgeMerge() throws SQLException {
 
         // 距离w矩阵
+        // leaderSetForGene  即使有为1的情况,也不影响,因为这里做的是获取要合并的集合,为1显然被排除在外。业务逻辑之间不冲突
         int[][] distanceMatrix = new int[leaderSetForGene.size()][leaderSetForGene.size()];
 
         // set 转 arrayList
-        // 19.941320442946314_8,16,19,21,29,30,35,50,62,69,76,107,108,133,136,173,207,222,242,299
+        // 19.9413204_8,16,19,21,29,30,35,50,62,69,76,107,108,133,136,173,207,222,242,299
         List<String> leaderList = new ArrayList<>(leaderSetForGene);
 
         // 遍历计算距离关系,并生成01矩阵
@@ -1773,7 +1778,7 @@ public class DNDR8 {
             int a = 0;
             int b = 0;
 
-            // 1.原矩阵是根据横坐标确定 --> 2.现矩阵是根据题目的相似个数 leaderList *  leaderList 寻找最近的个体
+            // 矩阵是根据题目的相似个数 leaderList *  leaderList 寻找最近的个体
             String aids = leaderList.get(i).split("_")[1];
 
             for (int j = 0; j < leaderList.size(); j++) {
@@ -1811,15 +1816,14 @@ public class DNDR8 {
 
 
 
-            // FIXME 难点:1.原凹点验证是随机选取两个横坐标的中间值  2.现凹点验证是随机交叉来获取中间值(1.选取几个点 2.交叉方式是什么)
+            // FIXME 难点:现凹点验证是随机交叉来获取中间值
             // 随机选取2个点进行凹点验证, 多个随机值中,只要存在凹点,证明这两个相邻的小生境是独立的,不需要合并
             // 为了消除噪音干扰,定义了一个忍受因子 sf=0.9
             String bids = leaderList.get(b).split("_")[1];
             double sf = 0.9;
-
-            // 本轮循环中未出现凹点,则需要合并
             boolean flag = true;
             final int GER_RND = 2;
+
             for (int j = 0; j < GER_RND; j++) {
 
                 // 1.原横坐标单点交叉  (1-r)a + rb   2.基因交叉
@@ -1842,12 +1846,12 @@ public class DNDR8 {
                 }
 
                 // temp 为交叉后的新个体
-                // 1. 数组转string,然后从题库中搜索
-                // 数组转字符串(逗号分隔)(推荐)
+                // 数组转字符串(逗号分隔),然后从题库中搜索
                 String ids = StringUtils.join(temp, ",");
 
                 ArrayList<String> bachItemList = jdbcUtils.selectBachItem(ids);
 
+                // ArrayList 转 []
                 // 交叉变异的针对的是题目   即试卷=个体  题目=基因
                 String[] itemArray = new String[bachItemList.size()];
                 for (int h = 0; h < bachItemList.size(); h++) {
@@ -1870,7 +1874,7 @@ public class DNDR8 {
                 }
             }
 
-            // 未出现凹点需要合并的最终因子,通过ab索引,赋值为1,其余赋值为0
+            // 未出现凹点,需要合并的最终因子,通过ab索引,赋值为1,其余赋值为0
             if (flag) {
                 distanceMatrix[a][b] = 1;
             }
@@ -2101,12 +2105,12 @@ public class DNDR8 {
                 // 集合成员调整 arrayList + arrayList
                 mapArrayListForGene.get(s1).addAll(mapArrayListForGene.get(s2));
                 // 半径调整1
-                radiusMerge(s1, s2, l1);
+                radiusMerge(s1, s2);
             } else {
                 // 集合成员调整
                 mapArrayListForGene.get(s2).addAll(mapArrayListForGene.get(s1));
                 // 半径调整1
-                radiusMerge(s2, s1, l2);
+                radiusMerge(s2, s1);
             }
         }
 
@@ -2141,88 +2145,88 @@ public class DNDR8 {
 
         // 个体剔除操作
         // 用于存储临时集合
-        // FIXME 2.侧输出流。可以两个大的生成一个大的+小的   侧输出流的数据需要进一步保存
+        // FIXME 2.侧输出流。可以两个大的生成一个大的+小的   侧输出流的数据需要进一步保存  此处先省略,待下次优化
         ArrayList<String> sideList = new ArrayList<>();
         int sum = 0;
 
-        Iterator iter3 = mapArrayListForGene.entrySet().iterator();
-        while (iter3.hasNext()) {
-
-            Map.Entry entry = (Map.Entry) iter3.next();
-            String key = (String) entry.getKey();
-            ArrayList<String> val = (ArrayList<String>) entry.getValue();
-
-            // 过滤出样式为value_key_radius的个体,只有这一部分个体半径需要做修改
-            if (key.split("_").length == 3) {
-                // 用于存储集合
-                ArrayList<String> arrayList = new ArrayList<>();
-                // 进行剔除操作
-                // val：[fitness_ids, fitness_ids,....]
-                // String subStr = val.toString().substring(1, val.toString().length() - 1);
-                // FIXME 以逗号为分隔符是存在问题的
-                // String[] splitArr = subStr.split(",");
-
-                // 寻找适应度值最低和最高的个体
-                // FIXME 此处逻辑也要修改 使用适应度值进行判断不适用，需要使用新半径和leader的关系进行剔除个体的操作
-                // 最终半径
-                int finalRadius = Integer.parseInt(key.split("_")[2]);
-                String aids = key.split("_")[1];
-
-                // 根据距离判断是否需要剔除
-                for (String s : val) {
-                    String bids = s.split("_")[1];
-
-                    // 距离计算,ids的相似个数
-                    // string 转 list ,计算两个list的最大相似数
-                    // 将基因型转为list,使用list来判断相似个数
-                    List<String> listA = stringToList(aids);
-                    List<String> listB = stringToList(bids);
-
-                    // 假设上面ListA 和 ListB都存在数据
-                    // aids：3,4,9,28,34,36,43,52,59,102,116,126,129,138,145,213,230,233,247,267
-                    // bids：8,10,17,18,24,25,26,39,71,72,81,84,92,102,107,141,143,150,273,303
-
-                    // 使用题目个数进行判断相似性
-                    int counter = 0;
-                    for (String c : listB) {
-                        for (String d : listA) {
-                            if (c.equals(d)) {
-                                counter = counter + 1;
-                            }
-                        }
-                    }
-
-                    // 如果距离大于半径,则需要将其剔除
-                    if (finalRadius < counter) {
-                        // 侧输出流
-                        sideList.add(s);
-                    } else {
-                        arrayList.add(s);
-                    }
-                }
-                System.out.println(arrayList.size());
-                System.out.println(sideList.size());
-                System.out.println("==========");
-                // 更新key和value  这个key 包含了半径真的没关系吗?
-                String leader = key.split("_")[0];
-                // java.util.ConcurrentModificationException
-                //mapArrayListForGene.put(leader+"_"+aids, arrayList);
-            }
-
-            // 遍历 sideList,找出leader,然后存入mapArrayList中
-            double maxValue = 0;
-            String maxIndividual = null;
-            for (String s : sideList) {
-                Double aDouble = Double.valueOf(s.split("_")[0]);
-                if (aDouble > maxValue){
-                    maxValue = aDouble;
-                    maxIndividual = s;
-                }
-            }
-            // java.util.ConcurrentModificationException
-            // mapArrayListForGene.put(maxIndividual, sideList);
-
-        }
+//        Iterator iter3 = mapArrayListForGene.entrySet().iterator();
+//        while (iter3.hasNext()) {
+//
+//            Map.Entry entry = (Map.Entry) iter3.next();
+//            String key = (String) entry.getKey();
+//            ArrayList<String> val = (ArrayList<String>) entry.getValue();
+//
+//            // 过滤出样式为value_key_radius的个体,只有这一部分个体半径需要做修改
+//            if (key.split("_").length == 3) {
+//                // 用于存储集合
+//                ArrayList<String> arrayList = new ArrayList<>();
+//                // 进行剔除操作
+//                // val：[fitness_ids, fitness_ids,....]
+//                // String subStr = val.toString().substring(1, val.toString().length() - 1);
+//                // FIXME 以逗号为分隔符是存在问题的
+//                // String[] splitArr = subStr.split(",");
+//
+//                // 寻找适应度值最低和最高的个体
+//                // FIXME 此处逻辑也要修改 使用适应度值进行判断不适用，需要使用新半径和leader的关系进行剔除个体的操作
+//                // 最终半径
+//                int finalRadius = Integer.parseInt(key.split("_")[2]);
+//                String aids = key.split("_")[1];
+//
+//                // 根据距离判断是否需要剔除
+//                for (String s : val) {
+//                    String bids = s.split("_")[1];
+//
+//                    // 距离计算,ids的相似个数
+//                    // string 转 list ,计算两个list的最大相似数
+//                    // 将基因型转为list,使用list来判断相似个数
+//                    List<String> listA = stringToList(aids);
+//                    List<String> listB = stringToList(bids);
+//
+//                    // 假设上面ListA 和 ListB都存在数据
+//                    // aids：3,4,9,28,34,36,43,52,59,102,116,126,129,138,145,213,230,233,247,267
+//                    // bids：8,10,17,18,24,25,26,39,71,72,81,84,92,102,107,141,143,150,273,303
+//
+//                    // 使用题目个数进行判断相似性
+//                    int counter = 0;
+//                    for (String c : listB) {
+//                        for (String d : listA) {
+//                            if (c.equals(d)) {
+//                                counter = counter + 1;
+//                            }
+//                        }
+//                    }
+//
+//                    // 如果距离大于半径,则需要将其剔除
+//                    if (finalRadius < counter) {
+//                        // 侧输出流
+//                        sideList.add(s);
+//                    } else {
+//                        arrayList.add(s);
+//                    }
+//                }
+//                System.out.println(arrayList.size());
+//                System.out.println(sideList.size());
+//                System.out.println("==========");
+//                // 更新key和value  这个key 包含了半径真的没关系吗?
+//                String leader = key.split("_")[0];
+//                // java.util.ConcurrentModificationException
+//                //mapArrayListForGene.put(leader+"_"+aids, arrayList);
+//            }
+//
+//            // 遍历 sideList,找出leader,然后存入mapArrayList中
+//            double maxValue = 0;
+//            String maxIndividual = null;
+//            for (String s : sideList) {
+//                Double aDouble = Double.valueOf(s.split("_")[0]);
+//                if (aDouble > maxValue){
+//                    maxValue = aDouble;
+//                    maxIndividual = s;
+//                }
+//            }
+//            // java.util.ConcurrentModificationException
+//            // mapArrayListForGene.put(maxIndividual, sideList);
+//
+//        }
 
         // 验证当前总个数
         Iterator iter4 = mapArrayListForGene.entrySet().iterator();
@@ -2261,15 +2265,14 @@ public class DNDR8 {
      *      map是无法直接修改key值的，所以要采用其他的方案，新增一个键值对，再删除之前那个要修改的
      *      采用迭代器的方式遍历，在迭代中it.remove(),map.put()操作
      */
-    private void radiusMerge(String s1, String s2, double l1) {
+    private void radiusMerge(String s1, String s2) {
 
-        // 进行迭代,选择最远的个体即可,最大距离 = 新半径
         // 原有的逻辑：最远的个体即最大半径  不再适应
 
         // 半径的相似个体数 如何确定呢？
         // 1.最大相似个数  no  半径会变小,也不符合要求
         // 2.最小相似个数  no  如果取最小相似数，估计能达到15，明显不符合要求;
-        // 暂时定的方案: 直接两个峰值进行合并,其相似个数即为新半径  这样半径会变大些
+        // 暂时定的方案: 直接两个峰值进行合并,其相似个数即为新半径  这样半径会变大些  因为筛选的时候也是使用相似个数来判断,故两处逻辑是一致的
 
 
         // 进行合并
@@ -2328,6 +2331,94 @@ public class DNDR8 {
         }
 
     }
+
+
+
+
+    /**
+     *
+     * 执行修补操作(交叉变异均可能导致数量，题型，属性发生了变化)
+     *      步骤：
+     *          (1)校验size, 按照题型新增n道题目，or 随机新增题目数
+     *          (2)校验题型, in/out  完美解、替补解（权重）
+     *          (2)校验属性, in/out  完美解、替补解（权重 inListRe/inCompose）
+     *
+     * 46:SHORT:(1,0,0,0,0):0.095001:0.0:0.0:0.0:0.0
+     * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
+     * 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
+     *
+     */
+    private String[] correct(String[] temp) throws SQLException {
+
+        //System.out.println("第 "+i+" 题,开始交叉/变异后校验 ..... ");
+
+        // 长度校验
+        String[] strings = correctLength(temp);
+        if((new HashSet<>(Arrays.asList(temp))).size()<10){
+            System.out.println("size 不符合");
+        }
+
+        // 题型比例校验  题型比例过多的情况:[1, 1, 1, 7, 23, 29, 115, 148, 256, 281]
+        //correctType(i);
+        if((new HashSet<>(Arrays.asList(temp))).size()<10){
+            System.out.println("size 不符合");
+        }
+
+        // 属性比例校验
+        //correctAttribute(i);
+        if((new HashSet<>(Arrays.asList(temp))).size()<10){
+            System.out.println("size 不符合");
+        }
+
+        return strings;
+
+
+    }
+
+    /**
+     *  长度校验
+     *  检验完成后，更新 paperGenetic
+     *
+     *  解决方案：    ①size==10,退出
+     *              ②如果在小于范围下限，则按照题型选取
+     *              ③如果都符合要求，则随机选取一题，再在下层做处理
+     *
+     */
+    private String[] correctLength(String[] temp) throws SQLException {
+
+        //去重操作  (id:type:attributes:adi1_r:adi2_r:adi3_r:adi4_r:adi5_r)
+        //将tmp的ids剥离出来,然后获取长度  通过题型校验，其实没必要，我这边已经不做处理了
+
+        HashSet<String> setBegin = new HashSet<>(Arrays.asList(temp));
+
+        if (setBegin.size() == 20){
+            //System.out.println("第 "+w+" 题, 交叉/变异后,size正常");
+        }else{
+
+            //System.out.println("交叉/变异导致size不匹配：开始进行长度修补 ");
+
+            //随机选题
+            while(setBegin.size() != 20){
+
+                String id = new Random().nextInt(300) + "";
+                setBegin.add(id);
+            }
+
+            //输出集合的大小  setEnd.size()
+            //System.out.println("setEnd.size(): "+setEnd.size());
+
+            // hashSet 转 数组
+            String[] array = new String[setBegin.size()];
+            array = setBegin.toArray(array);
+
+            //System.out.println("修补后的长度:"+array.length);
+            return array;
+
+        }
+        return temp;
+
+    }
+
 
 
 }

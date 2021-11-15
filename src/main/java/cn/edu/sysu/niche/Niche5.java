@@ -295,7 +295,7 @@ public class Niche5 {
         }
 
 
-        System.out.println("最相似的个体为："+minPhen + cw1[0].get(minPhen));
+        //System.out.println("最相似的个体为："+minPhen + cw1[0].get(minPhen));
 
         // 替换c1 将abs放开，直接替换呢？看看是否还会导致大面积相似
         //if (minADI - getMinADI(paperGenetic[minPhen])<0){
