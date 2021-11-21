@@ -14,65 +14,64 @@ import java.util.*;
 /**
  * @Author : song bei chang
  * @create : 2021/11/13 17:09
- * 
- * 
+ * <p>
+ * <p>
  * 《A Diverse Niche radii Niching Technique for Multimodal Function Optimization》
- * 
- * 
+ * <p>
+ * <p>
  * 目的：
  * 小生境      ---> 为了保证多样性
  * 自适应小生境 ---> 为了找到峰，然后保证多样性
  * 自适应小生境的目的是可以根据小生境半径确定小生境的个数，然后在小生境内进行GA操作
- * 
+ * <p>
  * 目前进展：已经证明小生境确有这个功能，而且自适应小生境也的确能实现
  * 自适应小生境不完全基于标准函数，其可通过惩罚系数实现适应度的计算，故其具有适配性
- * 
- * 
+ * <p>
+ * <p>
  * 复现自适应小生境的代码
  * 1.继续实现自己的代码(交叉变异不校验那种)
  * 基因型(即题目的相似性) vs 表现型(即适应度,即满足各种约束条件的情况)
  * 因校验之后,新个体都表现型都相似了，故可以①使用基因型作为相似性的判断 ②仅在最后做一次总的变异
- * 
+ * <p>
  * 选取标准：
  * 选取leader是适应度, 选取follower是相似性
- *
+ * <p>
  * 1.代码实现思路 优化合并峰(数据重复问题)
  * 方案一：(筛选--合并--调整)* N
  * 判断哪些峰需要合并,先选出一个最近点，进行合并。合并完成后，通过半径调整和个体剔除,再判断是否还有需要继续合并的峰
- * 
+ * <p>
  * 方案二：若存在相同的峰,直接选择最小的一个进行,剩余的过滤掉暂时不做处理    √
  * 此处选择方案二: 相对简单些,不用考虑迭代
- * 
- * 
+ * <p>
+ * <p>
  * 代码实现思路 交叉变异的位置、合并方式
  * 1.通过校验小生境个数来进行选择,选择是否进行小生境内的交叉变异
  * 2.侧输出流。可以两个大的转换成一个大的+小的
- * 
+ * <p>
  * 2.代入GA
  * 1.难点一: 基因型转换    解决方案：二进制选择 + 概率性
  * 难点二：相似性的判断   表现型(即适应度,即满足各种约束条件的情况)
- * 
- * 
+ * <p>
+ * <p>
  * 原始               修订
  * 适应度：            标准函数计算        惩罚系数的计算
  * leader:            适应度最大的个体    适应度最大的个体
  * 相似性：            离leader的相似性    题目的相似个数
  * 小生境的半径：       横坐标0~1          题目相似个数（阈值）
- * 
- * 
+ * <p>
+ * <p>
  * 2.此版本整体逻辑
  * 初始化 --- 适应度排序(适应度) --- 分配到不同小生境(相似性) --- 选择 -- 交叉 -- 变异 -- 修补
- *           |<------------                 niche                   ------------>|
- *
- * 
+ * |<------------                 niche                   ------------>|
+ * <p>
+ * <p>
  * 方案: 挨个对个体进行判断,
  * 选择： size 决定了 选择的方式范围
  * 交叉|变异： 因为只变化一个个体，故直接进行就好，无需考虑第二个个体
- *
+ * <p>
  * GA 操作的范围: 小生境内 or 全局
  * 1.1 若小生境个数>2,在各自的小生境内执行  选择|交叉|变异  mapArrayListForGene
  * 1.2 若小生境个数<3,汇总到全局池,进行全局的交叉变异(自从代码优化后，发现没有=1的个体了)
- *
  */
 public class DNDR8 {
 
@@ -146,17 +145,12 @@ public class DNDR8 {
             sortFitnessForGene();
 
             // 将群体中的个体分配到不同小生境中 leader + members    mapArrayListForGene(key,value)
+            // 此次迭代个体总数目：200
             distributeNicheForGene();
 
 
-            // 判断哪些峰需要合并(矩阵+凹点问题)  需将leaderSet 适配为 leaderSetForGene
-            HashSet<String> hs = judgeMerge();
+            ifSkip(true);
 
-            // 合并
-            //merge(hs);
-
-            // 调整初始半径
-            //adjustRadius();
 
 
             // 根据各个小生境的种群大小，然后塞入到不同集合中
@@ -194,8 +188,15 @@ public class DNDR8 {
 
             ArrayList<String> outSelect = selectionOut(outList);
 
+            int select_sum = outSelect.size();
+
+            for (Map.Entry<String, ArrayList<String>> entry : inListHashMap.entrySet()) {
+                select_sum = select_sum + entry.getValue().size();
+            }
+
+
             // select size : 53
-            System.out.println("select size : "+inSelect.size()+outSelect.size());
+            System.out.println("select size : " + select_sum);
 
             // 交叉
             // 进行小生境内交叉
@@ -204,19 +205,51 @@ public class DNDR8 {
             // 进行小生境外交叉  方法内部进行了size判断
             ArrayList<String> outCross = crossCoverOut(outSelect);
 
-            System.out.println("cross size : "+inCross.size()+outCross.size());
+            int cross_sum = outCross.size();
+
+            for (Map.Entry<String, ArrayList<String>> entry : inCross.entrySet()) {
+                cross_sum = cross_sum + entry.getValue().size();
+            }
+
+            System.out.println("cross size : " + cross_sum);
 
             // 变异
             // 进行小生境内交叉(采用的是 限制性锦标赛拥挤小生境)
             HashMap<String, ArrayList<String[]>> inMutate = mutateIn(inCross);
 
-            // 进行小生境外交叉
+            // 进行小生境外交叉此次迭代个体总数目
             ArrayList<String[]> outMutate = mutateOut(outCross);
 
-            System.out.println("mute size : "+inMutate.size()+outMutate.size());
-            // 将inMutate和outMutate赋值给 paperGenetic
+            int mutate_sum = outCross.size();
+
+            for (Map.Entry<String, ArrayList<String[]>> entry : inMutate.entrySet()) {
+                mutate_sum = mutate_sum + entry.getValue().size();
+            }
+
+            System.out.println("mute size : " + mutate_sum);
+            // 将inMutate和outMutate赋值给 paperGenetic  应该是这里有问题
             paperGenetic = mergeToGene(inMutate, outMutate);
 
+        }
+
+    }
+
+    /**
+     * 自适应小生境
+     * @param flag
+     * @throws SQLException
+     */
+    private void ifSkip(boolean flag) throws SQLException {
+
+        if (!flag){
+            // 判断哪些峰需要合并(矩阵+凹点问题)  需将leaderSet 适配为 leaderSetForGene
+            HashSet<String> hs = judgeMerge();
+
+            // 合并  FIXME  个体总数：228
+            merge(hs);
+
+            // 调整初始半径
+            adjustRadius();
         }
 
     }
@@ -236,10 +269,10 @@ public class DNDR8 {
 
     /**
      * 适应度值排序
-     *      参数: paperGenetic     (全局变量)
-     *      返回: sortListForGene  (全局变量)
+     * 参数: paperGenetic     (全局变量)
+     * 返回: sortListForGene  (全局变量)
      */
-    private void sortFitnessForGene() {
+    private void sortFitnessForGene() throws SQLException {
 
         // 数据清空  此处置空操作是否可以放在 init 一起处理
         // sortListForGene.clear()
@@ -258,11 +291,11 @@ public class DNDR8 {
 
     /**
      * 将群体中的个体分配到不同小生境中 1.0_0.3
-     * 
+     * <p>
      * 步骤：
      * 1.选取leader
      * 注释: 最后有些个体其实不应该成为leader,待后续进行合并和剔除操作
-     * 
+     * <p>
      * 2.选取member
      * 注释:需保证数据总数不变
      * 问题现象：存在一个点分布在两个小生境中   0.4 分别在0.301和0.0407中
@@ -277,7 +310,7 @@ public class DNDR8 {
             // 选择第一个小生境leader
             if (leaderSetForGene.size() == 0) {
                 leaderSetForGene.add(sortListForGene.get(i));
-                System.out.println("leader: " + sortListForGene.get(i));
+                //System.out.println("leader: " + sortListForGene.get(i));
 
             } else {
 
@@ -316,7 +349,6 @@ public class DNDR8 {
                 // 重复的题目小于3,则不隶属于现存的任何一个小生境,故新增一个leader  FIXME 使用1可能过小 count 和 mark 需要相互对应
                 if (max < 3) {
                     leaderSetForGene.add(sortListForGene.get(i));
-                    System.out.println("leader: " + sortListForGene.get(i));
                 }
             }
         }
@@ -329,6 +361,7 @@ public class DNDR8 {
 
         for (String leader : leaderSetForGene) {
 
+            Boolean limitFlag = false;
             ArrayList<String> memberList = new ArrayList<>();
             String aids = leader.split("_")[1];
 
@@ -355,10 +388,22 @@ public class DNDR8 {
                     if (mark >= 3) {
                         memberList.add(s);
                         sortListForGene.set(i, "");
+                        // 新增方法:限制每个小生境的数量  不大于50
+//                        if (memberList.size()>50){
+//                            log.info("执行一次member限制ing");
+//                            mapArrayListForGene.put(leader, memberList);
+//                            // break跳出的是for循环,对if-else的条件语句不起作用
+//                            limitFlag = true;
+//                            break;
+//                        }
                     }
                 }
             }
+//            if(!limitFlag){
+//                mapArrayListForGene.put(leader, memberList);
+//            }
             mapArrayListForGene.put(leader, memberList);
+            log.info("leader的value: " + leader.split("_")[0]+"  ,member的数量:"+memberList.size());
             // 验证个体总数是否丢失  FIXME sum存在偏差，待验证，应累加leader+member的总和，防止leader存在，但无member的情况
             // 现象 sum = 200 始终成立，但leader成为了别人的member,以及自己不一定是自己的member
             // 原因: leader 成为member时,未进行置空
@@ -367,6 +412,8 @@ public class DNDR8 {
         System.out.println("此次迭代个体总数目：" + sum);
         log.info("小生境个数: " + mapArrayListForGene.size());
     }
+
+
 
 
     /**
@@ -448,6 +495,59 @@ public class DNDR8 {
             paperGenetic[j] = itemArray;
         }
     }
+
+
+    /**
+     * 测试
+     */
+    //@Test
+    public String[] supplementPaperGenetic() throws SQLException {
+
+        // 单套试卷的集合
+        HashSet<String> itemSet = new HashSet<>();
+
+        for (int i = 0; i < 20; i++) {
+            // 减少频繁的gc
+            String item;
+            // 去重操作
+            while (itemSet.size() == i) {
+                // 获取题目id
+                item = new Random().nextInt(310)+"";
+                itemSet.add(item);
+            }
+        }
+
+        // 将hashSet转ArrayList 并排序
+        ArrayList<String> list = new ArrayList<>(itemSet);
+
+        // idList容器
+        ArrayList<Integer> idList = new ArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            idList.add(Integer.valueOf(list.get(i)));
+        }
+
+        //list排序  目前抽取到集合为题目id
+        Collections.sort(idList);
+
+
+        // 根据id从数据库中查询相对应的题目
+        String ids = idList.toString().substring(1, idList.toString().length() - 1);
+        ArrayList<String> bachItemList = jdbcUtils.selectBachItem(ids);
+
+
+        // 交叉变异的针对的是题目   即试卷=个体  题目=基因
+        String[] itemArray = new String[bachItemList.size()];
+        for (int i = 0; i < bachItemList.size(); i++) {
+            itemArray[i] = bachItemList.get(i);
+        }
+
+        System.out.println(itemArray);
+
+        return itemArray;
+
+    }
+
+
 
     /**
      * 返回题库所有题目 id:type:pattern
@@ -710,12 +810,12 @@ public class DNDR8 {
 
     /**
      * 返回：每套试卷的适应度_ids
-     *
+     * <p>
      * 方案  进行乘以一个exp 来进行适应度值的降低，高等数学里以自然常数e为底的指数函数
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
      * 属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
      */
-    private void getFitnessForGene(int paperSize) {
+    private void getFitnessForGene(int paperSize) throws SQLException {
 
         //log.info("适应值 log4j")
 
@@ -739,14 +839,30 @@ public class DNDR8 {
 
             // 获取原始adi  数组里面裹数组
             String[] itemList = paperGenetic[i];
+
+            // 强行手动修复 如果不行就判断里面的值是否为null
+            // 加一层判断，如果itemList.length=20,则保持不变;如果否,则给paperGenetic[i] 赋予新值
+            if(itemList.length != 20){
+                 itemList = supplementPaperGenetic();
+            }
+
+            //-->itemList: []  FIXME 待修复
+            //idsb.toString():
+            //-->itemList: [10:SHORT:(1,0,0,0,0):0.15000000000000002:0.0:0.0:0.0:0.0, null, 184:CHOSE:(0,1
+            //-->itemList: []  直接不进入循环
+            //idsb.toString():
+            System.out.println("-->itemList: " + Arrays.asList(itemList).toString());
             for (int j = 0; j < itemList.length; j++) {
 
                 /**
                  * FiXME 待修复
-                 * -->itemList: [null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+                 * -->itemList: [null, null, null, null, null, null, null]
                  * -->itemList.length: 20
                  * j: 0
                  * itemList[j]: null
+                 *
+                 * paperGenetic 在上一轮出现了问题,长度为20,但里面的值均为null。
+                 * 校验方案:在每层做一个长度及null值的校验
                  */
 //                System.out.println("-->itemList: " + Arrays.asList(itemList));
 //                System.out.println("-->itemList.length: " + itemList.length);
@@ -763,13 +879,17 @@ public class DNDR8 {
                 // 拼接ids
                 idsb.append(",").append(splits[0]);
 
+
             }
 
+            //java.lang.StringIndexOutOfBoundsException: String index out of range: -1
+            System.out.println("idsb.toString():"+idsb.toString());
             String ids = idsb.toString().substring(1);
             //System.out.println(ids);
 
-            // 题型个数
-            String[] expList = paperGenetic[i];
+            // 题型个数 FIXME 20211118 修改
+            //String[] expList = paperGenetic[i];
+            String[] expList = itemList;
             int typeChose = 0;
             int typeFill = 0;
             int typeShort = 0;
@@ -936,216 +1056,213 @@ public class DNDR8 {
     }
 
 
-
     /**
      * 返回 单套试卷的适应度_ids
      */
-    private Double getFitnessForOne(String[] itemArray ) {
+    private Double getFitnessForOne(String[] itemArray) {
 
 
         // 计算试卷的适应度值，即衡量试卷优劣的指标之一 Fs
 
-            double adi1r = 0;
-            double adi2r = 0;
-            double adi3r = 0;
-            double adi4r = 0;
-            double adi5r = 0;
+        double adi1r = 0;
+        double adi2r = 0;
+        double adi3r = 0;
+        double adi4r = 0;
+        double adi5r = 0;
 
-            StringBuilder idsb = new StringBuilder();
+        StringBuilder idsb = new StringBuilder();
 
-            // 获取原始adi  数组里面裹数组
-            //String[] itemList = paperGenetic[0];
-            for (int j = 0; j < itemArray.length; j++) {
+        // 获取原始adi  数组里面裹数组
+        //String[] itemList = paperGenetic[0];
+        for (int j = 0; j < itemArray.length; j++) {
 
-                /**
-                 * FiXME 待修复
-                 * -->itemList: [null, null, null, null, null, null, null, null, null, null, null, null, null, null]
-                 * -->itemList.length: 20
-                 * j: 0
-                 * itemList[j]: null
-                 */
-                System.out.println("-->itemList: " + Arrays.asList(itemArray));
-                System.out.println("-->itemList.length: " + itemArray.length);
-                System.out.println("j: " + j);
-                System.out.println("itemList[j]: " + itemArray[j]);
+            /**
+             * FiXME 待修复
+             * -->itemList: [null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+             * -->itemList.length: 20
+             * j: 0
+             * itemList[j]: null
+             */
+            //System.out.println("-->itemList: " + Arrays.asList(itemArray));
+            //System.out.println("-->itemList.length: " + itemArray.length);
+            //System.out.println("j: " + j);
+            //System.out.println("itemList[j]: " + itemArray[j]);
 
-                String[] splits = itemArray[j].split(":");
-                adi1r = adi1r + Double.parseDouble(splits[3]);
-                adi2r = adi2r + Double.parseDouble(splits[4]);
-                adi3r = adi3r + Double.parseDouble(splits[5]);
-                adi4r = adi4r + Double.parseDouble(splits[6]);
-                adi5r = adi5r + Double.parseDouble(splits[7]);
+            String[] splits = itemArray[j].split(":");
+            adi1r = adi1r + Double.parseDouble(splits[3]);
+            adi2r = adi2r + Double.parseDouble(splits[4]);
+            adi3r = adi3r + Double.parseDouble(splits[5]);
+            adi4r = adi4r + Double.parseDouble(splits[6]);
+            adi5r = adi5r + Double.parseDouble(splits[7]);
 
-                // 拼接ids
-                idsb.append(",").append(splits[0]);
+            // 拼接ids
+            idsb.append(",").append(splits[0]);
 
+        }
+
+        String ids = idsb.toString().substring(1);
+        //System.out.println(ids);
+
+        // 题型个数
+        String[] expList = paperGenetic[0];
+        int typeChose = 0;
+        int typeFill = 0;
+        int typeShort = 0;
+        int typeCompre = 0;
+
+
+        //此次迭代各个题型的数目
+        for (String s : expList) {
+
+            //计算每种题型个数
+            if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
+                typeChose += 1;
             }
-
-            String ids = idsb.toString().substring(1);
-            System.out.println(ids);
-
-            // 题型个数
-            String[] expList = paperGenetic[0];
-            int typeChose = 0;
-            int typeFill = 0;
-            int typeShort = 0;
-            int typeCompre = 0;
-
-
-            //此次迭代各个题型的数目
-            for (String s : expList) {
-
-                //计算每种题型个数
-                if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
-                    typeChose += 1;
-                }
-                if (TYPE.FILL.toString().equals(s.split(":")[1])) {
-                    typeFill += 1;
-                }
-                if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
-                    typeShort += 1;
-                }
-                if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
-                    typeCompre += 1;
-                }
+            if (TYPE.FILL.toString().equals(s.split(":")[1])) {
+                typeFill += 1;
             }
-
-            // 题型比例/10  属性比例/23 是固定值,到了后期需要修正
-            // 题型比例
-            double typeChoseRation = typeChose / 10.0;
-            double typeFileRation = typeFill / 10.0;
-            double typeShortRation = typeShort / 10.0;
-            double typeCompreRation = typeCompre / 10.0;
-
-            // 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
-            // 先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
-            double td1;
-            if (typeChoseRation >= 0.2 && typeChoseRation < 0.4) {
-                td1 = 0;
-            } else if (typeChoseRation < 0.2) {
-                td1 = Math.abs(0.2 - typeChoseRation);
-            } else {
-                td1 = Math.abs(typeChoseRation - 0.4);
+            if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
+                typeShort += 1;
             }
-
-            double td2;
-            if (typeFileRation >= 0.2 && typeFileRation < 0.4) {
-                td2 = 0;
-            } else if (typeFileRation < 0.2) {
-                td2 = Math.abs(0.2 - typeFileRation);
-            } else {
-                td2 = Math.abs(typeFileRation - 0.4);
+            if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
+                typeCompre += 1;
             }
+        }
 
-            double td3;
-            if (typeShortRation >= 0.1 && typeShortRation < 0.3) {
-                td3 = 0;
-            } else if (typeShortRation < 0.1) {
-                td3 = Math.abs(0.1 - typeShortRation);
-            } else {
-                td3 = Math.abs(typeShortRation - 0.3);
-            }
+        // 题型比例/10  属性比例/23 是固定值,到了后期需要修正
+        // 题型比例
+        double typeChoseRation = typeChose / 10.0;
+        double typeFileRation = typeFill / 10.0;
+        double typeShortRation = typeShort / 10.0;
+        double typeCompreRation = typeCompre / 10.0;
 
-            double td4;
-            if (typeCompreRation >= 0.1 && typeCompreRation < 0.3) {
-                td4 = 0;
-            } else if (typeCompreRation < 0.1) {
-                td4 = Math.abs(0.1 - typeCompreRation);
-            } else {
-                td4 = Math.abs(typeCompreRation - 0.3);
-            }
+        // 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
+        // 先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
+        double td1;
+        if (typeChoseRation >= 0.2 && typeChoseRation < 0.4) {
+            td1 = 0;
+        } else if (typeChoseRation < 0.2) {
+            td1 = Math.abs(0.2 - typeChoseRation);
+        } else {
+            td1 = Math.abs(typeChoseRation - 0.4);
+        }
 
+        double td2;
+        if (typeFileRation >= 0.2 && typeFileRation < 0.4) {
+            td2 = 0;
+        } else if (typeFileRation < 0.2) {
+            td2 = Math.abs(0.2 - typeFileRation);
+        } else {
+            td2 = Math.abs(typeFileRation - 0.4);
+        }
 
-            // 属性个数
-            int exp1 = 0;
-            int exp2 = 0;
-            int exp3 = 0;
-            int exp4 = 0;
-            int exp5 = 0;
+        double td3;
+        if (typeShortRation >= 0.1 && typeShortRation < 0.3) {
+            td3 = 0;
+        } else if (typeShortRation < 0.1) {
+            td3 = Math.abs(0.1 - typeShortRation);
+        } else {
+            td3 = Math.abs(typeShortRation - 0.3);
+        }
 
-            for (int j = 0; j < expList.length; j++) {
-                String[] splits = expList[j].split(":");
-                exp1 = exp1 + Integer.parseInt(splits[2].split(",")[0].substring(1, 2));
-                exp2 = exp2 + Integer.parseInt(splits[2].split(",")[1]);
-                exp3 = exp3 + Integer.parseInt(splits[2].split(",")[2]);
-                exp4 = exp4 + Integer.parseInt(splits[2].split(",")[3]);
-                exp5 = exp5 + Integer.parseInt(splits[2].split(",")[4].substring(0, 1));
-            }
-
-            // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
-            //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
-            double ed1;
-            double edx1 = exp1 / 23.0;
-            if (edx1 >= 0.2 && edx1 < 0.4) {
-                ed1 = 0;
-            } else if (edx1 < 0.2) {
-                ed1 = Math.abs(0.2 - edx1);
-            } else {
-                ed1 = Math.abs(edx1 - 0.4);
-            }
-
-            double ed2;
-            double edx2 = exp2 / 23.0;
-            if (edx2 >= 0.2 && edx2 < 0.4) {
-                ed2 = 0;
-            } else if (edx2 < 0.2) {
-                ed2 = Math.abs(0.2 - edx2);
-            } else {
-                ed2 = Math.abs(edx2 - 0.4);
-            }
-
-            double ed3;
-            double edx3 = exp3 / 23.0;
-            if (edx3 >= 0.1 && edx3 < 0.3) {
-                ed3 = 0;
-            } else if (edx3 < 0.1) {
-                ed3 = Math.abs(0.1 - edx3);
-            } else {
-                ed3 = Math.abs(edx3 - 0.3);
-            }
-
-            double ed4;
-            double edx4 = exp4 / 23.0;
-            if (edx4 >= 0.1 && edx4 < 0.3) {
-                ed4 = 0;
-            } else if (edx4 < 0.1) {
-                ed4 = Math.abs(0.1 - edx4);
-            } else {
-                ed4 = Math.abs(edx4 - 0.3);
-            }
-
-            double ed5;
-            double edx5 = exp5 / 23.0;
-            if (edx5 >= 0.1 && edx5 < 0.3) {
-                ed5 = 0;
-            } else if (edx5 < 0.1) {
-                ed5 = Math.abs(0.1 - edx5);
-            } else {
-                ed5 = Math.abs(edx5 - 0.3);
-            }
-
-            //System.out.println("题型和属性超额情况： td1:"+td1+" td2:"+td2+" td3:"+td3+" td4:"+td4 + "ed1:"+ed1+" ed2:"+ed2+" ed3:"+ed3+" ed4:"+ed4+" ed5:"+ed5)
-
-            // 惩罚个数  只有比例不符合要求时才惩罚，故不会有太大的影响
-            double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5);
-
-            //System.out.printf("exp(%.3f) 为 %.3f%n", expNum, Math.exp(expNum))
+        double td4;
+        if (typeCompreRation >= 0.1 && typeCompreRation < 0.3) {
+            td4 = 0;
+        } else if (typeCompreRation < 0.1) {
+            td4 = Math.abs(0.1 - typeCompreRation);
+        } else {
+            td4 = Math.abs(typeCompreRation - 0.3);
+        }
 
 
-            //均值 和 最小值
-            double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
-            double minrum = Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r) * 100;
+        // 属性个数
+        int exp1 = 0;
+        int exp2 = 0;
+        int exp3 = 0;
+        int exp4 = 0;
+        int exp5 = 0;
 
-            //System.out.println("minrum: "+minrum)
+        for (int j = 0; j < expList.length; j++) {
+            String[] splits = expList[j].split(":");
+            exp1 = exp1 + Integer.parseInt(splits[2].split(",")[0].substring(1, 2));
+            exp2 = exp2 + Integer.parseInt(splits[2].split(",")[1]);
+            exp3 = exp3 + Integer.parseInt(splits[2].split(",")[2]);
+            exp4 = exp4 + Integer.parseInt(splits[2].split(",")[3]);
+            exp5 = exp5 + Integer.parseInt(splits[2].split(",")[4].substring(0, 1));
+        }
 
-            //适应度值 (min * 惩罚系数)
-            minrum = minrum * Math.exp(expNum);
+        // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
+        //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
+        double ed1;
+        double edx1 = exp1 / 23.0;
+        if (edx1 >= 0.2 && edx1 < 0.4) {
+            ed1 = 0;
+        } else if (edx1 < 0.2) {
+            ed1 = Math.abs(0.2 - edx1);
+        } else {
+            ed1 = Math.abs(edx1 - 0.4);
+        }
 
-            // 本身的基因型选用id拼接,其具有代表性
-             return  Double.valueOf(minrum) ;
+        double ed2;
+        double edx2 = exp2 / 23.0;
+        if (edx2 >= 0.2 && edx2 < 0.4) {
+            ed2 = 0;
+        } else if (edx2 < 0.2) {
+            ed2 = Math.abs(0.2 - edx2);
+        } else {
+            ed2 = Math.abs(edx2 - 0.4);
+        }
+
+        double ed3;
+        double edx3 = exp3 / 23.0;
+        if (edx3 >= 0.1 && edx3 < 0.3) {
+            ed3 = 0;
+        } else if (edx3 < 0.1) {
+            ed3 = Math.abs(0.1 - edx3);
+        } else {
+            ed3 = Math.abs(edx3 - 0.3);
+        }
+
+        double ed4;
+        double edx4 = exp4 / 23.0;
+        if (edx4 >= 0.1 && edx4 < 0.3) {
+            ed4 = 0;
+        } else if (edx4 < 0.1) {
+            ed4 = Math.abs(0.1 - edx4);
+        } else {
+            ed4 = Math.abs(edx4 - 0.3);
+        }
+
+        double ed5;
+        double edx5 = exp5 / 23.0;
+        if (edx5 >= 0.1 && edx5 < 0.3) {
+            ed5 = 0;
+        } else if (edx5 < 0.1) {
+            ed5 = Math.abs(0.1 - edx5);
+        } else {
+            ed5 = Math.abs(edx5 - 0.3);
+        }
+
+        //System.out.println("题型和属性超额情况： td1:"+td1+" td2:"+td2+" td3:"+td3+" td4:"+td4 + "ed1:"+ed1+" ed2:"+ed2+" ed3:"+ed3+" ed4:"+ed4+" ed5:"+ed5)
+
+        // 惩罚个数  只有比例不符合要求时才惩罚，故不会有太大的影响
+        double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5);
+
+        //System.out.printf("exp(%.3f) 为 %.3f%n", expNum, Math.exp(expNum))
+
+
+        //均值 和 最小值
+        double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
+        double minrum = Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r) * 100;
+
+        //System.out.println("minrum: "+minrum)
+
+        //适应度值 (min * 惩罚系数)
+        minrum = minrum * Math.exp(expNum);
+
+        // 本身的基因型选用id拼接,其具有代表性
+        return Double.valueOf(minrum);
     }
-
-
 
 
     /**
@@ -1174,10 +1291,10 @@ public class DNDR8 {
     /**
      * 小生境外选择
      * 选择: 以适应度为导向,轮盘赌为策略, 适者生存和多样性的权衡
-     * 
+     * <p>
      * ①计算适应度：以试卷为单位，min*exp^1
      * ②轮盘赌进行筛选 返回 outBack
-     * 
+     * <p>
      * 选择（轮盘赌）：择优录取+多样式减低
      * 交叉+变异：增加多样性(外部作用)
      */
@@ -1185,9 +1302,9 @@ public class DNDR8 {
 
         System.out.println("====================== select Out ======================");
 
-        System.out.println("进入outList的size: "+ outList.size());
+        System.out.println("select 进入outList的size: " + outList.size());
         ArrayList<String> outBack = new ArrayList<>();
-
+        //if (paperGenetic[19][199] != null ){ System.out.println("select 进入 paperGenetic[19][199] 不为null"); }
         if (outList.size() > 0) {
 
             // 试卷套数
@@ -1238,8 +1355,8 @@ public class DNDR8 {
             }
 
         }
-        System.out.println("归还outList的size: "+ outBack.size());
-
+        System.out.println("select 归还outList的size: " + outBack.size());
+        //if (paperGenetic[19][199] != null ){ System.out.println("select 归还 paperGenetic[19][199] 不为null"); }
         return outBack;
 
     }
@@ -1247,7 +1364,7 @@ public class DNDR8 {
 
     /**
      * 每套试卷的适应度占比
-     * 
+     * <p>
      * selection 计算适应度值
      * 方案  进行乘以一个exp 来进行适应度值的降低，高等数学里以自然常数e为底的指数函数
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
@@ -1465,18 +1582,18 @@ public class DNDR8 {
 
     /**
      * 每套试卷的适应度占比
-     * 
+     * <p>
      * selection 计算适应度值
      * 方案  进行乘以一个exp 来进行适应度值的降低，高等数学里以自然常数e为底的指数函数
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
      * 属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
-     * 
-     * 
+     * <p>
+     * <p>
      * 方案一:
      * 将 list 转化为 gene 数组( 其中借助select * from table,初次是没问题的，但其会随着交叉变异而个体的变化，故需定义一个全局变量 时刻维护 )
      * paperGenetic[i] = 1:FILL:(0,0,0,0,1):0.0:0.0:0.0:0.0:0.055000000000000035 * 20
      * value[i] = 19.941320442946314_8,16,19,21,29,30,35,50,62,69,76,107,108,133,136,173,207,222,242,299
-     * 
+     * <p>
      * 方案二:
      * 直接使用 list 计算,因为首位已经是计算过的适应度值  此处采用
      */
@@ -1539,15 +1656,19 @@ public class DNDR8 {
     /**
      * 交叉  此处不涉及适应度
      * ①交叉的单位:  题目
-     * 
+     * <p>
      * random.nextInt(n)  指生成一个介于[0,n)的int值
-     * 
+     * <p>
      * List 是否需要转化为 paperGenetic[1]
      * 交叉部分可以不转化，因为最小单位为题目，而不是题目里面的题型和属性
      * 变异部分可以不转化，因为最小单位为题目，而不是题目里面的题型和属性
      */
     private ArrayList<String> crossCoverOut(ArrayList<String> outList) throws SQLException {
 
+        //cross 进入outList的size: 2
+        //cross 归还outList的size: 0
+        System.out.println("cross 进入outList的size: " + outList.size());
+        //if (paperGenetic[19][199] != null ){ System.out.println("cross 进入 paperGenetic[19][199] 不为null"); }
         //  获取长度基本信息
         //  单点交叉(只保留交叉一个个体)
         int size = outList.size();
@@ -1588,7 +1709,7 @@ public class DNDR8 {
                         }
 
                         // FIXME 交叉后 size校验,防止数量变小
-                        arr.set(i,correct(temp));
+                        arr.set(i, correct(temp));
                         // arr.set(i, temp);
 
                     }
@@ -1604,9 +1725,13 @@ public class DNDR8 {
                 String str1 = StringUtils.join(stringArray, ",");
                 re.add(str1);
             }
+        } else {
+            re = outList;
         }
 
 
+        System.out.println("cross 归还outList的size: " + re.size());
+        //if (paperGenetic[19][199] != null ){ System.out.println("cross 归还 paperGenetic[19][199] 不为null"); }
         // 最后一个个体不变,但需保证不丢失
         //arr.set(size,outList.get(size -1).split("_")[1].split(","));
         return re;
@@ -1674,13 +1799,13 @@ public class DNDR8 {
 
     /**
      * 变异  (长度，属性类型，属性比例)
-     * 
+     * <p>
      * outCross:27.783779425230577_2,9,12,34,36,39,42,49,69,72,90,91,102,112,123,137,168,197,219,227
      */
     private ArrayList<String[]> mutateOut(ArrayList<String> outCross) throws SQLException {
 
         System.out.println("================== mutateOut ==================");
-
+        //if (paperGenetic[19][199] != null ){ System.out.println("mutate 进入 paperGenetic[19][199] 不为null"); }
         // 创建一个方法内变量,用于接收c1,并最后返回
         ArrayList<String[]> outMutate = new ArrayList<>();
 
@@ -1718,7 +1843,7 @@ public class DNDR8 {
                 }
             }
         }
-
+        //if (paperGenetic[19][199] != null ){ System.out.println("mutate 归还 paperGenetic[19][199] 不为null"); }
         return outMutate;
 
     }
@@ -1733,19 +1858,18 @@ public class DNDR8 {
         String[][] gene = new String[200][20];
         int index = 0;
 
-        // in+out的大小:46
-        System.out.println("in+out的大小:"+inMutate.size() + outMutate.size());
+
         for (Map.Entry<String, ArrayList<String[]>> entry : inMutate.entrySet()) {
 
             for (String[] strings : entry.getValue()) {
                 gene[index] = strings;
-                index++;
+                index = index + 1;
             }
         }
 
         for (String[] strings : outMutate) {
             gene[index] = strings;
-            index++;
+            index = index + 1;
         }
 
 
@@ -1756,9 +1880,9 @@ public class DNDR8 {
     /**
      * 判断哪些峰需要合并(矩阵+凹点问题)  leaderSetForGene
      * 用距离w矩阵(动态大小的二维数组)来表示任意两个小生境之间的关系（注：01矩阵,后续需做去重处理）
-     *
-     *      1.获取距离矩阵
-     *      2.将距离矩阵简化(去重、最小值),只将要合并的集合返回
+     * <p>
+     * 1.获取距离矩阵
+     * 2.将距离矩阵简化(去重、最小值),只将要合并的集合返回
      */
     private HashSet<String> judgeMerge() throws SQLException {
 
@@ -1815,7 +1939,6 @@ public class DNDR8 {
             }
 
 
-
             // FIXME 难点:现凹点验证是随机交叉来获取中间值
             // 随机选取2个点进行凹点验证, 多个随机值中,只要存在凹点,证明这两个相邻的小生境是独立的,不需要合并
             // 为了消除噪音干扰,定义了一个忍受因子 sf=0.9
@@ -1866,7 +1989,7 @@ public class DNDR8 {
                 Double bv = Double.valueOf(leaderList.get(b).split("_")[0]);
 
 
-                System.out.println(cv +","+sf*av+","+sf*bv);
+                //System.out.println(cv + "," + sf * av + "," + sf * bv);
 
                 // 存在凹点(注释: 中间值比两端小)
                 if (cv < sf * av && cv < sf * bv) {
@@ -1890,14 +2013,14 @@ public class DNDR8 {
 
 
         /**
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-         * 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-         * 0 , 1 , 0 , 0 , 0 , 0 , 0 , 0 ,
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
+         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0
+         * 0 , 0 , 0 , 0 , 1 , 0 , 0 , 0
+         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0
+         * 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0
+         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0
+         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0
+         * 0 , 0 , 0 , 0 , 0 , 1 , 0 , 0
+         * 0 , 1 , 0 , 0 , 0 , 0 , 0 , 0
          */
 
 
@@ -1917,97 +2040,103 @@ public class DNDR8 {
 
             }
         }
-        System.out.println("验证去重效果 hs.size(): " + hs.size() + " hs.toString(): " + hs.toString());
+        // 验证去重效果 hs.size(): 0 hs.toString(): []
+        //("验证去重效果 hs.size(): " + hs.size() + " hs.toString(): " + hs.toString());
 
 
-        // 2.2 需进一步考虑 [0:2, 2:5] 即 0,2 和 2,5
-        // 在hs中统计各个峰值出现的次数  将横坐标放置到list集合中 hs.toString(): [fitness_ids:fitness_ids]
-        ArrayList<String> indexList = new ArrayList<>();
-        for (String h : hs) {
-            // leader
-            String s1 = h.split(":")[0];
-            String s2 = h.split(":")[1];
-            String l1 = s1.split("_")[1];
-            String l2 = s2.split("_")[1];
-            // 存峰值的位置(此处是ids)
-            indexList.add(l1);
-            indexList.add(l2);
-        }
+        // 若无需要合并的因子,则跳过以下步骤直接返回null
+        if (hs.size() > 0) {
+            // 2.2 需进一步考虑 [0:2, 2:5] 即 0,2 和 2,5
+            // 在hs中统计各个峰值出现的次数  将横坐标放置到list集合中 hs.toString(): [fitness_ids:fitness_ids]
+            ArrayList<String> indexList = new ArrayList<>();
+            for (String h : hs) {
+                // leader
+                String s1 = h.split(":")[0];
+                String s2 = h.split(":")[1];
+                String l1 = s1.split("_")[1];
+                String l2 = s2.split("_")[1];
+                // 存峰值的位置(此处是ids)
+                indexList.add(l1);
+                indexList.add(l2);
+            }
 
-        // 统计次数大于1的峰
-        List<String> gtOneList = frequencyGtOne(indexList);
-        System.out.println(gtOneList);
+            // 统计次数大于1的峰
+            List<String> gtOneList = frequencyGtOne(indexList);
+            //System.out.println(gtOneList);
 
-        // 将次数等于1的找出来
-        List<String> eqOneList = findEqOne(hs, gtOneList);
+            // 将次数等于1的找出来
+            List<String> eqOneList = findEqOne(hs, gtOneList);
 
-        // 2. 最终需要合并的集合容器
-        HashSet<String> allHs = new HashSet<>();
-        // 2.1 全量新增eqOneList
-        allHs.addAll(eqOneList);
+            // 2. 最终需要合并的集合容器
+            HashSet<String> allHs = new HashSet<>();
+            // 2.1 全量新增eqOneList
+            allHs.addAll(eqOneList);
 
 
-        // 2.2 智能新增gtOneList 分组计算出哪个最近,本质是进行一次过滤操作
-        // 将hs和doubleList遍历,重复的进行进一步选择,每一个doubleList只返回一个距离最近的  set.get() != null
-        // 对gtOneList做非空判断
-        if (gtOneList != null) {
-            for (String aDouble : gtOneList) {
+            // 2.2 智能新增gtOneList 分组计算出哪个最近,本质是进行一次过滤操作
+            // 将hs和doubleList遍历,重复的进行进一步选择,每一个doubleList只返回一个距离最近的  set.get() != null
+            // 对gtOneList做非空判断
+            if (gtOneList != null) {
+                for (String aDouble : gtOneList) {
 
-                ArrayList<String> tmpList = new ArrayList<>();
-                // 将含有相同元素的集合分组
-                for (String h : hs) {
-                    if (h.contains(aDouble + "")) {
-                        tmpList.add(h);
+                    ArrayList<String> tmpList = new ArrayList<>();
+                    // 将含有相同元素的集合分组
+                    for (String h : hs) {
+                        if (h.contains(aDouble + "")) {
+                            tmpList.add(h);
+                        }
                     }
-                }
 
-                // 无需对tmpList做判空处理  tmpList至少为2
-                String t = null;
-                if (tmpList.size() != 0) {
-                    // 遍历tmpList,进行比较,只留下最近的一个 fitness_ids
-                    int max = 0;
+                    // 无需对tmpList做判空处理  tmpList至少为2
+                    String t = null;
+                    if (tmpList.size() != 0) {
+                        // 遍历tmpList,进行比较,只留下最近的一个 fitness_ids
+                        int max = 0;
 
-                    for (String tmp : tmpList) {
-                        String s1 = tmp.split(":")[0];
-                        String s2 = tmp.split(":")[1];
-                        String aids = s1.split("_")[1];
-                        String bids = s2.split("_")[1];
-                        // 距离计算,ids的相似个数
-                        // string 转 list ,计算两个list的最大相似数
-                        // 将基因型转为list,使用list来判断相似个数
-                        List<String> listA = stringToList(aids);
-                        List<String> listB = stringToList(bids);
+                        for (String tmp : tmpList) {
+                            String s1 = tmp.split(":")[0];
+                            String s2 = tmp.split(":")[1];
+                            String aids = s1.split("_")[1];
+                            String bids = s2.split("_")[1];
+                            // 距离计算,ids的相似个数
+                            // string 转 list ,计算两个list的最大相似数
+                            // 将基因型转为list,使用list来判断相似个数
+                            List<String> listA = stringToList(aids);
+                            List<String> listB = stringToList(bids);
 
-                        // 假设上面ListA 和 ListB都存在数据
-                        // aids：3,4,9,28,34,36,43,52,59,102,116,126,129,138,145,213,230,233,247,267
-                        // bids：8,10,17,18,24,25,26,39,71,72,81,84,92,102,107,141,143,150,273,303
+                            // 假设上面ListA 和 ListB都存在数据
+                            // aids：3,4,9,28,34,36,43,52,59,102,116,126,129,138,145,213,230,233,247,267
+                            // bids：8,10,17,18,24,25,26,39,71,72,81,84,92,102,107,141,143,150,273,303
 
-                        // 使用题目个数进行判断相似性
-                        int counter = 0;
-                        for (String c : listB) {
-                            for (String d : listA) {
-                                if (c.equals(d)) {
-                                    counter = counter + 1;
+                            // 使用题目个数进行判断相似性
+                            int counter = 0;
+                            for (String c : listB) {
+                                for (String d : listA) {
+                                    if (c.equals(d)) {
+                                        counter = counter + 1;
+                                    }
                                 }
                             }
-                        }
 
-                        if (max < counter) {
-                            max = counter;
-                            t = tmp;
+                            if (max < counter) {
+                                max = counter;
+                                t = tmp;
+                            }
+
                         }
-                        
                     }
+                    // 最近的一组t
+                    //System.out.println("最近的一组以及找到:" + t);
+                    allHs.add(t);
                 }
-                // 最近的一组t
-                System.out.println("最近的一组以及找到:" + t);
-                allHs.add(t);
             }
+
+            //System.out.println(allHs);
+            return allHs;
         }
 
-        System.out.println(allHs);
 
-        return allHs;
+        return null;
     }
 
 
@@ -2023,9 +2152,9 @@ public class DNDR8 {
 
     /**
      * java统计List集合中每个元素出现的次数
-     *
-     *  例如frequencyOfListElements("111","111","222")
-     *  则返回次数大于1的key {"111"=2,"222"=1} --> 111
+     * <p>
+     * 例如frequencyOfListElements("111","111","222")
+     * 则返回次数大于1的key {"111"=2,"222"=1} --> 111
      */
     public List<String> frequencyGtOne(List<String> items) {
         // 过滤空值
@@ -2045,7 +2174,7 @@ public class DNDR8 {
 
         for (Map.Entry<String, Integer> entry : map.entrySet()) {
 
-            System.out.println("key = " + entry.getKey() + ", value = " + entry.getValue());
+            //System.out.println("key = " + entry.getKey() + ", value = " + entry.getValue());
             if (entry.getValue() > 1) {
                 list.add(entry.getKey());
             }
@@ -2057,9 +2186,9 @@ public class DNDR8 {
 
     /**
      * 查找 只出现一次的峰
-     *
-     *      1.排除掉不等于1的元素即可
-     *      2.hs和doubleList的遍历判断过程  √
+     * <p>
+     * 1.排除掉不等于1的元素即可
+     * 2.hs和doubleList的遍历判断过程  √
      */
     private List<String> findEqOne(HashSet<String> hs, List<String> gtOneList) {
 
@@ -2083,71 +2212,87 @@ public class DNDR8 {
 
     /**
      * 合并
-     *      参数:  hs [fitness_ids:fitness_ids]
+     * 参数:  hs [fitness_ids:fitness_ids]
      * 集合成员调整: 取大leader做总leader,两个List集合进行合并
      * 半径调整:    选择大leader和小leader的相似程度作为半径
      * 个体剔除:
-     *      目的：调整的是各个小生境的半径,剔除不需要的个体以及获取峰半径,
-     *      便于随后的交叉变异,在某个具体的小生境范围内进行GA
+     * 目的：调整的是各个小生境的半径,剔除不需要的个体以及获取峰半径,
+     * 便于随后的交叉变异,在某个具体的小生境范围内进行GA
      */
     private int ct = 0;
     private int nn = 0;
 
     private void merge(HashSet<String> hs) {
 
-        for (String h : hs) {
-            // 根据适应度值确定leader   合并判断值错误,待优化
-            String s1 = h.split(":")[0];
-            String s2 = h.split(":")[1];
-            double l1 = Double.valueOf(s1.split("_")[0]);
-            double l2 = Double.valueOf(s2.split("_")[0]);
-            if (l1 > l2) {
-                // 集合成员调整 arrayList + arrayList
-                mapArrayListForGene.get(s1).addAll(mapArrayListForGene.get(s2));
-                // 半径调整1
-                radiusMerge(s1, s2);
-            } else {
-                // 集合成员调整
-                mapArrayListForGene.get(s2).addAll(mapArrayListForGene.get(s1));
-                // 半径调整1
-                radiusMerge(s2, s1);
+        // 验证当前总个数
+        Iterator test = mapArrayListForGene.entrySet().iterator();
+        int sum2 = 0;
+        while (test.hasNext()) {
+            Map.Entry entry = (Map.Entry) test.next();
+            String key = (String) entry.getKey();
+            ArrayList<String> val = (ArrayList<String>) entry.getValue();
+            sum2 = sum2 + val.size();
+        }
+        System.out.println("merge 前个数："+sum2);
+
+
+        if (!hs.isEmpty()) {
+            for (String h : hs) {
+                // 根据适应度值确定leader   合并判断值错误,待优化
+                String s1 = h.split(":")[0];
+                String s2 = h.split(":")[1];
+                double l1 = Double.valueOf(s1.split("_")[0]);
+                double l2 = Double.valueOf(s2.split("_")[0]);
+                if (l1 > l2) {
+                    // 集合成员调整 arrayList + arrayList
+                    mapArrayListForGene.get(s1).addAll(mapArrayListForGene.get(s2));
+                    mapArrayListForGene.remove(s2);
+                    // 半径调整1
+                    //radiusMerge(s1, s2);
+                } else {
+                    // 集合成员调整
+                    mapArrayListForGene.get(s2).addAll(mapArrayListForGene.get(s1));
+                    mapArrayListForGene.remove(s1);
+                    // 半径调整1
+                    //radiusMerge(s2, s1);
+                }
             }
-        }
 
 
-        // 集合调整
-        // 打印操作
-        Iterator iter = mapArrayListForGene.entrySet().iterator();
-        System.out.println("过滤前:");
-        while (iter.hasNext()) {
-            Map.Entry entry = (Map.Entry) iter.next();
-            Object key = entry.getKey();
-            Object val = entry.getValue();
-            System.out.println("key: " + key + "  val：" + val);
-        }
 
-        // 将hs进行过滤,保留最新的mapArrayList集合
-        // 此处将低峰也移除,是否会影响  不会,因为之前做过一次合并 addAll()
-        for (String h : hs) {
-            mapArrayListForGene.remove(h.split(":")[0]);
-            mapArrayListForGene.remove(h.split(":")[1]);
-        }
+            // 集合调整
+            // 打印操作
+//            Iterator iter = mapArrayListForGene.entrySet().iterator();
+//            //System.out.println("过滤前:");
+//            while (iter.hasNext()) {
+//                Map.Entry entry = (Map.Entry) iter.next();
+//                Object key = entry.getKey();
+//                Object val = entry.getValue();
+//                //System.out.println("key: " + key + "  val：" + val);
+//            }
+//
+//            // 将hs进行过滤,保留最新的mapArrayList集合
+//            // 此处将低峰也移除,是否会影响  不会,因为之前做过一次合并 addAll()
+//            for (String h : hs) {
+//                mapArrayListForGene.remove(h.split(":")[0]);
+//                mapArrayListForGene.remove(h.split(":")[1]);
+//            }
+//
+//            // HashMap遍历，此种方式效率高
+//            //System.out.println("过滤后:");
+//            Iterator iter2 = mapArrayListForGene.entrySet().iterator();
+//            while (iter2.hasNext()) {
+//                Map.Entry entry = (Map.Entry) iter2.next();
+//                Object key = entry.getKey();
+//                Object val = entry.getValue();
+//                //System.out.println("key: " + key + "  val：" + val);
+//            }
 
-        // HashMap遍历，此种方式效率高
-        System.out.println("过滤后:");
-        Iterator iter2 = mapArrayListForGene.entrySet().iterator();
-        while (iter2.hasNext()) {
-            Map.Entry entry = (Map.Entry) iter2.next();
-            Object key = entry.getKey();
-            Object val = entry.getValue();
-            System.out.println("key: " + key + "  val：" + val);
-        }
-
-        // 个体剔除操作
-        // 用于存储临时集合
-        // FIXME 2.侧输出流。可以两个大的生成一个大的+小的   侧输出流的数据需要进一步保存  此处先省略,待下次优化
-        ArrayList<String> sideList = new ArrayList<>();
-        int sum = 0;
+            // 个体剔除操作
+            // 用于存储临时集合
+            // FIXME 2.侧输出流。可以两个大的生成一个大的+小的   侧输出流的数据需要进一步保存  此处先省略,待下次优化
+            ArrayList<String> sideList = new ArrayList<>();
+            int sum = 0;
 
 //        Iterator iter3 = mapArrayListForGene.entrySet().iterator();
 //        while (iter3.hasNext()) {
@@ -2228,42 +2373,43 @@ public class DNDR8 {
 //
 //        }
 
-        // 验证当前总个数
-        Iterator iter4 = mapArrayListForGene.entrySet().iterator();
-        while (iter4.hasNext()) {
-            Map.Entry entry = (Map.Entry) iter4.next();
-            String key = (String) entry.getKey();
-            ArrayList<String> val = (ArrayList<String>) entry.getValue();
-            sum = sum + val.size();
+            // 验证当前总个数
+            Iterator iter4 = mapArrayListForGene.entrySet().iterator();
+            while (iter4.hasNext()) {
+                Map.Entry entry = (Map.Entry) iter4.next();
+                String key = (String) entry.getKey();
+                ArrayList<String> val = (ArrayList<String>) entry.getValue();
+                sum = sum + val.size();
+            }
+
+            sum = sum + sideList.size();
+            //System.out.println("个体总数：" + sum);
+            System.out.println("merge 后个数："+sum);
+
+            // 更新计数器
+            if (mapArrayListForGene.size() == nn) {
+                ct = ct + 1;
+            } else {
+                nn = mapArrayListForGene.size();
+                ct = 0;
+            }
         }
-
-        sum = sum + sideList.size();
-        System.out.println("个体总数：" + sum);
-
-        // 更新计数器
-        if (mapArrayListForGene.size() == nn) {
-            ct = ct + 1;
-        } else {
-            nn = mapArrayListForGene.size();
-            ct = 0;
-        }
-
     }
 
 
     /**
      * 半径合并(为什么需要保留新半径?不可以直接map.put(key,value1+value2))
-     *      参数: s1是高峰,s2是低峰,l1是高峰的适应度值
-     *      原有峰不会变化,新增了一个合并后的键值对
-     *
+     * 参数: s1是高峰,s2是低峰,l1是高峰的适应度值
+     * 原有峰不会变化,新增了一个合并后的键值对
+     * <p>
      * 峰的移除和保留：
-     *      移除目的：为了下一步的小生境剔除操作提供了便利
-     *      保留目的：解决合并的过程中存在一个集合多次合并,若提前移除,导致空值现象、
-     *      (judge过程已经做了去重,所以应该可以不再考虑此逻辑)
-     *
+     * 移除目的：为了下一步的小生境剔除操作提供了便利
+     * 保留目的：解决合并的过程中存在一个集合多次合并,若提前移除,导致空值现象、
+     * (judge过程已经做了去重,所以应该可以不再考虑此逻辑)
+     * <p>
      * 将新半径保存到map中,改变其数据结构 value_key_radius
-     *      map是无法直接修改key值的，所以要采用其他的方案，新增一个键值对，再删除之前那个要修改的
-     *      采用迭代器的方式遍历，在迭代中it.remove(),map.put()操作
+     * map是无法直接修改key值的，所以要采用其他的方案，新增一个键值对，再删除之前那个要修改的
+     * 采用迭代器的方式遍历，在迭代中it.remove(),map.put()操作
      */
     private void radiusMerge(String s1, String s2) {
 
@@ -2310,8 +2456,8 @@ public class DNDR8 {
 
     /**
      * 调整初始半径
-     *  1)若候选小生境数连续p次等同于实际小生境数，则 R = R * r ;
-     *  2)若候选小生境数小于2，则 R = R  / r.
+     * 1)若候选小生境数连续p次等同于实际小生境数，则 R = R * r ;
+     * 2)若候选小生境数小于2，则 R = R  / r.
      */
     private static final int CONTINUE_TIMES = 5;
     private static final int NUMBER_OF_NICHES = 1;
@@ -2333,20 +2479,16 @@ public class DNDR8 {
     }
 
 
-
-
     /**
-     *
      * 执行修补操作(交叉变异均可能导致数量，题型，属性发生了变化)
-     *      步骤：
-     *          (1)校验size, 按照题型新增n道题目，or 随机新增题目数
-     *          (2)校验题型, in/out  完美解、替补解（权重）
-     *          (2)校验属性, in/out  完美解、替补解（权重 inListRe/inCompose）
-     *
+     * 步骤：
+     * (1)校验size, 按照题型新增n道题目，or 随机新增题目数
+     * (2)校验题型, in/out  完美解、替补解（权重）
+     * (2)校验属性, in/out  完美解、替补解（权重 inListRe/inCompose）
+     * <p>
      * 46:SHORT:(1,0,0,0,0):0.095001:0.0:0.0:0.0:0.0
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
      * 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
-     *
      */
     private String[] correct(String[] temp) throws SQLException {
 
@@ -2354,20 +2496,20 @@ public class DNDR8 {
 
         // 长度校验
         String[] strings = correctLength(temp);
-        if((new HashSet<>(Arrays.asList(temp))).size()<10){
-            System.out.println("size 不符合");
+        if ((new HashSet<>(Arrays.asList(temp))).size() < 10) {
+            //System.out.println("size 不符合");
         }
 
         // 题型比例校验  题型比例过多的情况:[1, 1, 1, 7, 23, 29, 115, 148, 256, 281]
         //correctType(i);
-        if((new HashSet<>(Arrays.asList(temp))).size()<10){
-            System.out.println("size 不符合");
+        if ((new HashSet<>(Arrays.asList(temp))).size() < 10) {
+            //System.out.println("size 不符合");
         }
 
         // 属性比例校验
         //correctAttribute(i);
-        if((new HashSet<>(Arrays.asList(temp))).size()<10){
-            System.out.println("size 不符合");
+        if ((new HashSet<>(Arrays.asList(temp))).size() < 10) {
+            //System.out.println("size 不符合");
         }
 
         return strings;
@@ -2376,13 +2518,12 @@ public class DNDR8 {
     }
 
     /**
-     *  长度校验
-     *  检验完成后，更新 paperGenetic
-     *
-     *  解决方案：    ①size==10,退出
-     *              ②如果在小于范围下限，则按照题型选取
-     *              ③如果都符合要求，则随机选取一题，再在下层做处理
-     *
+     * 长度校验
+     * 检验完成后，更新 paperGenetic
+     * <p>
+     * 解决方案：    ①size==10,退出
+     * ②如果在小于范围下限，则按照题型选取
+     * ③如果都符合要求，则随机选取一题，再在下层做处理
      */
     private String[] correctLength(String[] temp) throws SQLException {
 
@@ -2391,14 +2532,14 @@ public class DNDR8 {
 
         HashSet<String> setBegin = new HashSet<>(Arrays.asList(temp));
 
-        if (setBegin.size() == 20){
+        if (setBegin.size() == 20) {
             //System.out.println("第 "+w+" 题, 交叉/变异后,size正常");
-        }else{
+        } else {
 
             //System.out.println("交叉/变异导致size不匹配：开始进行长度修补 ");
 
             //随机选题
-            while(setBegin.size() != 20){
+            while (setBegin.size() != 20) {
 
                 String id = new Random().nextInt(300) + "";
                 setBegin.add(id);
@@ -2418,7 +2559,6 @@ public class DNDR8 {
         return temp;
 
     }
-
 
 
 }

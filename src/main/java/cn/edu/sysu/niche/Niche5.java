@@ -124,7 +124,7 @@ public class Niche5 {
 
     /**
      * 限制性锦标赛选择算法 restricted tournament selection
-     * 目前变异无效,需要查明原因
+     *
      *      在组内进行锦标赛选择
      *
      */
@@ -139,6 +139,13 @@ public class Niche5 {
         // 查询数据库  list.add(id+":"+type+":"+pattern+":"+adi1_r+":"+adi2_r+":"+adi3_r+":"+adi4_r+":"+adi5_r)
         ArrayList<String> bachItemList = jdbcUtils.selectBachItem(s);
 
+        //短暂休眠，保证连接缓冲
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         // ArrayList 转 String[]
         String[] itemArray = new String[bachItemList.size()];
         for (int j = 0; j < bachItemList.size(); j++) {
@@ -148,6 +155,13 @@ public class Niche5 {
         // FIXME 防止空指针，待后续优化
         if (itemArray.length < 20){
             ArrayList<String> bachItemListBak = jdbcUtils.selectBachItemBak(s);
+
+            //短暂休眠，保证连接缓冲
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
             // ArrayList 转 String[]
             String[] itemArrayBak = new String[bachItemListBak.size()];
@@ -569,6 +583,13 @@ public class Niche5 {
                     // 查询数据库
                     ArrayList<String> bachItemList = jdbcUtils.selectBachItem(s);
 
+                    //短暂休眠，保证连接缓冲
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
                     String[] itemArray = new String[bachItemList.size()];
                     for (int j = 0; j < bachItemList.size(); j++) {
                         itemArray[j] = bachItemList.get(j);
@@ -762,13 +783,13 @@ public class Niche5 {
 
 
     /**
-     *  通过变异获得c1个体
+     *  通过变异获得c1个体   怕p1--> c1
      *  随机变异,去除某一道题，然后从题库中抽取,新增一道题
      *
      */
     private ArrayList<String[]> mutate(String[] c1) throws SQLException {
 
-        //单点交叉
+        //基因长度 | 试题个数
         int length = 20;
 //      String [] c1 = p1;
 
@@ -794,7 +815,7 @@ public class Niche5 {
                 ArrayList<String> list = jdbcUtils.selectBachItem(key);
                 //短暂休眠，保证连接缓冲
                 try {
-                    Thread.sleep(200);
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
