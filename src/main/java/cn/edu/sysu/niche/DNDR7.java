@@ -158,6 +158,9 @@ public class DNDR7 {
     private static  double PC = 0.6;
     private static  double PM = 0.8;
 
+    public DNDR7() throws SQLException {
+    }
+
 
     /**
      * 主程序

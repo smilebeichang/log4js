@@ -89,6 +89,9 @@ public class Niche5 {
     /* 200套试卷 20道题  */
     private static String[][] paperGenetic =new String[200][20];
 
+    public Niche5() throws SQLException {
+    }
+
     /** 确定性拥挤算法 deterministic crowding */
     public void DET(String[][] paperGenetictmp) throws SQLException {
         //赋值给全局变量
@@ -120,12 +123,15 @@ public class Niche5 {
 
     }
 
-
+    // size 为310
+    ArrayList<String> AllItemList = jdbcUtils.selectAllItems();
 
     /**
      * 限制性锦标赛选择算法 restricted tournament selection
      *
      *      在组内进行锦标赛选择
+     *
+     * outCross.get(i):9,16,18,23,35,36,24,34,46,57,61,67,129,142,150,166,173,179,180,267
      *
      */
     public ArrayList<Object>  RTS(ArrayList<String> outCross,int i) throws SQLException {
@@ -137,45 +143,74 @@ public class Niche5 {
         // outCross 转  paperGenetic[i]
         String s = outCross.get(i);
         // 查询数据库  list.add(id+":"+type+":"+pattern+":"+adi1_r+":"+adi2_r+":"+adi3_r+":"+adi4_r+":"+adi5_r)
-        ArrayList<String> bachItemList = jdbcUtils.selectBachItem(s);
+//        ArrayList<String> bachItemList = jdbcUtils.selectBachItem(s);
 
-        //短暂休眠，保证连接缓冲
-        try {
-            Thread.sleep(50);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
+        // 短暂休眠，保证连接缓冲
+//        try {
+//            Thread.sleep(50);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+
+//        for (int j = 0; j < bachItemList.size(); j++) {
+//            itemArray[j] = bachItemList.get(j);
+//        }
+
+        // 通过遍历s,赋值给itemArray
+        List<String> sList = Arrays.asList(s.split(","));
         // ArrayList 转 String[]
-        String[] itemArray = new String[bachItemList.size()];
-        for (int j = 0; j < bachItemList.size(); j++) {
-            itemArray[j] = bachItemList.get(j);
+        String[] itemArray = new String[sList.size()];
+        // java.lang.NumberFormatException: For input string: "16.215638876810402_1"
+        if(!s.contains("_")){
+            for (int j = 0; j < sList.size(); j++) {
+                itemArray[j] = AllItemList.get(Integer.parseInt(sList.get(j))-1 > -1?Integer.parseInt(sList.get(j))-1:1);
+            }
         }
 
-        // FIXME 防止空指针，待后续优化
-        if (itemArray.length < 20){
-            ArrayList<String> bachItemListBak = jdbcUtils.selectBachItemBak(s);
 
-            //短暂休眠，保证连接缓冲
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        // FIXME 防止空指针,待后续优化  使用的是if,随机选取20道
 
+        if (itemArray[1] == null ){
+//            ArrayList<String> bachItemListBak = jdbcUtils.selectBachItemBak(s);
+//
+//            //短暂休眠，保证连接缓冲
+//            try {
+//                Thread.sleep(50);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
             // ArrayList 转 String[]
-            String[] itemArrayBak = new String[bachItemListBak.size()];
-            for (int j = 0; j < bachItemListBak.size(); j++) {
-                itemArrayBak[j] = bachItemListBak.get(j);
+//            String[] itemArrayBak = new String[bachItemListBak.size()];
+//            for (int j = 0; j < bachItemListBak.size(); j++) {
+//                itemArrayBak[j] = bachItemListBak.get(j);
+//            }
+//            itemArray = itemArrayBak;
+
+            Random r = new Random(1);
+
+            HashSet<Integer> itemSet = new HashSet<>();
+            //去重操作
+            while (itemSet.size() < 20) {
+                //获取试题id   轮盘赌构造
+                System.out.println(" --> 验证卡死现象1.0 <-- ");
+                int sId = r.nextInt(310);
+                itemSet.add(sId);
             }
-            itemArray = itemArrayBak;
+            List<Integer> list = new ArrayList<>();
+            list.addAll(itemSet);
+
+            for (int j = 0; j < sList.size(); j++) {
+                itemArray[j] = AllItemList.get(list.get(j)-1);
+            }
+
         }
 
         // 交叉变异的针对的是题目,展现的形式的试卷   即题目=基因、试卷=个体
         // 父代变异产生新个体c1 本质:替换其中一道题目
         ArrayList<String[]> cList = mutate(itemArray);
 
-        // 为c1从当前种群中随机选取c*w个体  2个小生境  4元锦标赛
+        // 为c1从当前种群中随机选取 c*w 个体  2个小生境  4元锦标赛
         // 是否是4元锦标赛过大，待后续优化
         ArrayList<Map<Integer, String[]>[]> cwList = championshipOut(outCross);
 
@@ -563,7 +598,7 @@ public class Niche5 {
 
         //2个小生境,4元锦标赛, 此处修改为了1
         int num = 1 ;
-        int nv = 2 ;
+        int nv = outCross.size()>=2?2:1 ;
         Map<Integer, String[]>[] cwList1 = new HashMap[num];
 
 
@@ -578,25 +613,40 @@ public class Niche5 {
                 int i1 = new Random().nextInt(outCross.size());
                 if (!set1.contains(":"+i1)) {
                     set1.add(":"+i1 );
-
+                    System.out.println(" --> 验证卡死现象3.0 <-- ");
                     String s = outCross.get(i1);
-                    // 查询数据库
-                    ArrayList<String> bachItemList = jdbcUtils.selectBachItem(s);
+//                    // 查询数据库
+//                    ArrayList<String> bachItemList = jdbcUtils.selectBachItem(s);
+//
+//                    //短暂休眠，保证连接缓冲
+//                    try {
+//                        Thread.sleep(50);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    String[] itemArray = new String[bachItemList.size()];
+//                    for (int j = 0; j < bachItemList.size(); j++) {
+//                        itemArray[j] = bachItemList.get(j);
+//                    }
+//
+//                    mapc1w.put(i1,itemArray);
 
-                    //短暂休眠，保证连接缓冲
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    // 通过遍历s,来获取itemArray
+                    List<String> sList = Arrays.asList(s.split(","));
+                    String[] itemArray = new String[sList.size()];
+                    if(!s.contains("_")){
+                        for (int j = 0; j < sList.size(); j++) {
+                            itemArray[j] = AllItemList.get(Integer.parseInt(sList.get(j))-1 > -1?Integer.parseInt(sList.get(j))-1:1);
+                        }
                     }
-
-                    String[] itemArray = new String[bachItemList.size()];
-                    for (int j = 0; j < bachItemList.size(); j++) {
-                        itemArray[j] = bachItemList.get(j);
-                    }
-
                     mapc1w.put(i1,itemArray);
+
+
                 }
+                /**
+                 * FIXME  某一个变异就进入了死循环
+                 */
                 cwList1[i] = mapc1w;
             }
         }
@@ -809,17 +859,21 @@ public class Niche5 {
 
         //生成一个不存在set中的key  保证题型长度符合要求
         while (set.size() != length ){
-            String key = random.nextInt(310)+1+"";
+            System.out.println(" --> 验证卡死现象2.0 <--");
+            String key = random.nextInt(310)+"";
             if (!(key+"").equals(removeId+"")){
                 // list.add(id+":"+type+":"+pattern+":"+adi1_r+":"+adi2_r+":"+adi3_r+":"+adi4_r+":"+adi5_r)
-                ArrayList<String> list = jdbcUtils.selectBachItem(key);
+//                ArrayList<String> list = jdbcUtils.selectBachItem(key);
                 //短暂休眠，保证连接缓冲
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                set.add(list.get(0)+"");
+//                try {
+//                    Thread.sleep(50);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//                set.add(list.get(0)+"");
+                String s1 = AllItemList.get(Integer.parseInt(key));
+                set.add(s1);
+
             }
         }
         set.toArray(c11);

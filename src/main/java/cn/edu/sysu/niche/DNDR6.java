@@ -136,6 +136,9 @@ public class DNDR6 {
     private static  double PC = 0.6;
     private static  double PM = 0.8;
 
+    public DNDR6() throws SQLException {
+    }
+
 
     /**
      * 主程序

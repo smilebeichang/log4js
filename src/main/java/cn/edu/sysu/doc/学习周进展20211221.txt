@@ -1,0 +1,12 @@
+1.pajek介绍: 潘耶克
+https://baike.baidu.com/item/pajek/10112294
+Pajek是大型复杂网络分析工具，是用于研究所存在的各种复杂非线性网络的有力工具。
+Pajek在Windows环境下运行，用于带上千乃至数百万个结点大型网络的分析和可视化操作。在斯洛文尼亚语中Pajek是蜘蛛的意思。
+
+
+2.老师给的链接
+http://mrvar.fdv.uni-lj.si/pajek/
+
+
+3.Pajek视频教程全套丨基础+技巧实操
+https://www.bilibili.com/video/av839075597/
