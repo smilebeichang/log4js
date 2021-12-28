@@ -21,7 +21,7 @@ import java.util.*;
  * 1.200个体计算出每个小生境的平均值,然后取出大于均值的部分  周天   ok
  * 2.最大圈算法的资料查找和引入 maximum clique (确定性 最大圈算法)  周一 ok
  * 3.剩下的个体计算相似性 15%   周一 ok
- * 4.落盘,并调用读取  周二
+ * 4.落盘,并调用读取  周二  ok
  * 5.pajek的引入 周三周四抽时间看看视频,找到相关的部分
  *
  */
@@ -32,7 +32,8 @@ public class DNDR9 {
 
 
     /**
-     * 迭代次数 7min 500代
+     * 迭代次数      13min 1000代
+     * 加入最大圈    44min 1000代
      */
     private int iterationSize = 1000;
 
@@ -128,9 +129,26 @@ public class DNDR9 {
     private void similarClique(ArrayList<String> inBack) {
 
         // 距离关系w矩阵
-        int[][] distanceMatrix =new int[inBack.size()][inBack.size()];
+        int[][] distanceMatrix =new int[inBack.size()+2][inBack.size()+2];
 
         // 遍历计算距离关系,并生成01矩阵
+        for (int i = 0; i < inBack.size()+2; i++) {
+
+            // 赋值
+            for (int j = 0; j < inBack.size() + 2; j++) {
+
+                // 前两行
+                if (i < 2) {
+                    distanceMatrix[i][j] = -1;
+                }
+
+                // 第一列
+                if (j == 0) {
+                    distanceMatrix[i][j] = -1;
+                }
+            }
+        }
+
         for (int i = 0; i < inBack.size(); i++) {
 
             // 矩阵是根据题目的相似个数 leaderList *  leaderList 寻找最近的个体
@@ -158,7 +176,7 @@ public class DNDR9 {
 
                     // 以15%为界限
                     if (counter < 3 ){
-                        distanceMatrix[i][j]=1;
+                        distanceMatrix[i+2][j+1]=1;
                     }
                 }
             }
@@ -194,6 +212,7 @@ public class DNDR9 {
             for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
                 pw.print(distanceMatrix[i1][i2]+" , ");
             }
+            pw.print("333");
             pw.println();
         }
 

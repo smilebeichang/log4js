@@ -3,11 +3,6 @@ package cn.edu.sysu.clique;
 import org.junit.Test;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static java.util.regex.Pattern.*;
 
 /**
  * 最大团问题--回溯法
@@ -139,7 +134,7 @@ public class MaxcliqueV2 {
     public  void test03() {
         FileReader file = null;
         try {
-            file = new FileReader("F:\\song\\SYSU\\Log4j\\input\\dataV4.txt");
+            file = new FileReader("F:\\song\\SYSU\\Log4j\\input\\output.txt");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -154,7 +149,7 @@ public class MaxcliqueV2 {
         try {
             //读取一行数据
             String line = br.readLine();
-            int lines = line.split(",").length;
+            int lines = line.split(",").length ;
 
             System.out.println(lines);
 
@@ -165,14 +160,16 @@ public class MaxcliqueV2 {
             //按行读取
             while((line=br.readLine())!=null) {
                 //按空格进行分割
-                sp = line.split("\t");
+                sp = line.split("333");
+                //sp = line.split(" ");
                 for(int i=0;i<sp.length;i++){
                     c[count][i] = sp[i];
+                    //c[count][i] = sp[i].trim();
                 }
                 count++;
             }
-            for(int i=0;i<lines;i++){
-                for(int j=0;j<lines;j++){
+            for(int i=0;i<lines-2;i++){
+                for(int j=0;j<lines-1;j++){
                     cc[i][j] = Integer.parseInt(c[i][0].split(",")[j].trim());
                     System.out.print(cc[i][j]+",");
                 }
@@ -181,7 +178,7 @@ public class MaxcliqueV2 {
 
             MaxcliqueV2 m=new MaxcliqueV2();
             System.out.println("图G的最大团解向量为：");
-            System.out.println("图G的最大团顶点数为："+m.maxclique(lines-1, cc));
+            System.out.println("图G的最大团顶点数为："+m.maxclique(lines-2, cc));
             System.out.println("图G的最大团个为："+m.count);
 
         } catch (IOException e) {
