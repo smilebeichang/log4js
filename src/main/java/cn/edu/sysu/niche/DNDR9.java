@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
+import java.io.*;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -19,8 +20,9 @@ import java.util.*;
  * 本周进度安排:  GA -->  构图E  -->  最大圈clique   (parallel test)
  * 1.200个体计算出每个小生境的平均值,然后取出大于均值的部分  周天   ok
  * 2.最大圈算法的资料查找和引入 maximum clique (确定性 最大圈算法)  周一 ok
- * 3.剩下的个体计算相似性 15%
- * 4.pajek的引入  周二周三周四抽时间看看视频,找到相关的部分
+ * 3.剩下的个体计算相似性 15%   周一 ok
+ * 4.落盘,并调用读取  周二
+ * 5.pajek的引入 周三周四抽时间看看视频,找到相关的部分
  *
  */
 public class DNDR9 {
@@ -170,7 +172,37 @@ public class DNDR9 {
             System.out.println();
         }
 
+        // 写入文件
+        sinkToFile(distanceMatrix);
+
         System.out.println(" + ----------------------- + ");
+
+    }
+
+    private void sinkToFile(int[][] distanceMatrix) {
+        OutputStream os = null;
+        try {
+            os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\output.txt");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        PrintWriter pw=new PrintWriter(os);
+
+
+        // 打印 遍历二维数组
+        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
+                pw.print(distanceMatrix[i1][i2]+" , ");
+            }
+            pw.println();
+        }
+
+        pw.close();
+        try {
+            os.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -2818,7 +2850,7 @@ public class DNDR9 {
             ArrayList<String[]> outMutate = mutateOut(outCross);
 
 
-            // 10. 200个体计算出每个小生境的平均值,然后取出大于均值的部分
+            // 10. 最大圈问题
             gtMeanPart(inMutate, outMutate);
 
             // 11.将inMutate和outMutate合并后赋值给 paperGenetic
