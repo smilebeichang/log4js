@@ -50,7 +50,7 @@ public class MCP {
             bestn = cn;
         }
 
-        // 检查顶点 i 与当前团的连接
+        // 检查顶点 i 与当前圈的连接
         boolean connected = true;
         for (int j = 0; j < i; j++) {
             if (x[j] == 1 && !matrix[i][j]) {
@@ -82,7 +82,7 @@ public class MCP {
                 { true, true, true, true, false }
         };
         int[] v = new int[matrix.length];
-        int bestn = maxClique(matrix, v);   //返回值计算最大团个数
+        int bestn = maxClique(matrix, v);   //返回值计算最大圈个数
         System.out.println("最优解是: " + bestn);
         System.out.println(Arrays.toString(bestx));
     }

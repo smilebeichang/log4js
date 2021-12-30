@@ -2,6 +2,7 @@ package cn.edu.sysu.niche;
 
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.clique.MaxcliqueV2;
+import cn.edu.sysu.utils.CorrectUtils;
 import cn.edu.sysu.utils.JDBCUtils4;
 import cn.edu.sysu.utils.KLUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -19,16 +20,21 @@ import java.util.*;
  *
  *
  * 本周进度安排:  GA -->  构图E  -->  最大圈clique   (parallel test)
- * 1.200个体计算出每个小生境的平均值,然后取出大于均值的部分  周天   ok
+ * 1.100个体计算出每个小生境的平均值,然后取出大于均值的部分  周天   ok
  * 2.最大圈算法的资料查找和引入 maximum clique (确定性 最大圈算法)  周一 ok
  * 3.剩下的个体计算相似性 15%   周一 ok
- * 4.落盘,并调用读取  周二  ok
+ * 4.落盘并调用读取  周二  ok
  * 5.pajek的引入 周三周四抽时间看看视频,找到相关的部分
  *      5.1 打印成指定格式
- *      5.2 如何利用pajek找出最大团
+ *      5.2 如何利用pajek找出最大圈
  *      5.3 核实两边计算的值对不上
  *      5.4 边写边读
- *      5.5 检查为什么读到后面,反而没法找到最大圈了(相似性越来越差)
+ * 6.检查为什么读到后面,反而没法找到最大圈了(过于相似)
+ *      6.1 可以将count值放大,但也只能暂时的延缓,非根本计策
+ *      6.2 检验整体变异流程,校验为什么没能保住差异性  今晚的任务1
+ *          小生境  leader与member的相似性, 最大圈 member 和 member的相似性 可以迭代到30代后,居然只剩下的1个小生境
+ *          通过调大变异系数,可以使得count 变为2~3,略有改善,但也不是根本计策
+ *      6.3 写一个ppt                           今晚的任务2
  *
  */
 public class DNDR9 {
@@ -39,9 +45,9 @@ public class DNDR9 {
 
     /**
      * 迭代次数      13min 1000代
-     * 加入最大圈    44min 1000代
+     * 加入最大圈    8min 500代
      */
-    private int iterationSize = 1000;
+    private int iterationSize = 500;
 
 
     /**
@@ -82,7 +88,7 @@ public class DNDR9 {
      *
      */
     private static double PC = 0.9;
-    private static double PM = 0.1;
+    private static double PM = 0.4;
 
     /**
      *  size 为310
@@ -92,25 +98,26 @@ public class DNDR9 {
 
     MaxcliqueV2 mq = new MaxcliqueV2();
 
+    CorrectUtils cu = new CorrectUtils();
+
     public DNDR9() throws SQLException {
     }
 
 
 
     /**
-     * 1. 计算每个小生境的平均值(应该有计算个体适应度的代码,看看能不能粘贴复制 select 部分)
+     * 1. 计算每个小生境的平均值
      *      返回的样式 String : 适应度值_ids  ok
      * 2. 取出大于均值的部分
      *
      */
-    private ArrayList<String> gtMeanPart(HashMap<String, ArrayList<String[]>> inMutate, ArrayList<String[]> outMutate) throws SQLException {
+    private void gtMeanPart(HashMap<String, ArrayList<String[]>> inMutate, ArrayList<String[]> outMutate) throws SQLException {
 
-        // 1.遍历 inMutate
         System.out.println("================== calFitnessIn ==================");
 
         ArrayList<String> inBack = new ArrayList<>();
 
-        // 调用 calFitnessOut 即可
+        // 1. 遍历 inMutate,调用 calFitnessOut 即可
         for (Map.Entry<String, ArrayList<String[]>> entry : inMutate.entrySet()) {
 
             ArrayList<String> outList = calFitnessOut(entry.getValue());
@@ -127,7 +134,7 @@ public class DNDR9 {
         // 3. 剩下的个体计算相似性
         similarClique(inBack);
 
-        return inBack;
+
     }
 
     /**
@@ -160,7 +167,7 @@ public class DNDR9 {
         // 遍历集合
         for (int i = 0; i < inBack.size(); i++) {
 
-            // 矩阵是根据题目的相似个数 leaderList *  leaderList 寻找最近的个体
+            // 矩阵 (根据题目的相似个数 寻找最近的个体,若相似性低于3,则赋值为1)
             String aids = inBack.get(i).split("_")[1];
 
             for (int j = 0; j < inBack.size(); j++) {
@@ -173,7 +180,7 @@ public class DNDR9 {
                     List<String> ListA = stringToList(aids);
                     List<String> ListB = stringToList(bids);
 
-                    // 使用题目个数进行判断相似性
+                    // 计算相似题目个数
                     int counter = 0;
                     for (String c : ListB) {
                         for (String d : ListA) {
@@ -183,8 +190,9 @@ public class DNDR9 {
                         }
                     }
 
-                    // 以15%为界限  第三行开始,第二列开始
-                    if (counter < 3 ){
+                    // 以15%为界限  第三行开始,第二列开始 最大相似设置的过大,将导致计算缓慢
+                    // 而且只能延缓  无法最终解决
+                    if (counter < 4 ){
                         distanceMatrix[i+1][j+1]=1;
                     }
                 }
@@ -202,6 +210,7 @@ public class DNDR9 {
         // 写入文件
         sinkToFileV1(distanceMatrix);
         //sinkToFileV2(distanceMatrix);
+
         // 读取文件
         readFromFileV1();
 
@@ -219,24 +228,10 @@ public class DNDR9 {
     }
 
 
-    @Test
-    public  void test01() {
-
-        int[][] distanceMatrix ={
-                {-1,-1,-1,-1,-1,-1},
-                {-1,0,1,0,1,1},
-                {-1,1,0,1,0,1},
-                {-1,0,1,0,0,1},
-                {-1,1,0,0,0,1},
-                {-1,1,1,1,1,0}
-        };
-
-        sinkToFileV1(distanceMatrix);
-        sinkToFileV2(distanceMatrix);
-
-        System.out.println(" + ----------------------- + ");
-    }
-
+    /**
+     * 写入文件
+     * @param distanceMatrix
+     */
     private void sinkToFileV1(int[][] distanceMatrix) {
         OutputStream os = null;
         try {
@@ -285,16 +280,14 @@ public class DNDR9 {
 
 
         // 打印 遍历二维数组
-        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
-            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-                // 将第一行第二行的-1过滤掉了
-                if(distanceMatrix[i1][i2] == 1){
-                    pw.println("V"+i1+" "+"V"+i2);
-                }else {
-
-                }
-            }
-        }
+//        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+//            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
+//                // 将第一行第二行的-1过滤掉了
+//                if(distanceMatrix[i1][i2] == 1){
+//                    pw.println("V"+i1+" "+"V"+i2);
+//                }
+//            }
+//        }
 
         pw.close();
         try {
@@ -305,11 +298,19 @@ public class DNDR9 {
 
     }
 
+    /**
+     * 计算适应度值,并只保留适应度大于均值的部分
+     * @param list
+     * @return inBack
+     * @throws SQLException
+     */
     private ArrayList<String> calFitnessOut(ArrayList<String[]> list) throws SQLException {
 
         System.out.println("================== calFitnessOut ==================");
 
+        // 计算适应度值
         ArrayList<String> outList = getFitForGtMeanPart(list);
+
         ArrayList<String> inBack = new ArrayList<>();
 
         if (outList.size()>0){
@@ -336,6 +337,7 @@ public class DNDR9 {
 
 
     /**
+     * 计算适应度值
      * 返回：适应度_ids
      */
     private ArrayList<String> getFitForGtMeanPart(ArrayList<String[]> list) throws SQLException {
@@ -374,7 +376,6 @@ public class DNDR9 {
 
                 // 拼接ids
                 idsb.append(",").append(splits[0]);
-
 
             }
 
@@ -470,7 +471,7 @@ public class DNDR9 {
             }
 
             // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
-            //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
+            // 先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
             double ed1;
             double edx1 = exp1 / 23.0;
             if (edx1 >= 0.2 && edx1 < 0.4) {
@@ -666,7 +667,7 @@ public class DNDR9 {
 
         // 选取member leaderSetForGene 表示小生境的峰值
         int sum = 0;
-        log.info("小生境数目: " + leaderSetForGene.size());
+        //log.info("小生境数目: " + leaderSetForGene.size());
 
         for (String leader : leaderSetForGene) {
 
@@ -712,7 +713,7 @@ public class DNDR9 {
 //                mapArrayListForGene.put(leader, memberList);
 //            }
             mapArrayListForGene.put(leader, memberList);
-            log.info("leader的value: " + leader.split("_")[0]+"  ,member的数量:"+memberList.size());
+            //log.info("leader的value: " + leader.split("_")[0]+"  ,member的数量:"+memberList.size());
 
             sum = memberList.size() + sum;
         }
@@ -2016,13 +2017,14 @@ public class DNDR9 {
                 String str1 = StringUtils.join(stringArray, ",");
                 re.add(str1);
             }
+            //System.out.println(re);
         } else {
             // 此处需对outList做处理,否则样式不一致
             for (int i = 0; i < outList.size(); i++) {
                 String str = outList.get(i).split("_")[1];
                 re.add(str);
             }
-
+            //System.out.println(re);
             //re = outList;
         }
 
@@ -2120,7 +2122,11 @@ public class DNDR9 {
                     ArrayList<String[]> rts = niche5.RTS(outCross, j);
 
                     String[] c1 =  rts.get(0);
-                    outMutate.add(c1);
+                    // 新增需要校验部分
+                    String[] c2 = cu.correctTypeV2(c1);
+
+
+                    outMutate.add(c2);
 
                     // 执行变异后的修补操作 如果替换，则校验子类。如果未替换。si可以不进行获得，且无需校验。但校验也无所谓
                     // 难道这个个体大概率相似 不是,index 很随机
@@ -2142,6 +2148,8 @@ public class DNDR9 {
                     String[] itemArray = new String[sList.size()];
 
                     for (int k = 0; k < sList.size(); k++) {
+                        System.out.println("K:"+k);
+                        System.out.println("sList:"+sList);
                         itemArray[k] = allItemList.get(Integer.parseInt(sList.get(k))-1 > -1?Integer.parseInt(sList.get(k))-1:1);
                     }
 
@@ -2813,7 +2821,7 @@ public class DNDR9 {
         }
 
         // 题型比例校验  题型比例过多的情况:[1, 1, 1, 7, 23, 29, 115, 148, 256, 281]
-        //correctType(i);
+        String[] stringsV2 =  cu.correctType(strings);
         if ((new HashSet<>(Arrays.asList(temp))).size() < 10) {
             //System.out.println("size 不符合");
         }
@@ -2824,7 +2832,7 @@ public class DNDR9 {
             //System.out.println("size 不符合");
         }
 
-        return strings;
+        return stringsV2;
 
 
     }
@@ -2871,6 +2879,12 @@ public class DNDR9 {
         return temp;
 
     }
+
+
+
+
+
+
 
     /**
      * 主程序
@@ -2926,7 +2940,7 @@ public class DNDR9 {
             //   对不同的集合进行不同的选择 (小生境内 | 小生境外)
             //   进去啥,返回啥。保持样式不做修改,这样有利于样式的统一
 
-            //   7.1 进行小生境内的选择   小生境内有多少个体就执行执行多少次选举，选出适应个体
+            //   7.1 进行小生境内的选择   小生境内有多少个体就执行多少次选举，选出适应个体
             HashMap<String, ArrayList<String>> inSelect = selectionIn(inListHashMap);
 
             //   7.2 进行小生境外的选择
@@ -2944,6 +2958,7 @@ public class DNDR9 {
             // 9.变异
             //   9.1 进行小生境内交叉(采用的是 限制性锦标赛拥挤小生境)
             HashMap<String, ArrayList<String[]>> inMutate = mutateIn(inCross);
+            //log.info("小生境个数: "+ inMutate.size());
 
             //   9.2 进行小生境外交叉
             ArrayList<String[]> outMutate = mutateOut(outCross);
@@ -2963,6 +2978,3 @@ public class DNDR9 {
 
 
 }
-
-
-

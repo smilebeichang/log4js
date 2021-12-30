@@ -77,6 +77,9 @@ public class Niche6 {
         // java.lang.NumberFormatException: For input string: "16.215638876810402_1"
         if(!s.contains("_")){
             for (int j = 0; j < sList.size(); j++) {
+                System.out.println("i: "+i);
+                System.out.println("j: "+j);
+                System.out.println("sList: "+sList);
                 itemArray[j] = AllItemList.get(Integer.parseInt(sList.get(j))-1 > -1?Integer.parseInt(sList.get(j))-1:1);
             }
         }

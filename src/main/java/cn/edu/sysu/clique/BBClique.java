@@ -5,7 +5,7 @@ import java.util.LinkedList;
 
 
 /**
- * 最大团问题 -- 优先队列式分支限界法
+ * 最大圈问题 -- 优先队列式分支限界法
  * @Author : song bei chang
  * @create 2021/12/27 23:15
  *
@@ -37,7 +37,7 @@ public class BBClique {
 
     /**
      * 对子集解空间树的最大优先队列分支限界搜索
-     * @param bestx 某点是否在最大团中
+     * @param bestx 某点是否在最大圈中
      * @return
      */
     public int bbMaxClique(int[] bestx){
@@ -103,9 +103,9 @@ public class BBClique {
         int n=5;
         int[] bestx=new int[n+1];
         BBClique b=new BBClique(a);
-        System.out.println("图G的最大团解向量为：");
+        System.out.println("图G的最大圈解向量为：");
         int best=b.bbMaxClique(bestx);
-        System.out.println("图G的最大团顶点数为："+best);
+        System.out.println("图G的最大圈顶点数为："+best);
     }
 
 }
@@ -134,9 +134,9 @@ class BBnodes{
  */
 class HeapNodes implements Comparable{
     BBnodes liveNode;
-    //当前团最大顶点数上界
+    //当前圈最大顶点数上界
     int upperSize;
-    ///当前团的顶点数
+    ///当前圈的顶点数
     int cliqueSize;
     int level;
 
@@ -163,9 +163,9 @@ class HeapNodes implements Comparable{
 
 /*
 运行结果：
-图G的最大团解向量为：
+图G的最大圈解向量为：
 1 0 0 1 1
-图G的最大团顶点数为：3
+图G的最大圈顶点数为：3
  */
 
 

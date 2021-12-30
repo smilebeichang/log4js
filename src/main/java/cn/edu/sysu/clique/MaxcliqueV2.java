@@ -6,31 +6,31 @@ import org.junit.Test;
 import java.io.*;
 
 /**
- * 最大团问题--回溯法
+ * 最大圈问题--回溯法
  * @Author : song bei chang
  * @create 2021/12/27 22:30
  */
 public class MaxcliqueV2 {
 
-    /* 当前解（x[i]=1表示i点在最大团中，=0表示不在团中） */
+    /** 当前解（x[i]=1表示i点在最大圈中，=0表示不在圈中） */
     public int[] x;
 
-    //图G的顶点数
+    /** 图G的顶点数 */
     public int n;
 
-    //当前顶点数
+    /** 当前顶点数 */
     public int cn;
 
-    //当前最大顶点数
+    /** 当前最大顶点数 */
     public int bestn;
 
-    //当前最优解
+    /** 当前最优解 */
     public int[] bestx;
 
-    //图G的邻接矩阵,0：不连通；1：连通
+    /** 图G的邻接矩阵,0：不连通；1：连通 */
     public int[][] a;
 
-    //图G的最大团个数
+    /** 图G的最大圈个数 */
     public int count;
 
     private Logger log = Logger.getLogger(MaxcliqueV2.class);
@@ -39,16 +39,16 @@ public class MaxcliqueV2 {
         if(i>n){
             for(int j=1;j<=n;j++){
                 bestx[j]=x[j];
-                System.out.print(x[j]+" ");
+                //System.out.print(x[j]+" ");
             }
-            System.out.println();
+            //System.out.println();
             bestn=cn;
             count++;
             return;
         }
         else{
             boolean ok=true;
-            //检查顶点i是否与当前团全部连接
+            //检查顶点i是否与当前圈全部连接
             for(int j=1;j<i;j++){
                 if(x[j]==1&&a[i][j]==0){
                     ok=false;
@@ -126,9 +126,9 @@ public class MaxcliqueV2 {
 
 
         MaxcliqueV2 m=new MaxcliqueV2();
-        System.out.println("图G的最大团解向量为：");
-        System.out.println("图G的最大团顶点数为："+m.maxclique(n, a));
-        System.out.println("图G的最大团个为："+m.count);
+        System.out.println("图G的最大圈解向量为：");
+        System.out.println("图G的最大圈顶点数为："+m.maxclique(n, a));
+        System.out.println("图G的最大圈个为："+m.count);
     }
 
 
@@ -164,18 +164,18 @@ public class MaxcliqueV2 {
             for(int i=0;i<lines;i++){
                 for(int j=0;j<lines;j++){
                     cc[i][j] = Integer.parseInt(c[i][0].split(",")[j].trim());
-                    System.out.print(cc[i][j]+",");
+                    //System.out.print(cc[i][j]+",");
                 }
-                System.out.println();
+                //System.out.println();
             }
 
             MaxcliqueV2 m=new MaxcliqueV2();
-            System.out.println("图G的最大团解向量为：");
-            System.out.println("图G的最大团顶点数为："+m.maxclique(lines-1, cc));
-            System.out.println("图G的最大团个为："+m.count);
+            System.out.println("图G的最大圈解向量为：");
+            System.out.println("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
+            System.out.println("图G的最大圈个为："+m.count);
 
-            log.info("图G的最大团顶点数为："+m.maxclique(lines-1, cc));
-            log.info("图G的最大团个为："+m.count);
+            log.info("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
+            log.info("图G的最大圈个为："+m.count);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -216,12 +216,12 @@ public class MaxcliqueV2 {
 
 /*
 输出：
-图G的最大团解向量为：
+图G的最大圈解向量为：
 1 1 0 0 1
 1 0 0 1 1
 0 1 1 0 1
-图G的最大团顶点数为：3
-图G的最大团个为：3
+图G的最大圈顶点数为：3
+图G的最大圈个为：3
 */
 
 

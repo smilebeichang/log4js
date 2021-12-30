@@ -14,13 +14,13 @@ public class BuLuoWeiDui {
     public static int N = 100;
     //图用邻接矩阵表示
     static int[][] a = new int[N][N];
-    //是否将第i个节点加入团中
+    //是否将第i个节点加入圈中
     static int[] x = new int[N];
     //记录最优解
     static int[] bestx = new int[N];
     //记录最优值
     static int bestn;
-    //当前已放入团中的节点数量
+    //当前已放入圈中的节点数量
     static int cn;
     //n为图中节点数  m为图中边数
     static int n, m;
@@ -43,7 +43,7 @@ public class BuLuoWeiDui {
 
         //初始最优值为0
         bestn = 0;
-        //初始的团中节点也为0
+        //初始的圈中节点也为0
         cn = 0;
         //从第一个节点进行深度搜索
         backTrack(1);
@@ -66,7 +66,7 @@ public class BuLuoWeiDui {
             return;
         }
 
-        //判断是否满足约束条件（边是否连通）-->左子树-->把节点加入团中
+        //判断是否满足约束条件（边是否连通）-->左子树-->把节点加入圈中
         if (place(t)) {
             //左子树 标记为1
             x[t] = 1;
@@ -84,7 +84,7 @@ public class BuLuoWeiDui {
         }
     }
 
-    private static boolean place(int t) {  //判断是否可以把节点t加入团中
+    private static boolean place(int t) {  //判断是否可以把节点t加入圈中
         boolean ok = true;
         for (int j = 1; j < t; j++) {
             if (x[j] == 1 && a[t][j] == 1) {

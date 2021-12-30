@@ -1,13 +1,13 @@
 package cn.edu.sysu.clique;
 
 /**
- * 最大团问题--回溯法
+ * 最大圈问题--回溯法
  * @Author : song bei chang
  * @create 2021/12/27 22:30
  */
 public class Maxclique {
 
-    /* 当前解（x[i]=1表示i点在最大团中，=0表示不在团中） */
+    /* 当前解（x[i]=1表示i点在最大圈中，=0表示不在圈中） */
     public int[] x;
 
     //图G的顶点数
@@ -25,7 +25,7 @@ public class Maxclique {
     //图G的邻接矩阵,0：不连通；1：连通
     public int[][] a;
 
-    //图G的最大团个数
+    //图G的最大圈个数
     public int count;
 
     public void backtrack(int i){
@@ -41,7 +41,7 @@ public class Maxclique {
         }
         else{
             boolean ok=true;
-            //检查顶点i是否与当前团全部连接
+            //检查顶点i是否与当前圈全部连接
             for(int j=1;j<i;j++){
                 if(x[j]==1&&a[i][j]==0){
                     ok=false;
@@ -84,7 +84,6 @@ public class Maxclique {
     public static void main(String[] args) {
 
         //a的下标从1开始，-1的值无用
-        //int[][] a={{-1,-1,-1,-1,-1,-1},{-1,0,1,0,1,1},{-1,1,0,1,0,1},{-1,0,1,0,0,1},{-1,1,0,0,0,1},{-1,1,1,1,1,0}};
         int[][] a={
                 {-1,-1,-1,-1,-1,-1},
                 {-1,0,1,0,1,1},
@@ -95,32 +94,21 @@ public class Maxclique {
         };
         int n=5;
 
-//        int[][] a={
-//                {-1,-1,-1,-1,-1},
-//                {-1,0,1,1,0},
-//                {-1,1,0,1,0},
-//                {-1,1,1,0,0},
-//                {-1,0,0,1,0}
-//        };
-//
-//        int n=4;
-
-
         Maxclique m=new Maxclique();
-        System.out.println("图G的最大团解向量为：");
-        System.out.println("图G的最大团顶点数为："+m.maxclique(n, a));
-        System.out.println("图G的最大团个为："+m.count);
+        System.out.println("图G的最大圈解向量为：");
+        System.out.println("图G的最大圈顶点数为："+m.maxclique(n, a));
+        System.out.println("图G的最大圈个为："+m.count);
     }
 
 }
 /*
 输出：
-图G的最大团解向量为：
+图G的最大圈解向量为：
 1 1 0 0 1
 1 0 0 1 1
 0 1 1 0 1
-图G的最大团顶点数为：3
-图G的最大团个为：3
+图G的最大圈顶点数为：3
+图G的最大圈个为：3
 */
 
 
