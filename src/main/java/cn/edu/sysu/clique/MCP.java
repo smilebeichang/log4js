@@ -5,6 +5,7 @@ import java.util.*;
 /**
  * @Author : song bei chang
  * @create 2021/12/27 22:26
+ *
  */
 public class MCP {
     static int[] x; // 当前解

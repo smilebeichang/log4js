@@ -1,6 +1,7 @@
 package cn.edu.sysu.niche;
 
 import cn.edu.sysu.adi.TYPE;
+import cn.edu.sysu.clique.MaxcliqueV2;
 import cn.edu.sysu.utils.JDBCUtils4;
 import cn.edu.sysu.utils.KLUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +24,11 @@ import java.util.*;
  * 3.剩下的个体计算相似性 15%   周一 ok
  * 4.落盘,并调用读取  周二  ok
  * 5.pajek的引入 周三周四抽时间看看视频,找到相关的部分
+ *      5.1 打印成指定格式
+ *      5.2 如何利用pajek找出最大团
+ *      5.3 核实两边计算的值对不上
+ *      5.4 边写边读
+ *      5.5 检查为什么读到后面,反而没法找到最大圈了(相似性越来越差)
  *
  */
 public class DNDR9 {
@@ -41,7 +47,7 @@ public class DNDR9 {
     /**
      * 排序后的  21.32563_3,12,45....
      */
-    private ArrayList<String> sortListForGene = new ArrayList<>(200);
+    private ArrayList<String> sortListForGene = new ArrayList<>(100);
 
 
     /**
@@ -59,7 +65,7 @@ public class DNDR9 {
     /**
      * 200套试卷 20道题
      */
-    private static String[][] paperGenetic = new String[200][20];
+    private static String[][] paperGenetic = new String[100][20];
 
     private JDBCUtils4 jdbcUtils = new JDBCUtils4();
 
@@ -83,6 +89,8 @@ public class DNDR9 {
      */
     ArrayList<String> allItemList = jdbcUtils.selectAllItems();
 
+
+    MaxcliqueV2 mq = new MaxcliqueV2();
 
     public DNDR9() throws SQLException {
     }
@@ -129,16 +137,16 @@ public class DNDR9 {
     private void similarClique(ArrayList<String> inBack) {
 
         // 距离关系w矩阵
-        int[][] distanceMatrix =new int[inBack.size()+2][inBack.size()+2];
+        int[][] distanceMatrix =new int[inBack.size()+1][inBack.size()+1];
 
-        // 遍历计算距离关系,并生成01矩阵
-        for (int i = 0; i < inBack.size()+2; i++) {
+        // 遍历计算距离关系,并生成01矩阵 初始化矩阵
+        for (int i = 0; i < inBack.size()+1; i++) {
 
             // 赋值
-            for (int j = 0; j < inBack.size() + 2; j++) {
+            for (int j = 0; j < inBack.size() + 1; j++) {
 
-                // 前两行
-                if (i < 2) {
+                // 第一行
+                if (i < 1) {
                     distanceMatrix[i][j] = -1;
                 }
 
@@ -149,6 +157,7 @@ public class DNDR9 {
             }
         }
 
+        // 遍历集合
         for (int i = 0; i < inBack.size(); i++) {
 
             // 矩阵是根据题目的相似个数 leaderList *  leaderList 寻找最近的个体
@@ -174,30 +183,61 @@ public class DNDR9 {
                         }
                     }
 
-                    // 以15%为界限
+                    // 以15%为界限  第三行开始,第二列开始
                     if (counter < 3 ){
-                        distanceMatrix[i+2][j+1]=1;
+                        distanceMatrix[i+1][j+1]=1;
                     }
                 }
             }
         }
 
         // 打印 遍历二维数组
-        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
-            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-                System.out.print(distanceMatrix[i1][i2]+" , ");
-            }
-            System.out.println();
-        }
+//        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+//            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
+//                System.out.print(distanceMatrix[i1][i2]+" , ");
+//            }
+//            System.out.println();
+//        }
 
         // 写入文件
-        sinkToFile(distanceMatrix);
+        sinkToFileV1(distanceMatrix);
+        //sinkToFileV2(distanceMatrix);
+        // 读取文件
+        readFromFileV1();
 
         System.out.println(" + ----------------------- + ");
 
     }
 
-    private void sinkToFile(int[][] distanceMatrix) {
+    /**
+     * 读取文件,输出最大圈顶点数和最大圈的个数
+     */
+    private void readFromFileV1() {
+
+        mq.readFromFileV1();
+
+    }
+
+
+    @Test
+    public  void test01() {
+
+        int[][] distanceMatrix ={
+                {-1,-1,-1,-1,-1,-1},
+                {-1,0,1,0,1,1},
+                {-1,1,0,1,0,1},
+                {-1,0,1,0,0,1},
+                {-1,1,0,0,0,1},
+                {-1,1,1,1,1,0}
+        };
+
+        sinkToFileV1(distanceMatrix);
+        sinkToFileV2(distanceMatrix);
+
+        System.out.println(" + ----------------------- + ");
+    }
+
+    private void sinkToFileV1(int[][] distanceMatrix) {
         OutputStream os = null;
         try {
             os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\output.txt");
@@ -209,11 +249,51 @@ public class DNDR9 {
 
         // 打印 遍历二维数组
         for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+            if (i1==0){
+                for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
+                    pw.print(distanceMatrix[i1][i2]+" , ");
+                }
+                pw.print("333");
+                pw.println();
+            }
+
             for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
                 pw.print(distanceMatrix[i1][i2]+" , ");
             }
             pw.print("333");
             pw.println();
+        }
+
+        pw.close();
+        try {
+            os.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    private void sinkToFileV2(int[][] distanceMatrix) {
+        OutputStream os = null;
+        try {
+            os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\outputV2.txt");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        PrintWriter pw=new PrintWriter(os);
+
+
+        // 打印 遍历二维数组
+        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
+                // 将第一行第二行的-1过滤掉了
+                if(distanceMatrix[i1][i2] == 1){
+                    pw.println("V"+i1+" "+"V"+i2);
+                }else {
+
+                }
+            }
         }
 
         pw.close();
@@ -2081,7 +2161,7 @@ public class DNDR9 {
      */
     private String[][] mergeToGene(HashMap<String, ArrayList<String[]>> inMutate, ArrayList<String[]> outMutate) {
 
-        String[][] gene = new String[200][20];
+        String[][] gene = new String[100][20];
         int index = 0;
 
 

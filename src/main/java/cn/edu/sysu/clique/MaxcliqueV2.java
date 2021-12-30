@@ -1,5 +1,6 @@
 package cn.edu.sysu.clique;
 
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.io.*;
@@ -31,6 +32,8 @@ public class MaxcliqueV2 {
 
     //图G的最大团个数
     public int count;
+
+    private Logger log = Logger.getLogger(MaxcliqueV2.class);
 
     public void backtrack(int i){
         if(i>n){
@@ -130,26 +133,16 @@ public class MaxcliqueV2 {
 
 
 
-    @Test
-    public  void test03() {
-        FileReader file = null;
-        try {
-            file = new FileReader("F:\\song\\SYSU\\Log4j\\input\\output.txt");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        System.out.println("文件测试数据如下：");
-        txtString(file);
-    }
 
-    public static void txtString(FileReader file){
+
+    public  void txtString(FileReader file){
 
         //读取文件
         BufferedReader br = new BufferedReader(file);
         try {
             //读取一行数据
             String line = br.readLine();
-            int lines = line.split(",").length ;
+            int lines = line.split(",").length - 1;
 
             System.out.println(lines);
 
@@ -168,8 +161,8 @@ public class MaxcliqueV2 {
                 }
                 count++;
             }
-            for(int i=0;i<lines-2;i++){
-                for(int j=0;j<lines-1;j++){
+            for(int i=0;i<lines;i++){
+                for(int j=0;j<lines;j++){
                     cc[i][j] = Integer.parseInt(c[i][0].split(",")[j].trim());
                     System.out.print(cc[i][j]+",");
                 }
@@ -178,8 +171,11 @@ public class MaxcliqueV2 {
 
             MaxcliqueV2 m=new MaxcliqueV2();
             System.out.println("图G的最大团解向量为：");
-            System.out.println("图G的最大团顶点数为："+m.maxclique(lines-2, cc));
+            System.out.println("图G的最大团顶点数为："+m.maxclique(lines-1, cc));
             System.out.println("图G的最大团个为："+m.count);
+
+            log.info("图G的最大团顶点数为："+m.maxclique(lines-1, cc));
+            log.info("图G的最大团个为："+m.count);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -189,22 +185,31 @@ public class MaxcliqueV2 {
 
 
     @Test
-    public  void test04() throws IOException {
-
-        int number=1;
-        OutputStream os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\output.txt");
-        PrintWriter pw=new PrintWriter(os);
-        for(int i=0;i<10;i++) {
-            String s=""+number;
-            //每输入一个数据，自动换行，便于我们每一行每一行地进行读取
-            pw.println(s);
-            //pw.print(s+",");//不会自动换行，必要时可以自己添加分隔符
-            number++;
+    public  void test03() {
+        FileReader file = null;
+        try {
+            file = new FileReader("F:\\song\\SYSU\\Log4j\\input\\output.txt");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
-        pw.close();
-        os.close();
+        System.out.println("文件测试数据如下：");
+        txtString(file);
     }
 
+
+    /**
+     * 开放此方法,用于其他类调用
+     */
+    public  void readFromFileV1() {
+        FileReader file = null;
+        try {
+            file = new FileReader("F:\\song\\SYSU\\Log4j\\input\\output.txt");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        System.out.println("文件测试数据如下：");
+        txtString(file);
+    }
 
 
 }
