@@ -24,6 +24,46 @@ public class CorrectUtils {
     }
 
 
+
+    /**
+     * 长度校验
+     * 解决方案：
+     * ①size==20,退出
+     * ②如果在小于20，则随机选取一题，再在下层做处理
+     */
+    public String[] correctLength(String[] temp) throws SQLException {
+
+
+        HashSet<String> setBegin = new HashSet<>(Arrays.asList(temp));
+
+        if (setBegin.size() == 20) {
+            //System.out.println("第 "+w+" 题, 交叉/变异后,size正常");
+        } else {
+
+            //System.out.println("交叉/变异导致size不匹配：开始进行长度修补 ");
+
+            //随机选题
+            while (setBegin.size() != 20) {
+
+                String id = new Random().nextInt(300) + "";
+                setBegin.add(id);
+            }
+
+            // hashSet 转 数组
+            String[] array = new String[setBegin.size()];
+            array = setBegin.toArray(array);
+
+            return array;
+
+        }
+        return temp;
+
+    }
+
+
+
+
+
     /**
      * 题型校验(前提是不会破坏长度)
      *      每次校验完成后，下一次的交叉变异，typeFlag很大概率会再次失衡
@@ -895,6 +935,943 @@ public class CorrectUtils {
         }
         //System.out.println();
         return list;
+    }
+
+
+
+    /**
+     *  <属性比例校验>
+     *  具体步骤如下：
+     *      1.获取各个属性的比例信息,得到flag
+     *      2.和预期做比较,得出in解集
+     *      3.找寻完美解、替补解
+     *      4.输出
+     *
+     *  题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
+     *  属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
+     *
+     */
+    public String[] correctAttribute(String[] temp) throws SQLException {
+
+        ArrayList<String> bachItemListV1 = new ArrayList();
+        Collections.addAll(bachItemListV1, temp);
+
+
+
+        String[] itemArrayV2 = new String[bachItemListV1.size()];
+
+        for (int k = 0; k < bachItemListV1.size(); k++) {
+            itemArrayV2[k] = allItemList.get(Integer.parseInt(bachItemListV1.get(k).trim())-1 > -1?Integer.parseInt(bachItemListV1.get(k).trim())-1:1);
+            //itemArrayV2[k] = allItemList.get(Integer.parseInt(sList.get(k).trim())-1);
+        }
+
+
+
+        //================  1.0 指标统计   =====================
+        //ArrayList<String> 转 hashSet<String>
+        HashSet<String> itemSet = new HashSet<>(Arrays.asList(itemArrayV2));
+
+        // 获取个体的题型指标信息
+        String attributeFlag = getAttributeFlag(itemSet);
+
+        int af1 = Integer.parseInt(attributeFlag.split(",")[0]);
+        int af2 = Integer.parseInt(attributeFlag.split(",")[1]);
+        int af3 = Integer.parseInt(attributeFlag.split(",")[2]);
+        int af4 = Integer.parseInt(attributeFlag.split(",")[3]);
+        int af5 = Integer.parseInt(attributeFlag.split(",")[4]);
+
+        //===============  2.0 解集统计    ====================
+
+        //根据attributeFlag 获得out解的容器(可能造成比例失衡的解集) 占比失衡的情况： ①多  ②少
+        //根据typeFlag 得出outMore/outLess解集
+        ArrayList<String> batchItemList = new ArrayList<>();
+        Collections.addAll(batchItemList,itemArrayV2);
+
+        //取出属性比例过多的集合的并集
+        Set<String> outMore = getOutMoreAttr(batchItemList,af1,af2,af3,af4,af5);
+
+        //取出属性比例不足的集合的并集
+        Set<String> outLess = getOutLessAttr(batchItemList,af1,af2,af3,af4,af5);
+
+
+
+        //=================  3.0 修补操作   ===================
+
+        //*********  3.1 outLess有  outMore有值   *********
+        if(outMore.size()>0 && outLess.size()>0){
+            //bachItemList = correctAttributeMoreAndLess(outMore,outLess,jdbcUtils,bachItemList,af1,af2,af3,af4,af5);
+        }
+
+
+        //********  3.2 outLess有  outMore无值    *******
+        if(outMore.size()==0 && outLess.size()>0){
+
+            batchItemList = correctAttributeLess(outLess,jdbcUtils,batchItemList,af1,af2,af3,af4,af5);
+
+        }
+
+
+        //********  3.3 outLess无  outMore有值   **********
+        if(outMore.size()>0 && outLess.size()==0){
+
+            batchItemList = correctAttributeMore(outMore,jdbcUtils,batchItemList,af1,af2,af3,af4,af5);
+
+        }
+
+        //    arrayList 转 数组
+        String[] itemArray = new String[batchItemList.size()];
+        for (int i = 0; i < batchItemList.size(); i++) {
+            itemArray[i] = batchItemList.get(i).split(":")[0];
+        }
+
+        //  list  转 hashSet
+        //HashSet<String> temp3 = new HashSet<>(bachItemList);
+        //getAttributeFlag(temp3);
+
+        temp = sortPatch(itemArray);
+
+        return  temp;
+
+
+    }
+
+
+
+    /**
+     *  <属性比例校验>
+     *  具体步骤如下：
+     *      1.获取各个属性的比例信息,得到flag
+     *      2.和预期做比较,得出in解集
+     *      3.找寻完美解、替补解
+     *      4.输出
+     *
+     *  题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
+     *  属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
+     *
+     */
+    public String[] correctAttributeV2(String[] temp) throws SQLException {
+
+
+
+        //================  1.0 指标统计   =====================
+        //ArrayList<String> 转 hashSet<String>
+        HashSet<String> itemSet = new HashSet<>(Arrays.asList(temp));
+
+        // 获取个体的题型指标信息
+        String attributeFlag = getAttributeFlag(itemSet);
+
+        int af1 = Integer.parseInt(attributeFlag.split(",")[0]);
+        int af2 = Integer.parseInt(attributeFlag.split(",")[1]);
+        int af3 = Integer.parseInt(attributeFlag.split(",")[2]);
+        int af4 = Integer.parseInt(attributeFlag.split(",")[3]);
+        int af5 = Integer.parseInt(attributeFlag.split(",")[4]);
+
+        //===============  2.0 解集统计    ====================
+
+        //根据attributeFlag 获得out解的容器(可能造成比例失衡的解集) 占比失衡的情况： ①多  ②少
+        //根据typeFlag 得出outMore/outLess解集
+        ArrayList<String> batchItemList = new ArrayList<>();
+        Collections.addAll(batchItemList,temp);
+
+        //取出属性比例过多的集合的并集
+        Set<String> outMore = getOutMoreAttr(batchItemList,af1,af2,af3,af4,af5);
+
+        //取出属性比例不足的集合的并集
+        Set<String> outLess = getOutLessAttr(batchItemList,af1,af2,af3,af4,af5);
+
+
+
+        //=================  3.0 修补操作   ===================
+
+        //*********  3.1 outLess有  outMore有值   *********
+        if(outMore.size()>0 && outLess.size()>0){
+            //bachItemList = correctAttributeMoreAndLess(outMore,outLess,jdbcUtils,bachItemList,af1,af2,af3,af4,af5);
+        }
+
+
+        //********  3.2 outLess有  outMore无值    *******
+        if(outMore.size()==0 && outLess.size()>0){
+
+            batchItemList = correctAttributeLess(outLess,jdbcUtils,batchItemList,af1,af2,af3,af4,af5);
+
+        }
+
+
+        //********  3.3 outLess无  outMore有值   **********
+        if(outMore.size()>0 && outLess.size()==0){
+
+            batchItemList = correctAttributeMore(outMore,jdbcUtils,batchItemList,af1,af2,af3,af4,af5);
+
+        }
+
+        //    arrayList 转 数组
+        String[] itemArray = new String[batchItemList.size()];
+        for (int i = 0; i < batchItemList.size(); i++) {
+            itemArray[i] = batchItemList.get(i);
+        }
+
+        //  list  转 hashSet
+        //HashSet<String> temp3 = new HashSet<>(bachItemList);
+        //getAttributeFlag(temp3);
+
+        temp = sortPatch(itemArray);
+
+        return  temp;
+
+
+    }
+
+
+
+
+    /**
+     *  获取个体的属性指标信息  attributeFlag
+     *      ①遍历获的各个属性的数目
+     *      ②除以总数量，得到各个属性的比例
+     *      ③预期比例 vs 实际比例 --> flag(1,0,-1)
+     *      ④拼接成attributeFlag
+     *  第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
+     *
+     */
+    private String getAttributeFlag(HashSet<String> itemSet){
+
+        //System.out.println("=================  指标信息初步统计  =====================");
+
+        //属性个数
+        int attributeNum1  = 0;
+        int attributeNum2  = 0;
+        int attributeNum3  = 0;
+        int attributeNum4  = 0;
+        int attributeNum5  = 0;
+
+        //各个属性的数目
+        for (String s:itemSet) {
+
+            if("1".equals(s.split(":")[2].substring(1,2))){
+                attributeNum1 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(3,4))){
+                attributeNum2 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(5,6))){
+                attributeNum3 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(7,8))){
+                attributeNum4 += 1;
+            }
+            if("1".equals(s.split(":")[2].substring(9,10))){
+                attributeNum5 += 1;
+            }
+        }
+
+
+        //属性比例
+        double attributeRatio1 = attributeNum1/35.0;
+        double attributeRatio2 = attributeNum2/35.0;
+        double attributeRatio3 = attributeNum3/35.0;
+        double attributeRatio4 = attributeNum4/35.0;
+        double attributeRatio5 = attributeNum5/35.0;
+
+
+        int af1 ;
+        if(attributeRatio1>=0.2 && attributeRatio1<=0.4){
+            af1 = 0;
+        }else if(attributeRatio1<0.2){
+            af1 = -1;
+        }else {
+            af1 = 1;
+        }
+
+        int af2 ;
+        if(attributeRatio2>=0.2 && attributeRatio2<=0.4){
+            af2 = 0;
+        }else if(attributeRatio2<0.2){
+            af2 = -1;
+        }else {
+            af2 = 1;
+        }
+
+        int af3 ;
+        if(attributeRatio3>=0.1 && attributeRatio3<=0.3){
+            af3 = 0;
+        }else if(attributeRatio3<0.1){
+            af3 = -1;
+        }else {
+            af3 = 1;
+        }
+
+        int af4 ;
+        if(attributeRatio4>=0.1 && attributeRatio4<=0.3){
+            af4 = 0;
+        }else if(attributeRatio4<0.1){
+            af4 = -1;
+        }else {
+            af4 = 1;
+        }
+
+        int af5 ;
+        if(attributeRatio5>=0.1 && attributeRatio5<=0.3){
+            af5 = 0;
+        }else if(attributeRatio5<0.1){
+            af5 = -1;
+        }else {
+            af5 = 1;
+        }
+        //输出 attributeFlag
+        String attributeFlag = af1+","+af2+","+af3+","+af4+","+af5;
+        System.out.println("目前属性占比情况： attributeFlag:("+attributeFlag+")");
+        return attributeFlag;
+
+    }
+
+
+    /**
+     * 根据5个af指标信息，得出outMore解  集合取并集
+     *    集合取并集 多了|少了，本质一样（替换前需校验属性比例是否符合要求），不需要做特殊处理
+     *    bachItemList为方法参数，即一套试卷
+     *
+     */
+    private Set<String> getOutMoreAttr(ArrayList<String> bachItemList, int af1, int af2, int af3, int af4, int af5){
+
+        //需要判断 set 是否为空
+        Set<String> outMore = new HashSet<>();
+
+        //表明属性1比例过多，用set1集合接收
+        if(af1==1){
+            for (String aBachItemList : bachItemList) {
+                if ("1".equals(aBachItemList.split(":")[2].split(",")[0].substring(1, 2))) {
+                    outMore.add(aBachItemList);
+                }
+            }
+        }
+
+        if(af2==1){
+            for (String aBachItemList : bachItemList) {
+                if ("1".equals(aBachItemList.split(":")[2].split(",")[1])) {
+                    outMore.add(aBachItemList);
+                }
+            }
+        }
+
+        if(af3==1){
+            for (String aBachItemList : bachItemList) {
+                if ("1".equals(aBachItemList.split(":")[2].split(",")[2])) {
+                    outMore.add(aBachItemList);
+                }
+            }
+        }
+
+        if(af4==1){
+            for (String aBachItemList : bachItemList) {
+                if (aBachItemList.split(":")[2].split(",")[3].equals("1")) {
+                    outMore.add(aBachItemList);
+                }
+            }
+        }
+
+        if(af5==1){
+            for (String aBachItemList : bachItemList) {
+                if ("1".equals(aBachItemList.split(":")[2].split(",")[4].substring(0, 1))) {
+                    outMore.add(aBachItemList);
+                }
+            }
+        }
+
+        return outMore;
+
+    }
+
+    /**
+     * 根据5个af指标信息，得出outLess解  集合取并集
+     *    集合取并集 多了|少了，本质一样（替换前需校验属性比例是否符合要求），不需要做特殊处理
+     *    bachItemList为方法参数，即一套试卷
+     *
+     */
+    private Set<String> getOutLessAttr(ArrayList<String> bachItemList, int af1, int af2, int af3, int af4, int af5){
+
+        Set<String> outLess = new HashSet<>();
+
+        //需要判断 set 是否为空
+        outLess.clear();
+
+        //表明属性1比例过少，用set集合接收
+        if(af1==-1){
+            for (String aBachItemList : bachItemList) {
+                if ("0".equals(aBachItemList.split(":")[2].split(",")[0].substring(1, 2))) {
+                    outLess.add(aBachItemList);
+                }
+            }
+        }
+
+        if(af2==-1){
+            for (String aBachItemList : bachItemList) {
+                if ("0".equals(aBachItemList.split(":")[2].split(",")[1])) {
+                    outLess.add(aBachItemList);
+                }
+            }
+        }
+
+        if(af3==-1){
+            for (String aBachItemList : bachItemList) {
+                if ("0".equals(aBachItemList.split(":")[2].split(",")[2])) {
+                    outLess.add(aBachItemList);
+                }
+            }
+        }
+
+        if(af4==-1){
+            for (String aBachItemList : bachItemList) {
+                if ("0".equals(aBachItemList.split(":")[2].split(",")[3])) {
+                    outLess.add(aBachItemList);
+                }
+            }
+        }
+
+        if(af5==-1){
+            //使用 foreach 替换掉 for   (ArrayList时，fori 性能高于 foreach  Linkedlist 时，fori低于foreach)
+            for (String aBachItemList : bachItemList) {
+                if ("0".equals(aBachItemList.split(":")[2].split(",")[4].substring(0, 1))) {
+                    outLess.add(aBachItemList);
+                }
+            }
+        }
+
+
+        return outLess;
+
+    }
+
+
+    /**
+     *  修补算子
+     *  适用场景: att less
+     *       ①根据af指标,拼接sql,定向搜索inList  and取交集，更高效
+     *       ②寻找完美解：  只改变out解的type，不改变attr,进行替换
+     *         寻找替补解：  改变out解的type,attr，但能保证attr符合全局比例要求，这个其实在帮下一层做准备
+     *
+     */
+    private ArrayList<String> correctAttributeLess(Set<String> outLess, JDBCUtils4 jdbcUtils, ArrayList<String> bachItemList, int af1, int af2, int af3, int af4, int af5) throws SQLException {
+
+        //System.out.println("本套试卷 属性比例不足的情况。");
+
+        //SQL 均用and没影响  影响范围:inList  and条件使得解集变少，但更高效
+        StringBuilder sb = new StringBuilder();
+        if(af1>0){
+            sb.append(" p1=0 and ");
+        }else if (af1<0){
+            sb.append(" p1=1 and ");
+        }
+
+        if(af2>0){
+            sb.append(" p2=0 and ");
+        }else if (af2<0){
+            sb.append(" p2=1 and ");
+        }
+
+        if(af3>0){
+            sb.append(" p3=0 and ");
+        }else if (af3<0){
+            sb.append(" p3=1 and ");
+        }
+
+        if(af4>0){
+            sb.append(" p4=0 and ");
+        }else if (af4<0){
+            sb.append(" p4=1 and ");
+        }
+
+        if(af5>0){
+            sb.append(" p5=0 and ");
+        }else if (af5<0){
+            sb.append(" p5=1 and ");
+        }
+
+        //获取新解的属性sql  因out解还未确定，故此处不加题型判断,
+        String sql = sb.toString().substring(0, sb.toString().length() - 4);
+        ArrayList<String> inList = jdbcUtils.selectBySql(sql);
+
+        // ori解集  out解集  in解集 的关系
+        // 原始解集 - out解 + in解 = 新解(拿新解去再次校验)
+        List<String> outList = new ArrayList<>(outLess);
+
+        Boolean b = false;
+        Boolean flagPerfect = false;
+        for (int i = 0; i < outList.size(); i++) {
+            // inList 按照type排序  解决方法: String.contain()
+            String type = outList.get(i).split(":")[1];
+            //FIXME 是否需要将 inListRe进行进一步过滤，使其不改变type
+            ArrayList<String> inListRe = rearrange(type, inList);
+
+            // 寻找完美解（type可能发生变化，attr完美）
+            for (int j = 0; j < inListRe.size(); j++) {
+                ArrayList<String> tmp = new ArrayList<>();
+                for (int i2 = bachItemList.size(); i2 > 0; i2--) {
+                    tmp.add(bachItemList.get(i2-1));
+                }
+                b = attributeCheck(tmp,outList.get(i),inListRe.get(j));
+
+                if(b){
+                    // 删除out解，添加in解  此处进行in和ori关系的判断，避免size=9
+                    for (int k = 0; k < bachItemList.size(); k++) {
+                        if (bachItemList.get(k).equals(outList.get(i))){
+                            //bachItemList.set(k,inListRe.get(j));
+                            // 输出 新增break中断操作
+                            //break;
+
+                            if(!bachItemList.contains(inListRe.get(j))){
+                                bachItemList.set(k,inListRe.get(j));
+                                flagPerfect = true;
+                                // 退出batchItemList循环
+                                break;
+                            }
+                        }
+                    }
+                    //退出inListRe
+                    if(flagPerfect){
+                        break;
+                    }
+
+                }
+            }
+            //退出outList
+            if (flagPerfect){
+                break;
+            }
+        }
+
+        //替补解 最好完全互补替代 type attribute
+        if(!flagPerfect) {
+            Boolean flagAlternate = false;
+            //遍历out解 需考虑终止条件
+            for (int i = 0; i < outList.size(); i++) {
+
+                //out解信息  保证原有信息不做变动
+                String t1 = " and type = '" + outList.get(i).split(":")[1] +"'";
+                String[] arr = outList.get(i).split(":")[2].split(",");
+                String a1 = "0".equals(arr[0].substring(1,2))?"": " and p1 = 1 ";
+                String a2 = "0".equals(arr[1])?"": " and p2 = 1 ";
+                String a3 = "0".equals(arr[2])?"": " and p3 = 1 ";
+                String a4 = "0".equals(arr[3])?"": " and p4 = 1 ";
+                String a5 = "0".equals(arr[4].substring(0,1))?"": " and p5 = 1 ";
+
+                String outString =  a1 + a2 + a3 + a4 + a5;
+
+                //目前空缺解信息  取出-1的解,使用集合接收,并直接转换为 p1 p2 p3 p4 p5
+                ArrayList<String> lessTemp = new ArrayList<>();
+                if(af1==-1){
+                    lessTemp.add("p1");
+                }
+                if(af2==-1){
+                    lessTemp.add("p2");
+                }
+                if(af3==-1){
+                    lessTemp.add("p3");
+                }
+                if(af4==-1){
+                    lessTemp.add("p4");
+                }
+                if(af5==-1){
+                    lessTemp.add("p5");
+                }
+
+                //ArrayList<String> 转 array
+                String[] lessArray = new String[lessTemp.size()];
+                for (int j = 0; j < lessTemp.size(); j++) {
+                    lessArray[j] = lessTemp.get(j);
+                }
+
+                //递归遍历 （先取全解，再取部分解，最后取一个解）
+                Set<Set<String>> lessSet = new KLUtils().getSubCollection(lessArray);
+
+                //Set 转 ArrayList 需考虑重新定义排序方法
+                ArrayList<Set<String>> lessFinally = new ArrayList<>(lessSet);
+
+                // less where 条件的拼接 依靠于 lessFinally,故需要遍历
+                // 倒序取出  [p1, p2]、[p2]、[p1]   [p1]
+                for (int i1 = lessFinally.size() -1 ; i1 >= 1; i1--) {
+                    //System.out.println(lessFinally.get(i1));
+                    String tmp1 = lessFinally.get(i1).toString().substring(1);
+                    String tmp2=tmp1.replaceAll(","," = 1 and ");
+                    String tmp3=tmp2.replace("]"," = 1 ");
+                    //System.out.println(tmp3);
+
+                    //拼接 less ori type
+                    String sqlFinally = tmp3 + outString + t1;
+                    //System.out.println(sqlFinally);
+                    ArrayList<String> arrayList = jdbcUtils.selectBySql(sqlFinally);
+
+                    if(arrayList.size()>0){
+                        for (int j = 0; j < arrayList.size(); j++) {
+                            // 删除out解，添加in解  是这一步导致数据重复的吗？
+                            for (int k = 0; k < bachItemList.size(); k++) {
+                                if (bachItemList.get(k).equals(outList.get(i))){
+                                    //bachItemList.set(k,arrayList.get(0));
+                                    //break;
+
+                                    if(!bachItemList.contains(arrayList.get(j))){
+                                        bachItemList.set(k,arrayList.get(j));
+                                        flagAlternate = true;
+                                        // 退出batchItemList循环
+                                        break;
+                                    }
+
+                                }
+                            }
+                            //退出arrayList
+                            if(flagAlternate){
+                                break;
+                            }
+                        }
+                        // 退出lessFinally
+                        if(flagAlternate){
+                            break;
+                        }
+                    }  // if(arrayList.size()>0)
+                }  // lessFinally
+                // 退出outList
+                if(flagAlternate){
+                    break;
+                }
+            } // outList.size()
+        } // !flagAlternate
+
+        //System.out.println("校验后的集合:"+bachItemList.toString());
+        return  bachItemList;
+
+    }
+
+
+    /**
+     *  修补算子
+     *  适用场景: att less
+     *
+     */
+    public ArrayList<String> correctAttributeMore(Set<String> outMore,JDBCUtils4 jdbcUtils,ArrayList<String> bachItemList,int af1,int af2,int af3,int af4,int af5) throws SQLException {
+
+
+        //System.out.println("本套试卷 属性比例过高的情况。");
+        //System.out.println(outMore);
+
+        //SQL 均用交集没影响  效率更高
+        StringBuilder sb = new StringBuilder();
+        if(af1>0){
+            sb.append(" p1=0 and ");
+        }else if (af1<0){
+            sb.append(" p1=1 and ");
+        }
+
+        if(af2>0){
+            sb.append(" p2=0 and ");
+        }else if (af2<0){
+            sb.append(" p2=1 and ");
+        }
+
+        if(af3>0){
+            sb.append(" p3=0 and ");
+        }else if (af3<0){
+            sb.append(" p3=1 and ");
+        }
+
+        if(af4>0){
+            sb.append(" p4=0 and ");
+        }else if (af4<0){
+            sb.append(" p4=1 and ");
+        }
+
+        if(af5>0){
+            sb.append(" p5=0 and ");
+        }else if (af5<0){
+            sb.append(" p5=1 and ");
+        }
+
+        //获取新解的集合
+        String sql = sb.toString().substring(0, sb.toString().length() - 4);
+        ArrayList<String> inList = jdbcUtils.selectBySql(sql);
+
+        // ori解集 - out解 + in解 = 新解(拿新解去再次校验)
+        List<String> outList = new ArrayList<>(outMore);
+
+        Boolean b = false;
+        Boolean flagAlternate = false;
+        for (int i = 0; i < outList.size(); i++) {
+
+            // inList 按照type排序 解决方法: ①String.contain()
+            String type = outList.get(i).split(":")[1];
+            //System.out.println("type:"+type);
+            ArrayList<String> inListRe = rearrange(type, inList);
+
+            for (int j = 0; j < inListRe.size(); j++) {
+
+                // 根据原集合 out解 in解 三者的关系进行替换 (满足属性比例,同时尽量不破坏了原有题型的约束)
+                ArrayList<String> tmp = new ArrayList<>();
+                //System.out.println(tmp.hashCode());
+                //System.out.println(bachItemList.hashCode());
+                for (int i2 = bachItemList.size(); i2 > 0; i2--) {
+                    tmp.add(bachItemList.get(i2-1));
+                }
+                //System.out.println(tmp.hashCode());
+                b = attributeCheck(tmp,outList.get(i),inListRe.get(j));
+
+                if(b){
+                    // 删除out解，添加in解  需要注意
+                    for (int k = 0; k < bachItemList.size(); k++) {
+                        if (bachItemList.get(k).equals(outList.get(i))){
+                            //bachItemList.set(k,inListRe.get(j));
+                            //break;
+
+                            //进行验证后替换
+                            if(!bachItemList.contains(inListRe.get(j))){
+                                bachItemList.set(k,inListRe.get(j));
+                                flagAlternate = true;
+                                // 退出batchItemList循环
+                                break;
+                            }
+                        }
+                    }
+                    //退出inListRe
+                    if(flagAlternate){
+                        break;
+                    }
+                }
+            }
+            //退出outList
+            if (flagAlternate){
+                break;
+            }
+
+        }
+
+        //如果没能找到合适的解,则择优录取  完全互补替代 type attribute
+        if(!flagAlternate) {
+            //遍历out解 需考虑终止条件
+            for (int i = 0; i < outList.size(); i++) {
+
+                //out解信息
+                String t1 = " and type = '" + outList.get(i).split(":")[1] +"'";
+                String[] arr = outList.get(i).split(":")[2].split(",");
+                String a1 = "1".equals(arr[0].substring(1,2))?"": " and p1 = 0 ";
+                String a2 = "1".equals(arr[1])?"": " and p2 = 0 ";
+                String a3 = "1".equals(arr[2])?"": " and p3 = 0 ";
+                String a4 = "1".equals(arr[3])?"": " and p4 = 0 ";
+                String a5 = "1".equals(arr[4].substring(0,1))?"": " and p5 = 0 ";
+
+                //目前过多解信息  取出1的解,使用集合接收,并直接转换为 p1 p2 p3 p4 p5
+                ArrayList<String> moreTemp = new ArrayList<>();
+                if(af1==1){
+                    moreTemp.add("p1");
+                }
+                if(af2==1){
+                    moreTemp.add("p2");
+                }
+                if(af3==1){
+                    moreTemp.add("p3");
+                }
+                if(af4==1){
+                    moreTemp.add("p4");
+                }
+                if(af5==1){
+                    moreTemp.add("p5");
+                }
+
+                //ArrayList<String> 转 数组
+                String[] moreArray = new String[moreTemp.size()];
+                for (int j = 0; j < moreTemp.size(); j++) {
+                    moreArray[j] = moreTemp.get(j);
+                }
+
+                //递归遍历 （先取全解，再取部分解，最后取一个解）
+                Set<Set<String>> moreSet = new KLUtils().getSubCollection(moreArray);
+
+                //Set 转 ArrayList 需考虑重新定义排序方法
+                ArrayList<Set<String>> moreFinally = new ArrayList<>(moreSet);
+
+                //倒序取出   [p1, p2]、[p2]、[p1]  [p1]
+                for (int i1 = moreFinally.size() -1 ; i1 >= 1; i1--) {
+                    String tmp1 = moreFinally.get(i1).toString().substring(1);
+                    String tmp2=tmp1.replaceAll(","," = 0 and ");
+                    String tmp3=tmp2.replace("]"," = 0 ");
+                    //System.out.println(tmp3);
+
+                    //more ori type ，条件拼接 p5=1
+                    String sqlFinally = tmp3 + a1 + a2 + a3 + a4 + a5 + t1;
+                    //System.out.println(sqlFinally);
+                    ArrayList<String> arrayList = jdbcUtils.selectBySql(sqlFinally);
+
+                    if(arrayList.size()>0){
+
+                        // 修改部分
+                        for (int j = 0; j < arrayList.size(); j++) {
+                            // 删除out解，添加in解  是这一步导致数据重复的吗？
+                            for (int k = 0; k < bachItemList.size(); k++) {
+                                if (bachItemList.get(k).equals(outList.get(i))){
+                                    //bachItemList.set(k,arrayList.get(0));
+                                    //break;
+
+                                    if(!bachItemList.contains(arrayList.get(j))){
+                                        bachItemList.set(k,arrayList.get(j));
+                                        flagAlternate = true;
+                                        // 退出batchItemList循环
+                                        break;
+                                    }
+
+                                }
+                            }
+                            //退出arrayList
+                            if(flagAlternate){
+                                break;
+                            }
+                        }
+                        // 退出moreFinally
+                        if(flagAlternate){
+                            break;
+                        }
+                    } // if(arrayList.size()>0)?
+                }  // moreFinally
+                if(flagAlternate){
+                    break;
+                }
+            } // outList.size()
+        }  // !flagAlternate
+
+        //System.out.println("校验后的集合:"+bachItemList.toString());
+        return bachItemList;
+
+
+    }
+
+
+    /**
+     * 通过差集 并集  来重新对list排序
+     */
+    private ArrayList<String> rearrange(String type, ArrayList<String> listA){
+
+        //定义
+        ArrayList<String> listB = new ArrayList<>();
+        for (String s : listA) {
+            if(s.contains(type)){
+                listB.add(s);
+            }
+        }
+
+        //差集 并集
+        listA.removeAll(listB);
+        listB.addAll(listA);
+        //System.out.println(listB);
+
+        return listB;
+
+    }
+
+
+    /**
+     * 根据ori集合 out解 in解 三者的关系进行，对属性比例进行判断
+     * 适合一进一出
+     * 46:SHORT:(1,0,0,0,0):0.09500000000000001:0.0:0.0:0.0:0.0
+     *
+     */
+    private Boolean attributeCheck(ArrayList<String> tmp,String s, String s1) {
+
+        // 刪除元素s，添加元素s1
+        for (int i = 0; i < tmp.size(); i++) {
+            if (tmp.get(i).equals(s)){
+                tmp.set(i,s1);
+            }
+        }
+
+
+        //开始校验是否符合属性比例要求
+        HashSet<String> itemSet = new HashSet<>(tmp);
+
+        //属性个数
+        int attributeNum1  = 0;
+        int attributeNum2  = 0;
+        int attributeNum3  = 0;
+        int attributeNum4  = 0;
+        int attributeNum5  = 0;
+
+        //此次迭代各个属性的数目
+        for (String st:itemSet) {
+
+            if("1".equals(st.split(":")[2].substring(1,2))){
+                attributeNum1 += 1;
+            }
+            if("1".equals(st.split(":")[2].substring(3,4))){
+                attributeNum2 += 1;
+            }
+            if("1".equals(st.split(":")[2].substring(5,6))){
+                attributeNum3 += 1;
+            }
+            if("1".equals(st.split(":")[2].substring(7,8))){
+                attributeNum4 += 1;
+            }
+            if("1".equals(st.split(":")[2].substring(9,10))){
+                attributeNum5 += 1;
+            }
+        }
+
+        //属性比例
+        double attributeRatio1 = attributeNum1/23.0;
+        double attributeRatio2 = attributeNum2/23.0;
+        double attributeRatio3 = attributeNum3/23.0;
+        double attributeRatio4 = attributeNum4/23.0;
+        double attributeRatio5 = attributeNum5/23.0;
+
+
+        int af1 ;
+        if(attributeRatio1>=0.2 && attributeRatio1<=0.4){
+            af1 = 0;
+        }else if(attributeRatio1<0.2){
+            af1 = -1;
+        }else {
+            af1 = 1;
+        }
+
+        int af2 ;
+        if(attributeRatio2>=0.2 && attributeRatio2<=0.4){
+            af2 = 0;
+        }else if(attributeRatio2<0.2){
+            af2 = -1;
+        }else {
+            af2 = 1;
+        }
+
+        int af3 ;
+        if(attributeRatio3>=0.1 && attributeRatio3<=0.3){
+            af3 = 0;
+        }else if(attributeRatio3<0.1){
+            af3 = -1;
+        }else {
+            af3 = 1;
+        }
+
+        int af4 ;
+        if(attributeRatio4>=0.1 && attributeRatio4<=0.3){
+            af4 = 0;
+        }else if(attributeRatio4<0.1){
+            af4 = -1;
+        }else {
+            af4 = 1;
+        }
+
+        int af5 ;
+        if(attributeRatio5>=0.1 && attributeRatio5<=0.3){
+            af5 = 0;
+        }else if(attributeRatio5<0.1){
+            af5 = -1;
+        }else {
+            af5 = 1;
+        }
+
+        //attributeFlag
+        String attributeFlag = "("+af1+","+af2+","+af3+","+af4+","+af5+")";
+        //System.out.println("目前属性占比情况： attributeFlag:"+attributeFlag);
+
+
+        if (attributeFlag.contains("1") || attributeFlag.contains("-1")) {
+            return false;
+        }
+
+        return true;
     }
 
 

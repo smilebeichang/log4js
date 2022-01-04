@@ -29,12 +29,24 @@ import java.util.*;
  *      5.2 如何利用pajek找出最大圈
  *      5.3 核实两边计算的值对不上
  *      5.4 边写边读
- * 6.检查为什么读到后面,反而没法找到最大圈了(过于相似)
+ * 6.检查为什么读到后面,反而没法保证最大圈了(过于相似)
  *      6.1 可以将count值放大,但也只能暂时的延缓,非根本计策
- *      6.2 检验整体变异流程,校验为什么没能保住差异性  今晚的任务1
- *          小生境  leader与member的相似性, 最大圈 member 和 member的相似性 可以迭代到30代后,居然只剩下的1个小生境
- *          通过调大变异系数,可以使得count 变为2~3,略有改善,但也不是根本计策
- *      6.3 写一个ppt                           今晚的任务2
+ *      6.2 通过调大变异系数,可以使得count 变为2~3,略有改善,但也不是根本计策
+ *
+ *          小生境:leader与member的相似性, 最大圈:member 和 member的相似性 可以迭代到30代后,居然只剩下的1个小生境
+ *
+ *
+ *
+ * 本周任务:
+ * 检验整体变异流程,校验为什么没能保住差异性
+ *  1.源头参数，生成的数据题库有问题   周四
+ *  2.注释掉自适应小生境
+ *  3.判断每个平行试卷的样式 星型|分散型  周三
+ *  4.没必要每一代都进行最大圈算法的计算,每隔10代跑一轮即可 后期优化,前期为了查看时刻变化
+ *  5.题型和属性校验已经加入,但效果不明显 校验 周三
+ *  6.每个小生境的最大个体数
+ *
+ *
  *
  */
 public class DNDR9 {
@@ -45,7 +57,7 @@ public class DNDR9 {
 
     /**
      * 迭代次数      13min 1000代
-     * 加入最大圈    8min 500代
+     * 加入最大圈    17min  500代
      */
     private int iterationSize = 500;
 
@@ -63,19 +75,27 @@ public class DNDR9 {
 
 
     /**
-     * leader + followers  map(key是string存小生境leader, value是list存小生境member)
+     * map(key是string存小生境leader, value是list存小生境member)
      */
     private HashMap<String, ArrayList<String>> mapArrayListForGene = new HashMap<>();
 
 
     /**
-     * 200套试卷 20道题
+     * 100套试卷 20道题
      */
     private static String[][] paperGenetic = new String[100][20];
 
     private JDBCUtils4 jdbcUtils = new JDBCUtils4();
 
-    private static ArrayList<String> bankList = new ArrayList();
+    /**
+     * 获取题库所有题目  [8:CHOSE:(1,0,0,0,0),....] 旁路缓存的概念
+     */
+    private  ArrayList<String> bankList = jdbcUtils.select();
+
+    /**
+     *  size 为310  初始化,塞入到内存中
+     */
+    ArrayList<String> allItemList = jdbcUtils.selectAllItems();
 
 
     /**
@@ -84,20 +104,20 @@ public class DNDR9 {
     private Niche6 niche5 = new Niche6();
 
     /**
-     * 交叉变异全局系数
-     *
+     * 交叉变异系数  注:变异系数有待降低
      */
     private static double PC = 0.9;
     private static double PM = 0.4;
 
+
     /**
-     *  size 为310
+     * 计算最大圈
      */
-    ArrayList<String> allItemList = jdbcUtils.selectAllItems();
-
-
     MaxcliqueV2 mq = new MaxcliqueV2();
 
+    /**
+     * 长度、题型、属性校验
+     */
     CorrectUtils cu = new CorrectUtils();
 
     public DNDR9() throws SQLException {
@@ -107,8 +127,10 @@ public class DNDR9 {
 
     /**
      * 1. 计算每个小生境的平均值
-     *      返回的样式 String : 适应度值_ids  ok
-     * 2. 取出大于均值的部分
+     *      返回的样式 String : 适应度值_ids
+     * 2. 过滤出大于均值的那部分
+     * 3. 通过相似性形成矩阵关系
+     * 4. 最大圈相关算法调用
      *
      */
     private void gtMeanPart(HashMap<String, ArrayList<String[]>> inMutate, ArrayList<String[]> outMutate) throws SQLException {
@@ -126,7 +148,7 @@ public class DNDR9 {
 
         }
 
-        // 2.遍历 outMutate
+        // 2. 遍历 outMutate
         ArrayList<String> outList = calFitnessOut(outMutate);
         inBack.addAll(outList);
 
@@ -139,6 +161,9 @@ public class DNDR9 {
 
     /**
      * 15%,算出最大的圈 maximum clique
+     * 1.通过题目相似个数,形成距离关系w矩阵
+     * 2.写入文件
+     * 3.读取文件,计算最大圈
      *
      */
     private void similarClique(ArrayList<String> inBack) {
@@ -167,7 +192,7 @@ public class DNDR9 {
         // 遍历集合
         for (int i = 0; i < inBack.size(); i++) {
 
-            // 矩阵 (根据题目的相似个数 寻找最近的个体,若相似性低于3,则赋值为1)
+            // 矩阵 (根据题目的相似个数 判断相似个体,若题目相同数低于4,则赋值为1)
             String aids = inBack.get(i).split("_")[1];
 
             for (int j = 0; j < inBack.size(); j++) {
@@ -633,7 +658,7 @@ public class DNDR9 {
                 // 获取目前leader的信息
                 for (String leader : leaderSetForGene) {
 
-                    // b 的判断应该和全部的leader进行判断
+                    // b 的判断应该和其余全部的leader进行判断
                     String bids = leader.split("_")[1];
 
                     // 判断两套试卷的相似程度,如果相似题目数达到一定数目，则判定为是同一个小生境 如3，
@@ -698,7 +723,7 @@ public class DNDR9 {
                     if (mark >= 3) {
                         memberList.add(s);
                         sortListForGene.set(i, "");
-                        // 新增方法:限制每个小生境的数量  不大于50
+                        // FIXME 新增方法:限制每个小生境的数量  不大于50
 //                        if (memberList.size()>50){
 //                            log.info("执行一次member限制ing");
 //                            mapArrayListForGene.put(leader, memberList);
@@ -757,7 +782,7 @@ public class DNDR9 {
 
 
         // 获取题库所有题目  [8:CHOSE:(1,0,0,0,0),....] 旁路缓存的概念
-        bankList = getBank();
+        //bankList = getBank();
 
         // 生成了二维数组 paperGenetic
         for (int j = 0; j < paperNum; j++) {
@@ -858,17 +883,6 @@ public class DNDR9 {
 
 
 
-    /**
-     * 返回题库所有题目 ArrayList<String> id:type:pattern
-     *
-     * 题库310道题  50:100:100:50:10   硬性约束：长度  软性约束：题型、属性比例
-     *
-     */
-    private ArrayList<String> getBank() throws SQLException {
-
-        return jdbcUtils.select();
-
-    }
 
 
     /**
@@ -1598,7 +1612,7 @@ public class DNDR9 {
 
         System.out.println("select 进入outList的size: " + outList.size());
         ArrayList<String> outBack = new ArrayList<>();
-        //if (paperGenetic[19][199] != null ){ System.out.println("select 进入 paperGenetic[19][199] 不为null"); }
+
         if (outList.size() > 0) {
 
             // 试卷套数
@@ -1642,6 +1656,7 @@ public class DNDR9 {
 
             for (int i = 0; i < paperSize; i++) {
                 while (newSelectId < paperSize && randomId[newSelectId] < fitPie[i]) {
+                //while (newSelectId < paperSize && randomId[i] < fitPie[newSelectId]) {
 
                     newSelectId += 1;
                     outBack.add(outList.get(i));
@@ -1650,7 +1665,7 @@ public class DNDR9 {
 
         }
         System.out.println("select 归还outList的size: " + outBack.size());
-        //if (paperGenetic[19][199] != null ){ System.out.println("select 归还 paperGenetic[19][199] 不为null"); }
+
         return outBack;
 
     }
@@ -1905,7 +1920,7 @@ public class DNDR9 {
         // 每套试卷的适应度占比  返回结果部分
         double[] fitPro = new double[paperSize];
 
-        // 计算试卷的适应度值，即衡量试卷优劣的指标之一 Fs
+        // 计算试卷的适应度值,即衡量试卷优劣的指标之一 Fs
         for (int i = 0; i < paperSize; i++) {
             // 对outList进行拆分,获取其前半部分的适应度值，并赋值给fitTmp[]
             fitTmp[i] = Double.parseDouble(outList.get(i).split("_")[0]);
@@ -1962,19 +1977,19 @@ public class DNDR9 {
         //cross 进入outList的size: 2
         //cross 归还outList的size: 0
         System.out.println("cross 进入outList的size: " + outList.size());
-        //if (paperGenetic[19][199] != null ){ System.out.println("cross 进入 paperGenetic[19][199] 不为null"); }
+
         //  获取长度基本信息
         //  单点交叉(只保留交叉一个个体)
         int size = outList.size();
-        // 数组转list
+        //  数组转list
         ArrayList<String> re = new ArrayList<>();
 
         // size - 2 适配 交叉
         if (size - 2 > 0) {
+            // 单点交叉与否是否会影响,
             int point = outList.get(0).split("_")[1].split(",").length;
-            // point 一定是20 可以设置为常量,进行性能上的优化
 
-            //  将outList转为数组List<arr>
+            // 将outList转为数组List<arr>
             ArrayList<String[]> arr = new ArrayList<>();
 
             for (int i = 0; i < size; i++) {
@@ -2000,7 +2015,7 @@ public class DNDR9 {
                             temp[j] = arr.get(i + 1)[j];
                         }
 
-                        // size校验,防止数量变小
+                        // 执行校验(数量 题型 属性)
                         arr.set(i, correct(temp));
                         // arr.set(i, temp);
 
@@ -2104,9 +2119,12 @@ public class DNDR9 {
     private ArrayList<String[]> mutateOut(ArrayList<String> outCross) throws SQLException {
 
         System.out.println("================== mutateOut ==================");
-        //if (paperGenetic[19][199] != null ){ System.out.println("mutate 进入 paperGenetic[19][199] 不为null"); }
+
         // 创建一个方法内变量,用于接收c1,并最后返回
         ArrayList<String[]> outMutate = new ArrayList<>();
+
+        //  限制性锦标赛拥挤小生境
+        PM = 1;
 
         // 判空操作
         if (outCross.size() > 0) {
@@ -2122,27 +2140,15 @@ public class DNDR9 {
                     ArrayList<String[]> rts = niche5.RTS(outCross, j);
 
                     String[] c1 =  rts.get(0);
-                    // 新增需要校验部分
+                    // 执行修补操作
                     String[] c2 = cu.correctTypeV2(c1);
+                    String[] c3 = cu.correctAttributeV2(c2);
 
-
-                    outMutate.add(c2);
-
-                    // 执行变异后的修补操作 如果替换，则校验子类。如果未替换。si可以不进行获得，且无需校验。但校验也无所谓
-                    // 难道这个个体大概率相似 不是,index 很随机
-                    //correct(similarPhenIndex);
+                    outMutate.add(c3);
 
 
                 } else {
 
-                    // 随机选取一个子类
-//                    ArrayList<String> bachItemList = jdbcUtils.selectBachItem(outCross.get(j));
-//
-//                    // ArrayList 转 String[]
-//                    String[] c1 = new String[bachItemList.size()];
-//                    for (int k = 0; k < bachItemList.size(); k++) {
-//                        c1[k] = bachItemList.get(k);
-//                    }
                     String ids = outCross.get(j);
                     List<String> sList = Arrays.asList(ids.split(","));
                     String[] itemArray = new String[sList.size()];
@@ -2152,12 +2158,12 @@ public class DNDR9 {
                         System.out.println("sList:"+sList);
                         itemArray[k] = allItemList.get(Integer.parseInt(sList.get(k))-1 > -1?Integer.parseInt(sList.get(k))-1:1);
                     }
-
-                    outMutate.add(itemArray);
+                    String[] c3 = cu.correctAttributeV2(itemArray);
+                    outMutate.add(c3);
                 }
             }
         }
-        //if (paperGenetic[19][199] != null ){ System.out.println("mutate 归还 paperGenetic[19][199] 不为null"); }
+
         return outMutate;
 
     }
@@ -2802,7 +2808,7 @@ public class DNDR9 {
     /**
      * 执行修补操作(交叉变异均可能导致数量，题型，属性发生了变化)
      * 步骤：
-     * (1)校验size, 按照题型新增n道题目，or 随机新增题目数
+     * (1)校验长度, 按照题型新增n道题目，or 随机新增题目数
      * (2)校验题型, in/out  完美解、替补解（权重）
      * (3)校验属性, in/out  完美解、替补解（权重 inListRe/inCompose）
      * <p>
@@ -2812,43 +2818,32 @@ public class DNDR9 {
      */
     private String[] correct(String[] temp) throws SQLException {
 
-        //System.out.println("第 "+i+" 题,开始交叉/变异后校验 ..... ");
 
         // 长度校验
-        String[] strings = correctLength(temp);
-        if ((new HashSet<>(Arrays.asList(temp))).size() < 10) {
-            //System.out.println("size 不符合");
-        }
+        String[] strings = cu.correctLength(temp);
+
 
         // 题型比例校验  题型比例过多的情况:[1, 1, 1, 7, 23, 29, 115, 148, 256, 281]
         String[] stringsV2 =  cu.correctType(strings);
-        if ((new HashSet<>(Arrays.asList(temp))).size() < 10) {
-            //System.out.println("size 不符合");
-        }
+
 
         // 属性比例校验
-        //correctAttribute(i);
-        if ((new HashSet<>(Arrays.asList(temp))).size() < 10) {
-            //System.out.println("size 不符合");
-        }
+        String[] stringsV3 = cu.correctAttribute(stringsV2);
 
-        return stringsV2;
+
+        return stringsV3;
 
 
     }
 
     /**
      * 长度校验
-     * 检验完成后，更新 paperGenetic
-     * <p>
-     * 解决方案：    ①size==10,退出
-     * ②如果在小于范围下限，则按照题型选取
-     * ③如果都符合要求，则随机选取一题，再在下层做处理
+     * 解决方案：
+     * ①size==20,退出
+     * ②如果在小于20，则随机选取一题，再在下层做处理
      */
     private String[] correctLength(String[] temp) throws SQLException {
 
-        //去重操作  (id:type:attributes:adi1_r:adi2_r:adi3_r:adi4_r:adi5_r)
-        //将tmp的ids剥离出来,然后获取长度  通过题型校验，其实没必要，我这边已经不做处理了
 
         HashSet<String> setBegin = new HashSet<>(Arrays.asList(temp));
 
@@ -2865,14 +2860,10 @@ public class DNDR9 {
                 setBegin.add(id);
             }
 
-            //输出集合的大小  setEnd.size()
-            //System.out.println("setEnd.size(): "+setEnd.size());
-
             // hashSet 转 数组
             String[] array = new String[setBegin.size()];
             array = setBegin.toArray(array);
 
-            //System.out.println("修补后的长度:"+array.length);
             return array;
 
         }
@@ -2958,7 +2949,7 @@ public class DNDR9 {
             // 9.变异
             //   9.1 进行小生境内交叉(采用的是 限制性锦标赛拥挤小生境)
             HashMap<String, ArrayList<String[]>> inMutate = mutateIn(inCross);
-            //log.info("小生境个数: "+ inMutate.size());
+            log.info("小生境个数: "+ inMutate.size());
 
             //   9.2 进行小生境外交叉
             ArrayList<String[]> outMutate = mutateOut(outCross);
