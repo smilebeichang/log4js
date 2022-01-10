@@ -4,6 +4,11 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 最大圈问题--回溯法
@@ -39,9 +44,9 @@ public class MaxcliqueV2 {
         if(i>n){
             for(int j=1;j<=n;j++){
                 bestx[j]=x[j];
-                //System.out.print(x[j]+" ");
+                System.out.print(x[j]+" ");
             }
-            //System.out.println();
+            System.out.println();
             bestn=cn;
             count++;
             return;
@@ -164,9 +169,9 @@ public class MaxcliqueV2 {
             for(int i=0;i<lines;i++){
                 for(int j=0;j<lines;j++){
                     cc[i][j] = Integer.parseInt(c[i][0].split(",")[j].trim());
-                    //System.out.print(cc[i][j]+",");
+                    System.out.print(cc[i][j]+",");
                 }
-                //System.out.println();
+                System.out.println();
             }
 
             MaxcliqueV2 m=new MaxcliqueV2();
@@ -209,6 +214,94 @@ public class MaxcliqueV2 {
         }
         System.out.println("文件测试数据如下：");
         txtString(file);
+    }
+
+    /**
+     * 读文件写入list
+     *
+     */
+    @Test
+    public  void readTxt() {
+        //创建存储String的List
+        List<String> fileList=new ArrayList<String>();
+        String filePath = "F:\\song\\SYSU\\Log4j\\input\\dataV5.txt";
+        try {
+            //读取该路径的文件
+            fileList= Files.readAllLines(Paths.get(filePath));
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        //System.out.println(fileList);
+
+
+        OutputStream os = null;
+        try {
+            os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\outputV3.txt");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        PrintWriter pw=new PrintWriter(os);
+
+        // 读取list
+        for (String s1 : fileList) {
+            List<String> s2 = Arrays.asList(s1.split(" "));
+            //System.out.println(s2);
+            //生成两两关系
+            for (int i1 = 0; i1 < s2.size(); i1++) {
+                if (Integer.valueOf(s2.get(i1))==1){
+                    for (int i2 = 0; i2 < s2.size(); i2++) {
+                        if(i1 != i2 && Integer.valueOf(s2.get(i2)) == 1){
+                            pw.println("V"+(i1+1)+" "+"V"+(i2+1));
+                            //System.out.println("V"+(i1+1)+" "+"V"+(i2+1));
+                        }
+                    }
+                }
+
+            }
+        }
+
+        pw.close();
+        try {
+            os.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    /**
+     * 将二维数组获得对应关系后,写入文件
+     * @param distanceMatrix
+     */
+    private void sinkToFileV2(int[][] distanceMatrix) {
+        OutputStream os = null;
+        try {
+            os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\outputV3.txt");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        PrintWriter pw=new PrintWriter(os);
+
+
+        // 打印 遍历二维数组
+//        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
+//            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
+//                // 将第一行第二行的-1过滤掉了
+//                if(distanceMatrix[i1][i2] == 1){
+//                    pw.println("V"+i1+" "+"V"+i2);
+//                }
+//            }
+//        }
+
+        pw.close();
+        try {
+            os.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
 

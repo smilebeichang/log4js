@@ -19,46 +19,25 @@ import java.util.*;
  * @create : 2021/12/26 19:50
  *
  *
- * 本周进度安排:  GA -->  构图E  -->  最大圈clique   (parallel test)
- * 1.100个体计算出每个小生境的平均值,然后取出大于均值的部分  周天   ok
- * 2.最大圈算法的资料查找和引入 maximum clique (确定性 最大圈算法)  周一 ok
- * 3.剩下的个体计算相似性 15%   周一 ok
- * 4.落盘并调用读取  周二  ok
- * 5.pajek的引入
- *      5.1 打印成指定格式
- *      5.2 如何利用pajek找出最大圈
- *      5.3 核实两边计算的值对不上
- *      5.4 边写边读
- * 6.检查为什么读到后期,没法保证最大圈了(过于相似)
- *      6.1 可以将count值放大,但也只能暂时的延缓,非根本计策
- *      6.2 通过调大变异系数,可以使得count 变为2~3,略有改善,但也不是根本计策
+ * 本周进度安排:  GA -->  收敛（重难点）  -->  最大圈clique
  *
- *          小生境:leader与member的相似性, 最大圈:member 和 member的相似性
- *
- *
- *
- * 本周任务:
- * 检验整体变异流程,校验为什么没能保住差异性
- *  1.源头参数，生成的数据题库有问题   周四
- *  2.注释掉自适应小生境
- *  3.判断每个平行试卷的样式 星型|分散型  周三
- *  4.没必要每一代都进行最大圈算法的计算,每隔10代跑一轮即可 后期优化,前期为了查看时刻变化
- *  5.题型和属性校验已经加入,但效果不明显 校验 周三
- *  6.限制每个小生境的最大个体数,有效
- *      6.1 小生境个数趋于3|4,但最大圈也只能达到3 周四想
- *      6.2 PM 严重影响最大圈
- *  7.PPT + 时间安排
+ * 1.小生境达到稳定后，开始计算最大圈
+ * 2.稳定性的判断标准：
+ *   2.1 整个集群
+ *   2.2 小生境的前50%
+ *   2.3 leader的方差(最简单，此版本采纳这个)
+ * 3.如何保证或者如何验证呢
+ *   3.1 使用BSF(每代进行保留最优个体,与下一代做并集,然后去重,然后得到下一代：需验证是否会导致后代相似性过大)
+ *   BSF 使用HashSet   保存（1.大小不受限制  2.可以达到去重的效果  3.不方便排序）
+ *       使用ArrayList 保存(1.大小不受限制  2.方便排序 )
  *
  *
  * IDEA 设置断点条件使用方法：
  *  在断点的位置，右击断点旁边的小红点，会出来一个界面，在Condition这里填入断点条件即可。
- *
- *
- *  注释：此版本需保留，效果还不错
  */
-public class DNDR9 {
+public class DNDR10 {
 
-    private Logger log = Logger.getLogger(DNDR9.class);
+    private Logger log = Logger.getLogger(DNDR10.class);
     private KLUtils klUtils = new KLUtils();
 
 
@@ -75,16 +54,29 @@ public class DNDR9 {
     private ArrayList<String> sortListForGene = new ArrayList<>(100);
 
 
+
+
+    /**
+     * 比较器
+     */
+    Comparator comp = new MyComparator();
+
+
+
     /**
      * set存leader
      */
     private HashSet<String> leaderSetForGene = new HashSet();
 
 
+
+
     /**
      * map(key是string存小生境leader, value是list存小生境member)
      */
     private HashMap<String, ArrayList<String>> mapArrayListForGene = new HashMap<>();
+
+
 
 
     /**
@@ -103,6 +95,7 @@ public class DNDR9 {
      *  size 为310  初始化,塞入到内存中
      */
     ArrayList<String> allItemList = jdbcUtils.selectAllItems();
+
 
 
     /**
@@ -127,7 +120,13 @@ public class DNDR9 {
      */
     CorrectUtils cu = new CorrectUtils();
 
-    public DNDR9() throws SQLException {
+
+    /**
+     * bsf 操作
+     */
+    BSF bsfBean = new BSF();
+
+    public DNDR10() throws SQLException {
     }
 
 
@@ -258,6 +257,16 @@ public class DNDR9 {
         mq.readFromFileV1();
 
     }
+
+
+    /**
+     * string 转 list
+     */
+    private List<String> stringToList(String strs) {
+        String str[] = strs.split(",");
+        return Arrays.asList(str);
+    }
+
 
 
     /**
@@ -629,11 +638,16 @@ public class DNDR9 {
         int paperSize = paperGenetic.length;
         getFitnessForGene(paperSize);
 
-        Comparator comp = new MyComparator();
+
         // empty String
         Collections.sort(sortListForGene, comp);
 
+        // 进行确定收敛操作
+        bsfBean.deterministicConvergence(sortListForGene);
+
+
     }
+
 
 
     /**
@@ -803,13 +817,9 @@ public class DNDR9 {
 
 
 
-    /**
-     * string 转 list
-     */
-    private List<String> stringToList(String strs) {
-        String str[] = strs.split(",");
-        return Arrays.asList(str);
-    }
+
+
+
 
 
     /**

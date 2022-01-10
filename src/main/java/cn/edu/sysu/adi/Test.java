@@ -15,6 +15,42 @@ public class Test {
     //LogFactory.getLog   Logger.getLogger
     //private static Log logger = LogFactory.getLog(Test.class);
 
+
+    @org.junit.Test
+    public void ceil(){
+        ArrayList<String> bachItemList = new ArrayList<String>(){
+            {
+                add("xiao");
+                add("bao");
+                add("bao2");
+                add("bao3");
+                add("bao4");
+                add("xiao");
+                add("bao");
+                add("bao2");
+                add("bao3");
+                add("bao4");
+                add("xiao");
+                add("bao");
+                add("bao2");
+                add("bao3");
+                add("bao4");
+                add("xiao");
+                add("bao");
+                add("bao2");
+                add("bao3");
+                add("bao4");
+            }
+        };
+
+        System.out.println(Math.ceil(bachItemList.size() / 3));
+        System.out.println(Math.ceil(bachItemList.size() / 3 * 2 ));
+
+    }
+
+
+
+
     @org.junit.Test
     public void hashCode2(){
         ArrayList<String> bachItemList = new ArrayList<String>(){
@@ -31,8 +67,6 @@ public class Test {
         }
         //System.out.println(tmp.hashCode());
         //logger.info(tmp.hashCode());
-
-
 
     }
 
