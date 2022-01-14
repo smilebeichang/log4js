@@ -109,6 +109,11 @@ public class DNDR10 {
     private static double PC = 0.9;
     private static double PM = 1;
 
+    /**
+     * 程序是否终止标志（收敛成功）
+     */
+    Boolean timeFlag = false;
+
 
     /**
      * 计算最大圈
@@ -172,7 +177,7 @@ public class DNDR10 {
      * 3.读取文件,计算最大圈
      *
      */
-    private void similarClique(ArrayList<String> inBack) {
+    public void similarClique(ArrayList<String> inBack) {
 
         // 距离关系w矩阵
         int[][] distanceMatrix =new int[inBack.size()+1][inBack.size()+1];
@@ -630,11 +635,13 @@ public class DNDR10 {
      * 参数: paperGenetic     (全局变量)
      * 返回: sortListForGene  (全局变量)
      * 19.941320_8,16,19,21,29,30,35,50,62,69,76,107,108,133,136,173,207,222,242,299
+     *
+     * 新增确定收敛操作
      */
     private void sortFitnessForGene() throws SQLException {
 
 
-        // 遍历二维数组，获取其适应度，然后拼接上本身  sortListForGene.add(minrum + "_" + ids)
+        // 遍历二维数组,获取其适应度,然后拼接上本身  sortListForGene.add(minrum + "_" + ids)
         int paperSize = paperGenetic.length;
         getFitnessForGene(paperSize);
 
@@ -642,8 +649,8 @@ public class DNDR10 {
         // empty String
         Collections.sort(sortListForGene, comp);
 
-        // 进行确定收敛操作
-        bsfBean.deterministicConvergence(sortListForGene);
+        // 进行收敛确认操作
+        timeFlag = bsfBean.deterministicConvergence(sortListForGene);
 
 
     }
@@ -2979,7 +2986,13 @@ public class DNDR10 {
 
 
             // 10. 最大圈问题
-            gtMeanPart(inMutate, outMutate);
+            if (timeFlag){
+                gtMeanPart(inMutate, outMutate);
+
+                System.out.println("退出！！");
+                System.exit(0);
+
+            }
 
             // 11.将inMutate和outMutate合并后赋值给 paperGenetic
             paperGenetic = mergeToGene(inMutate, outMutate);

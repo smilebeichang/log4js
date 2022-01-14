@@ -17,6 +17,20 @@ public class Test {
 
 
     @org.junit.Test
+    public void test2(){
+        int i = 100;
+        //i*=0.1;
+        //System.out.println(i);
+        for (int j = 0; j < 10; j++) {
+            i++;
+            System.out.println(i);
+        }
+
+    }
+
+
+
+    @org.junit.Test
     public void ceil(){
         ArrayList<String> bachItemList = new ArrayList<String>(){
             {

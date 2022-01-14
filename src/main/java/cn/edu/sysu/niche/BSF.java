@@ -1,11 +1,8 @@
 package cn.edu.sysu.niche;
 
-import cn.edu.sysu.adi.TYPE;
-import cn.edu.sysu.utils.JDBCUtils4;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -40,14 +37,6 @@ public class BSF {
      */
     Comparator comp = new MyComparator();
 
-    /**
-     * size 为310  初始化,塞入到内存中
-     */
-    ArrayList<String> allItemList = new JDBCUtils4().selectAllItems();
-
-
-    public BSF() throws SQLException {
-    }
 
 
     /**
@@ -55,14 +44,31 @@ public class BSF {
      * 2.去重
      * 3.niche
      * 4.cut_off
+     * 5.收敛规则的指定
      */
-    public void deterministicConvergence(ArrayList<String> sortListForGene) {
+    public Boolean deterministicConvergence(ArrayList<String> sortListForGene) {
 
-        // 将 sortListForGene 赋值给 bsf
+
+        // 同一个内存地址,会将数据覆盖掉。故需采取遍历赋值，生成新的内存地址
+        ArrayList<String> bsfV1 = new ArrayList<>();
+        bsfV1.clear();
+        for (int i = 0; i < bsf.size(); i++) {
+            bsfV1.add(bsf.get(i));
+        }
+
+
+        // bsf 取并集
         bsf.addAll(sortListForGene);
 
-        // 第二代开始进行去重操作
+        Boolean timeFlag = false;
+
+        // 去重操作
         if (bsf.size() > 100) {
+
+            // 去重
+            Set set = new HashSet(bsf);
+
+            bsf = new ArrayList(set);
 
             // 排序
             System.out.println(bsf.size() + " <---------- ");
@@ -71,9 +77,11 @@ public class BSF {
             // niche(划分)
             distributeNicheForBSF();
 
-            // niche(cutoff)
+            // niche(cutoff  这部分的得到的bsf size 肯定是100)
             gtPart(mapArrayListForBSF);
 
+            // 收敛确认规则(计算变化趋势 bsfV1 vs bsf)
+             timeFlag = calSim(bsf, bsfV1);
 
         } else {
 
@@ -81,10 +89,62 @@ public class BSF {
 
         }
 
+        return timeFlag;
+
+
+    }
+
+    /**
+     * 比对两个集合的相似题目数
+     *
+     */
+    private Boolean calSim(ArrayList<String> bsf, ArrayList<String> bsfV1) {
+
+        // 需使用 bsfV1 contain bsf,否则会导致数据丢失(bsf 是全局变量,同一内存地址)
+        bsfV1.retainAll(bsf);
+        log.info(bsfV1.size());
+
+        // 收敛确认规则(定时器)
+        Boolean timeFlag = registerTimeTimer(bsfV1.size());
+
+        return timeFlag;
+
+    }
+
+    /**
+     * 如果连续15代,相似个数均大于90,则认为其是相似的，此时
+     * 1.将数据写入
+     * 2.中断程序
+     *
+     */
+    int lastCount = 0;
+    int maxCount = 15;
+    int judgmentBasis = 90;
+
+    private Boolean registerTimeTimer(int size) {
+
+        Boolean timeFlag = false;
+
+        if (size >= judgmentBasis) {
+            lastCount ++;
+            if (lastCount > maxCount){
+                timeFlag =  true;
+            }
+        } else {
+            lastCount = 0;
+        }
+        System.out.println(" 不断的尝试进行 终止判断");
+
+        return timeFlag;
 
     }
 
 
+    /**
+     * 划分为不同的小生境  mapArrayListForBSF
+     * 1.选择leader
+     * 2.选择member
+     */
     private void distributeNicheForBSF() {
 
         // 选取leader
@@ -206,7 +266,7 @@ public class BSF {
         ArrayList<Integer> tempSizeList = new ArrayList<>();
 
         for (Integer integer : sizeList) {
-            double v = (double) (integer) / sum;
+            double v = ((double) (integer)) / sum;
             sizeRateList.add(v);
             tempSizeList.add((int) Math.ceil(100 * v));
         }
@@ -214,14 +274,32 @@ public class BSF {
         // 对最后一个个体进行数字处理
         ArrayList<Integer> finSizeList = new ArrayList<>();
         int sumV2 = 0;
-        for (int i = 0; i < tempSizeList.size() - 1; i++) {
+        for (int i = tempSizeList.size() - 1 ; i >0 ; i--) {
 
             sumV2 = sumV2 + tempSizeList.get(i);
+            //finSizeList.add(tempSizeList.get(i));
+            if (sumV2 >= 100){
+                break;
+            }
 
         }
+        //finSizeList.add(tempSizeList.get(tempSizeList.size() - 1));
 
+        // 不能添加所有,只能按需添加
         finSizeList.addAll(tempSizeList);
-        finSizeList.set(tempSizeList.size() - 1, 100 - sumV2);
+        if (sumV2 < 100){
+            finSizeList.set(0, 100 - sumV2);
+        }else{
+            // 第一个小生境进行缩减
+            int i = tempSizeList.get(tempSizeList.size() - 1) - (sumV2 - 100);
+            finSizeList.set(tempSizeList.size() - 1, i);
+        }
+
+        int tmpSum = 0;
+        for (Integer integer : finSizeList) {
+            tmpSum = tmpSum + integer;
+        }
+        System.out.println(tmpSum);
 
         // 拼接key 和 size 使其成为 map,进行映射
         HashMap<String, Integer> siMap = new HashMap<String, Integer>();
@@ -234,15 +312,16 @@ public class BSF {
         // 3.按大小取出前100个个体  map存在问题，顺序无法保证
         for (Map.Entry<String, ArrayList<String>> entry : mapArrayListForBSF.entrySet()) {
 
-            // -- 大小
+            // 大小
             Integer size = siMap.get(entry.getKey());
             ArrayList<String> valueList = entry.getValue();
             Collections.sort(valueList, comp);
-            if (valueList.size() > 0) {
+            if (valueList.size() > 0 && size > 0) {
 
                 for (int i = 0; i < size; i++) {
                     bsfTmp.add(valueList.get(i));
                 }
+
             }
 
         }
