@@ -229,7 +229,11 @@ public class DNDR10 {
                     // 以15%为界限  第三行开始,第二列开始 最大相似设置的过大,将导致计算缓慢
                     // 而且只能延缓  无法最终解决
                     if (counter < 4 ){
-                        distanceMatrix[i+1][j+1]=1;
+
+                        // 校验两个集合的相似程度
+                        if (checkAttr(ListA,ListB)){
+                            distanceMatrix[i+1][j+1]=1;
+                        }
                     }
                 }
             }
@@ -251,6 +255,158 @@ public class DNDR10 {
         readFromFileV1();
 
         System.out.println(" + ----------------------- + ");
+
+    }
+
+
+    /**
+     * 校验两个集合的相似程度
+     * @param listA
+     * @param listB
+     *
+     *  FIXME 此处应该加上其他验证逻辑 而不仅仅是题目不同
+     *  功能相似： 题型、属性(拿单个题目计算还是一套试卷)
+     *  思考：
+     *    1.如果是单个题目的话,计算量会比较大
+     *      每道题目 其余试卷的每道题挨个进行比较，意义不大
+     *    2.如果是单套试卷的话,整套试卷经过了correct,其应该是相似的
+     *    3.此处以单套试卷为单位，先进行计算
+     *       3.1 通过ids,获取属性和类型
+     *       3.2 分别计算属性和类型的数目 sum(abs())
+     *       3.3 如果小于了某一个临界值,则表明其是真的相似
+     */
+    private Boolean checkAttr(List<String> listA, List<String> listB) {
+        Boolean flag = false;
+
+        System.out.println(listA);
+
+
+        // 根据id从数据库中查询相对应的题目
+        String idsA = listA.toString().substring(1, listA.toString().length() - 1);
+
+        List<String> sListA = Arrays.asList(idsA.split(","));
+
+        // 题型
+        int typeChoseA = 0;
+        int typeFillA = 0;
+        int typeShortA = 0;
+        int typeCompreA = 0;
+
+        // 属性
+        int attributeNum1A = 0;
+        int attributeNum2A = 0;
+        int attributeNum3A = 0;
+        int attributeNum4A = 0;
+        int attributeNum5A = 0;
+
+
+        for (int k = 0; k < sListA.size(); k++) {
+
+             String s = allItemList.get(Integer.parseInt(sListA.get(k).trim())-1 > -1?Integer.parseInt(sListA.get(k).trim())-1:1);
+
+                //计算每种题型个数
+                if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
+                    typeChoseA += 1;
+                }
+                if (TYPE.FILL.toString().equals(s.split(":")[1])) {
+                    typeFillA += 1;
+                }
+                if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
+                    typeShortA += 1;
+                }
+                if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
+                    typeCompreA += 1;
+                }
+
+
+                //计算每种题型个数
+                if ("1".equals(s.split(":")[2].substring(1, 2))) {
+                    attributeNum1A += 1;
+                }
+                if ("1".equals(s.split(":")[2].substring(3, 4))) {
+                    attributeNum2A += 1;
+                }
+                if ("1".equals(s.split(":")[2].substring(5, 6))) {
+                    attributeNum3A += 1;
+                }
+                if ("1".equals(s.split(":")[2].substring(7, 8))) {
+                    attributeNum4A += 1;
+                }
+                if ("1".equals(s.split(":")[2].substring(9, 10))) {
+                    attributeNum5A += 1;
+                }
+        }
+
+
+        // 根据id从数据库中查询相对应的题目
+        String idsB = listB.toString().substring(1, listB.toString().length() - 1);
+
+        List<String> sListB = Arrays.asList(idsB.split(","));
+
+        // 题型
+        int typeChoseB = 0;
+        int typeFillB = 0;
+        int typeShortB = 0;
+        int typeCompreB = 0;
+
+        // 属性
+        int attributeNum1B = 0;
+        int attributeNum2B = 0;
+        int attributeNum3B = 0;
+        int attributeNum4B = 0;
+        int attributeNum5B = 0;
+
+
+        for (int k = 0; k < sListB.size(); k++) {
+
+            String s = allItemList.get(Integer.parseInt(sListB.get(k).trim())-1 > -1?Integer.parseInt(sListB.get(k).trim())-1:1);
+
+            //计算每种题型个数
+            if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
+                typeChoseB += 1;
+            }
+            if (TYPE.FILL.toString().equals(s.split(":")[1])) {
+                typeFillB += 1;
+            }
+            if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
+                typeShortB += 1;
+            }
+            if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
+                typeCompreB += 1;
+            }
+
+
+            //计算每种题型个数
+            if ("1".equals(s.split(":")[2].substring(1, 2))) {
+                attributeNum1B += 1;
+            }
+            if ("1".equals(s.split(":")[2].substring(3, 4))) {
+                attributeNum2B += 1;
+            }
+            if ("1".equals(s.split(":")[2].substring(5, 6))) {
+                attributeNum3B += 1;
+            }
+            if ("1".equals(s.split(":")[2].substring(7, 8))) {
+                attributeNum4B += 1;
+            }
+            if ("1".equals(s.split(":")[2].substring(9, 10))) {
+                attributeNum5B += 1;
+            }
+        }
+
+
+
+        // 属性
+        int type = Math.abs(typeChoseA - typeChoseB) + Math.abs(typeFillA - typeFillB) + Math.abs(typeShortA - typeShortB) + Math.abs(typeCompreA - typeCompreB);
+        int attr = Math.abs(attributeNum1A - attributeNum1B) + Math.abs(attributeNum2A - attributeNum2B) + Math.abs(attributeNum3A - attributeNum3B) + Math.abs(attributeNum4A - attributeNum4B) + Math.abs(attributeNum5A - attributeNum5B);
+
+        System.out.println(type + ":" + attr);
+
+        // 可在此处做相关推断，并赋予不同的值,或者 switch case
+        if (type < 6 && attr < 12){
+            flag = true;
+        }
+        return  flag;
 
     }
 
@@ -638,7 +794,7 @@ public class DNDR10 {
      *
      * 新增确定收敛操作
      */
-    private void sortFitnessForGene() throws SQLException {
+    private void sortFitnessForGene(int iter) throws SQLException {
 
 
         // 遍历二维数组,获取其适应度,然后拼接上本身  sortListForGene.add(minrum + "_" + ids)
@@ -650,7 +806,7 @@ public class DNDR10 {
         Collections.sort(sortListForGene, comp);
 
         // 进行收敛确认操作
-        timeFlag = bsfBean.deterministicConvergence(sortListForGene);
+        timeFlag = bsfBean.deterministicConvergence(iter , sortListForGene);
 
 
     }
@@ -2930,7 +3086,7 @@ public class DNDR10 {
             iterationClear();
 
             // 4.适应度值排序   ArrayList<String> sortListForGene = new ArrayList<>(200)
-            sortFitnessForGene();
+            sortFitnessForGene(i);
 
             // 5.将群体中的个体分配到不同小生境中 leader + members    mapArrayListForGene(key,value)
             distributeNicheForGene();

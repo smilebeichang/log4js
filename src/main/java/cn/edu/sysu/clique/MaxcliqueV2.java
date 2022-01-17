@@ -176,11 +176,11 @@ public class MaxcliqueV2 {
 
             MaxcliqueV2 m=new MaxcliqueV2();
             System.out.println("图G的最大圈解向量为：");
-//            System.out.println("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
-//            System.out.println("图G的最大圈个为："+m.count);
+            System.out.println("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
+            System.out.println("图G的最大圈个为："+m.count);
 
-            log.info("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
-            log.info("图G的最大圈个为："+m.count);
+//            log.info("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
+//            log.info("图G的最大圈个为："+m.count);
 
         } catch (IOException e) {
             e.printStackTrace();

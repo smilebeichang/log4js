@@ -11,17 +11,17 @@ import java.util.*;
 
 /**
  * @Author : song bei chang
- * @create : 2022/01/13 00:11
+ * @create : 2022/01/17 00:11
  *
  * 模拟随机的样式
  *
  *本周计划：
- * 1：random的50000取前50    这个最简单，提前完成,周天
- * 2：收敛(阈值|次数)         周一
- * 3：如果一定次数后，则终止    周一
- *      随机生成50道题，然后判断其最大圈，这样便可以验证是否有效
- * 4：P-CDI                 周二
- * 5：题库数量  + 迭代次数
+ * 1：random的50000取前50           周天
+ *      随机生成50道题，然后判断其最大圈，这样便可以验证是否有效  周一
+ * 2：如果达到一定次数后，则终止       周一
+ * 3：收敛(阈值)                    周二
+ * 4：题库数量  + 迭代次数           周二~周四
+ * 5：P-CDI
  *
  *
  */
@@ -29,13 +29,13 @@ public class DNDR10_Random {
 
 
     /**
-     * 50套试卷 20道题
+     * 500 * 100 套试卷 20道题
      */
-    private static String[][] paperGenetic = new String[500 * 100][20];
+    private static String[][] paperGenetic = new String[50][20];
 
     int paperSize = paperGenetic.length;
 
-    private ArrayList<String> sortListForRandom = new ArrayList<>(500 * 100);
+    private ArrayList<String> sortListForRandom = new ArrayList<>(50);
     private ArrayList<String> sortTo50 = new ArrayList<>(50);
 
     Random rand = new Random();
@@ -103,7 +103,6 @@ public class DNDR10_Random {
             String[] itemArray = new String[sList.size()];
 
             for (int k = 0; k < sList.size(); k++) {
-                //itemArray[k] = allItemList.get(Integer.parseInt(sList.get(k).trim())-1 > -1?Integer.parseInt(sList.get(k).trim())-1:1);
                 itemArray[k] = sList.get(k);
             }
 
@@ -126,14 +125,9 @@ public class DNDR10_Random {
      */
     private void getFitnessForRandom() throws SQLException {
 
-        //log.info("适应值 log4j")
 
-        // 所有试卷的适应度总和
-        double fitSum = 0.0;
         // 拼接字符串 每套试卷的适应度值_本身
         String[] fitTmp = new String[paperSize];
-        // 每套试卷的适应度占比
-        double[] fitPro = new double[paperSize];
 
         // 计算试卷的适应度值，即衡量试卷优劣的指标之一 Fs
         for (int i = 0; i < paperSize; i++) {
@@ -205,10 +199,10 @@ public class DNDR10_Random {
 
             // 题型比例/10  属性比例/23 是固定值,到了后期需要修正
             // 题型比例
-            double typeChoseRation = typeChose / 10.0;
-            double typeFileRation = typeFill / 10.0;
-            double typeShortRation = typeShort / 10.0;
-            double typeCompreRation = typeCompre / 10.0;
+            double typeChoseRation = typeChose / 20.0;
+            double typeFileRation = typeFill / 20.0;
+            double typeShortRation = typeShort / 20.0;
+            double typeCompreRation = typeCompre / 20.0;
 
             // 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
             // 先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值

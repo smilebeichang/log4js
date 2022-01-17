@@ -44,9 +44,9 @@ public class BSF {
      * 2.去重
      * 3.niche
      * 4.cut_off
-     * 5.收敛规则的指定
+     * 5.收敛规则
      */
-    public Boolean deterministicConvergence(ArrayList<String> sortListForGene) {
+    public Boolean deterministicConvergence(int iter , ArrayList<String> sortListForGene) {
 
 
         // 同一个内存地址,会将数据覆盖掉。故需采取遍历赋值，生成新的内存地址
@@ -80,8 +80,12 @@ public class BSF {
             // niche(cutoff  这部分的得到的bsf size 肯定是100)
             gtPart(mapArrayListForBSF);
 
-            // 收敛确认规则(计算变化趋势 bsfV1 vs bsf)
-             timeFlag = calSim(bsf, bsfV1);
+            // 收敛规则(计算变化趋势 bsfV1 vs bsf)
+            if( iter < 500 ){
+                timeFlag = calSim(bsf, bsfV1);
+            }else {
+                timeFlag = true;
+            }
 
         } else {
 
@@ -90,7 +94,6 @@ public class BSF {
         }
 
         return timeFlag;
-
 
     }
 
