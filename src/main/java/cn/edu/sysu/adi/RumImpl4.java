@@ -205,7 +205,7 @@ public class RumImpl4 {
         JDBCUtils4 jdbcUtils = new JDBCUtils4();
 
         //生成题库的试题数  310道  比值:5:10:10:5:1
-        int num = 310 ;
+        int num = 500 ;
 
         for (int i = 1; i <= num/31*5; i++) {
             id = i;
@@ -229,7 +229,7 @@ public class RumImpl4 {
             start(4);
             jdbcUtils.insert(id,typeMap.get(Math.floorMod(id,4)),pattern,base,penalty,adi1_r,adi2_r,adi3_r,adi4_r,adi5_r);
         }
-        for (int i = num/31*30 + 1; i <= num/31*31; i++) {
+        for (int i = num/31*30 + 1; i <= 500; i++) {
             id = i;
             start(5);
             jdbcUtils.insert(id,typeMap.get(Math.floorMod(id,4)),pattern,base,penalty,adi1_r,adi2_r,adi3_r,adi4_r,adi5_r);

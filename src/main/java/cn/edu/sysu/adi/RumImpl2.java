@@ -268,7 +268,7 @@ public class RumImpl2 {
         System.out.println("list 遍历; 分别拿list的值去KLArray中匹配寻找：");
         List<Double> calAdiList = calAdiImple(klArray, adiIndexList1, adiIndexList2, adiIndexList3, adiIndexList4, adiIndexList5);
         //打印
-        System.out.println(calAdiList);
+        //System.out.println(calAdiList);
 
 
     }

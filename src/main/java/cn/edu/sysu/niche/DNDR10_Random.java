@@ -13,16 +13,16 @@ import java.util.*;
  * @Author : song bei chang
  * @create : 2022/01/17 00:11
  *
- * 模拟随机的样式
+ * 模拟随机
  *
  *本周计划：
  * 1：random的50000取前50           周天
- *      随机生成50道题，然后判断其最大圈，这样便可以验证是否有效  周一
- * 2：如果达到一定次数后，则终止       周一
+ *      随机生成50道题,然后判断其最大圈,这样便可以验证是否有效  待后续完成
+ * 2：如果达到一定次数后，则终止       周一   500代
  * 3：收敛(阈值)                    周二
- * 4：题库数量  + 迭代次数           周二~周四
- * 5：P-CDI
- *
+ * 4：题库数量  + 进行多轮迭代比较  周二~周四
+ * 5：收敛(为什么达不到同一个值)       周二
+ * 6：P-CDI
  *
  */
 public class DNDR10_Random {
@@ -31,11 +31,11 @@ public class DNDR10_Random {
     /**
      * 500 * 100 套试卷 20道题
      */
-    private static String[][] paperGenetic = new String[50][20];
+    private static String[][] paperGenetic = new String[500 * 100][20];
 
     int paperSize = paperGenetic.length;
 
-    private ArrayList<String> sortListForRandom = new ArrayList<>(50);
+    private ArrayList<String> sortListForRandom = new ArrayList<>(500 * 100);
     private ArrayList<String> sortTo50 = new ArrayList<>(50);
 
     Random rand = new Random();
@@ -46,6 +46,8 @@ public class DNDR10_Random {
      *  size 为310  初始化,塞入到内存中
      */
     ArrayList<String> allItemList = jdbcUtils.selectAllItems();
+
+    int sourceSize =  allItemList.size();
 
     public DNDR10_Random() throws SQLException {
     }
@@ -58,7 +60,7 @@ public class DNDR10_Random {
 
 
     /**
-     * 生成 paperGenetic  = new String[100*100][20] 试卷100*100套,每套20题  为交叉变异提供原始材料
+     * 生成 paperGenetic  = new String[500*100][20]  为交叉变异提供原始材料
      *
      */
     private void initItemBank() throws InterruptedException {
@@ -83,7 +85,7 @@ public class DNDR10_Random {
                 // 去重操作
                 while (itemSet.size() == i) {
                     // 获取题目id   轮盘赌构造法
-                    int sqlId = rand.nextInt(309);
+                    int sqlId = rand.nextInt(sourceSize - 1 );
                     itemSet.add(sqlId+"");
                 }
 
@@ -109,7 +111,6 @@ public class DNDR10_Random {
 
             // 赋值给全局变量 (容器：二维数组)
             paperGenetic[j] = itemArray;
-            //Thread.sleep(20);
         }
     }
 
@@ -149,7 +150,7 @@ public class DNDR10_Random {
                 itemList = supplementPaperGenetic();
             }
 
-            System.out.println("-->itemList: " + Arrays.asList(itemList).toString());
+            //System.out.println("-->itemList: " + Arrays.asList(itemList).toString());
             for (int j = 0; j < itemList.length; j++) {
 
                 int id = Integer.valueOf(itemList[j].trim());
@@ -166,7 +167,7 @@ public class DNDR10_Random {
 
             }
 
-            System.out.println("idsb.toString():"+idsb.toString());
+            //System.out.println("idsb.toString():"+idsb.toString());
             String ids = idsb.toString().substring(1);
 
             // 题型个数
@@ -262,6 +263,7 @@ public class DNDR10_Random {
 
             // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
             //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
+            // 23.0 可能存在误差,待研究
             double ed1;
             double edx1 = exp1 / 23.0;
             if (edx1 >= 0.2 && edx1 < 0.4) {
@@ -401,36 +403,46 @@ public class DNDR10_Random {
      * 1. 初始化试卷
      * 2. 计算 max clique
      * 3. 画图
+     *
      */
     @Test
     public  void  main() throws InterruptedException, SQLException {
 
+        // 轮询跑100代,方便查看结果
+        for (int j = 0; j < 100; j++) {
 
-        // 1.初始化试卷(长度，题型，属性比例) String[][] paperGenetic = new String[200][20]
-        initItemBank();
+            sortListForRandom.clear();
+            sortTo50.clear();
+            // 1.初始化试卷
+            initItemBank();
 
-        System.out.println("---------------");
+            System.out.println("---------------");
 
 
-        // 2.数组转list
-        ArrayList<String> paperList = new ArrayList<>();
-        for (int i = 0; i < paperGenetic.length; i++) {
+            // 2.数组转list  FIXME 此处的paperList需进行去重操作,待后续优化
+            ArrayList<String> paperList = new ArrayList<>();
+            for (int i = 0; i < paperGenetic.length; i++) {
 
-            List<String> listB= Arrays.asList(paperGenetic[i]);
-            paperList.add("0_"+listB.toString().substring(1, listB.toString().length()-1));
+                List<String> listB= Arrays.asList(paperGenetic[i]);
+                paperList.add("0_"+listB.toString().substring(1, listB.toString().length()-1));
+
+            }
+
+            // 3.计算的适应度值，并取前50个体
+            getFitnessForRandom();
+
+
+            /**
+             * 图G的最大圈顶点数为：2
+             * 图G的最大圈个为：5
+             */
+            new DNDR10().similarClique(sortTo50,1);
 
         }
 
-        // 3.计算的适应度值，并取前50个体
-        getFitnessForRandom();
 
-        System.out.println(sortTo50);
 
-        /**
-         * 图G的最大圈顶点数为：26
-         * 图G的最大圈个为：72
-         */
-        new DNDR10().similarClique(sortTo50);
+
 
     }
 

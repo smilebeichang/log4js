@@ -16,23 +16,24 @@ import java.util.*;
 
 /**
  * @Author : song bei chang
- * @create : 2021/12/26 19:50
+ * @create : 2022/02/08 10:12
  *
  *
  * 本周进度安排:  GA -->  收敛（重难点）  -->  最大圈clique
  *
- * 1.小生境达到稳定后，开始计算最大圈
+ * 1.小生境达到稳定后,开始计算最大圈
  * 2.稳定性的判断标准：
  *   2.1 整个集群
  *   2.2 小生境的前50%
- *   2.3 leader的方差(最简单，此版本采纳这个)
+ *   2.3 leader的方差
+ *   2.4 BSF(best so far) 趋于稳定 (最简单，此版本采纳这个)
  * 3.如何保证或者如何验证呢
- *   3.1 使用BSF(每代进行保留最优个体,与下一代做并集,然后去重,然后得到下一代：需验证是否会导致后代相似性过大)
- *   BSF 使用HashSet   保存（1.大小不受限制  2.可以达到去重的效果  3.不方便排序）
- *       使用ArrayList 保存(1.大小不受限制  2.方便排序 )
+ *   3.1 使用BSF(每代保留最优个体,与下一代做并集,随后去重,得到下一代：需验证是否会导致后代相似性过大)
+ *   BSF 使用HashSet   保存(1.大小不受限制   2.可以达到去重的效果   3.排序不方便 )
+ *       使用ArrayList 保存(1.大小不受限制   2.去重不方便         3.排序方便   )
  *
  *
- * IDEA 设置断点条件使用方法：
+ * IDEA 设置断点条件：
  *  在断点的位置，右击断点旁边的小红点，会出来一个界面，在Condition这里填入断点条件即可。
  */
 public class DNDR10 {
@@ -64,8 +65,7 @@ public class DNDR10 {
 
 
     /**
-     * set存leader
-     */
+     * set存leader     */
     private HashSet<String> leaderSetForGene = new HashSet();
 
 
@@ -104,7 +104,7 @@ public class DNDR10 {
     private Niche6 niche5 = new Niche6();
 
     /**
-     * 交叉变异系数  注:变异系数有待降低
+     * 交叉变异系数  注:变异系数有待降低(锦标赛小生境都不需要Pm)
      */
     private static double PC = 0.9;
     private static double PM = 1;
@@ -131,6 +131,10 @@ public class DNDR10 {
      */
     BSF bsfBean = new BSF();
 
+
+    int lastCount = 0;
+
+
     public DNDR10() throws SQLException {
     }
 
@@ -140,7 +144,7 @@ public class DNDR10 {
      * 1. 计算每个小生境的平均值
      *      返回的样式 String : 适应度值_ids
      * 2. 过滤出大于均值的那部分
-     * 3. 通过相似性形成矩阵关系
+     * 3. 通过相似性形成矩阵关系(形式 vs 效应)
      * 4. 最大圈相关算法调用
      *
      */
@@ -165,7 +169,7 @@ public class DNDR10 {
 
 
         // 3. 剩下的个体计算相似性
-        similarClique(inBack);
+        similarClique(inBack,2);
 
 
     }
@@ -177,7 +181,7 @@ public class DNDR10 {
      * 3.读取文件,计算最大圈
      *
      */
-    public void similarClique(ArrayList<String> inBack) {
+    public void similarClique(ArrayList<String> inBack,int algorithm) {
 
         // 距离关系w矩阵
         int[][] distanceMatrix =new int[inBack.size()+1][inBack.size()+1];
@@ -231,7 +235,7 @@ public class DNDR10 {
                     if (counter < 4 ){
 
                         // 校验两个集合的相似程度
-                        if (checkAttr(ListA,ListB)){
+                        if (checkAttr(ListA,ListB,algorithm)){
                             distanceMatrix[i+1][j+1]=1;
                         }
                     }
@@ -275,7 +279,7 @@ public class DNDR10 {
      *       3.2 分别计算属性和类型的数目 sum(abs())
      *       3.3 如果小于了某一个临界值,则表明其是真的相似
      */
-    private Boolean checkAttr(List<String> listA, List<String> listB) {
+    private Boolean checkAttr(List<String> listA, List<String> listB,int diffDegree) {
         Boolean flag = false;
 
         System.out.println(listA);
@@ -403,9 +407,24 @@ public class DNDR10 {
         System.out.println(type + ":" + attr);
 
         // 可在此处做相关推断，并赋予不同的值,或者 switch case
-        if (type < 6 && attr < 12){
-            flag = true;
+        switch(diffDegree){
+            case 1 :
+                if (type < 6 && attr < 6){
+                    flag = true;
+                }
+                break;
+            case 2 :
+                if (type < 6 && attr < 12){
+                    flag = true;
+                }
+                break;
+            default :
+                if (type < 6 && attr < 18){
+                    flag = true;
+                }
         }
+
+
         return  flag;
 
     }
@@ -987,8 +1006,8 @@ public class DNDR10 {
 
     /**
      * 使用构造法选取题目  (轮盘赌） 生成 paperGenetic  = new String[100][20] 试卷100套,每套20题  为交叉变异提供原始材料
-     * 1.题型构造解决 （不考虑下限比例）
-     * 2.属性构造解决 （不考虑下限比例）
+     * 1.题型构造 （不考虑下限比例）
+     * 2.属性构造 （不考虑下限比例）
      * 设置比例  可以通过惩罚系数来设定  超出,则急剧减少
      *
      * 总结：在初始化的时候，不需要完全保证题型和属性符合要求，后续使用GA迭代和轮盘赌解决即可
@@ -1002,7 +1021,7 @@ public class DNDR10 {
         int paperNum = paperGenetic.length;
 
         // 题目|基因大小  交叉变异的基本单位
-        int questionsNum = paperGenetic[1].length;
+        int questionsNum = paperGenetic[0].length;
 
         // 单套试卷的集合
         HashSet<String> itemSet = new HashSet<>();
@@ -1019,14 +1038,14 @@ public class DNDR10 {
 
             for (int i = 0; i < questionsNum; i++) {
 
-                // 减少频繁的gc
+                // 减少频繁gc
                 String item;
 
                 // 去重操作
                 while (itemSet.size() == i) {
                     // 获取题目id   轮盘赌构造法
                     int sqlId = roulette(itemSet);
-                    // 两个id相差1,保证选题无偏差
+                    // 两个id相差1,保证选题无偏差  FIXME：此处可优化,使用全局缓存 甚至可完全规避，直接使用ids即可
                     item = jdbcUtils.selectOneItem(sqlId + 1);
                     itemSet.add(item);
                 }
@@ -1052,11 +1071,13 @@ public class DNDR10 {
             String[] itemArray = new String[sList.size()];
 
             for (int k = 0; k < sList.size(); k++) {
-                itemArray[k] = allItemList.get(Integer.parseInt(sList.get(k).trim())-1 > -1?Integer.parseInt(sList.get(k).trim())-1:1);
+                itemArray[k] = allItemList.get(
+                        Integer.parseInt(sList.get(k).trim())-1 > -1?Integer.parseInt(sList.get(k).trim())-1:1
+                );
             }
 
 
-            // 赋值  把题库提升为全局变量，方便整体调用 容器：二维数组
+            // 赋值  把题库提升为全局变量,方便整体调用 容器：二维数组
             paperGenetic[j] = itemArray;
         }
     }
@@ -3062,6 +3083,34 @@ public class DNDR10 {
     }
 
 
+    /**
+     * 如果连续15代,相似个数均大于90,则认为其是相似的，此时
+     * 1.将数据写入
+     * 2.中断程序
+     *
+     * FIXME ： 此处逻辑有误 待修复
+     *
+     */
+    int maxCount = 15;
+    int judgmentBasis = 90;
+    public Boolean registerTimeTimer(int size) {
+
+        Boolean timeFlag = false;
+
+        if (size >= judgmentBasis) {
+            lastCount ++;
+            if (lastCount > maxCount){
+                timeFlag =  true;
+            }
+        } else {
+            lastCount = 0;
+        }
+        System.out.println(" 不断的尝试进行 终止判断");
+
+        return timeFlag;
+
+    }
+
 
     /**
      * 主程序
@@ -3069,6 +3118,7 @@ public class DNDR10 {
      * 2. 适应度排序
      * 3. 分配个体到不同小生境
      * 4. 根据各个小生境的种群大小,然后塞入到不同集合中
+     *   (从后往前可以保留多样性,从前往后可以维持稳定性)
      * 5. 选择、交叉、限制性锦标赛拥挤小生境
      *
      */
@@ -3076,83 +3126,95 @@ public class DNDR10 {
     public  void  main() throws SQLException {
 
 
-        // 1.初始化试卷(长度，题型，属性比例) 轮盘赌构造法生成二维数组 String[][] paperGenetic = new String[200][20]
+        // 1.初始化试卷(长度，题型，属性比例) 轮盘赌构造法生成二维数组 String[][] paperGenetic = new String[100][20]
         initItemBank();
 
-        // 2.迭代次数  此次迭代个体总数目：200
-        for (int i = 0; i < iterationSize; i++) {
-
-            // 3.置空leader容器
+        // 遍历50次,形成多次结果,便于比较
+        for (int j = 0; j < 50; j++) {
+            timeFlag =  false;
+            lastCount = 0;
+            // 这个是否有必要
             iterationClear();
 
-            // 4.适应度值排序   ArrayList<String> sortListForGene = new ArrayList<>(200)
-            sortFitnessForGene(i);
+            // 2.迭代次数 500
+            for (int i = 0; i < iterationSize; i++) {
 
-            // 5.将群体中的个体分配到不同小生境中 leader + members    mapArrayListForGene(key,value)
-            distributeNicheForGene();
 
-            ifSkip(true);
+                // 3.置空leader容器
+                iterationClear();
 
-            // 6.根据各个小生境的种群大小，然后塞入到不同集合中
-            HashMap<String, ArrayList<String>> inListHashMap = new HashMap<>();
+                // 4.适应度值排序   sortListForGene = new ArrayList<>(100)
+                sortFitnessForGene(i);
 
-            ArrayList<String> outList = new ArrayList<>();
+                // 5.将群体中的个体分配到不同小生境中 leader + members    mapArrayListForGene(key,value)
+                distributeNicheForGene();
 
-            Iterator<Map.Entry<String, ArrayList<String>>> iterator = mapArrayListForGene.entrySet().iterator();
+                // 过完年仔细核实
+                ifSkip(true);
 
-            while (iterator.hasNext()) {
+                // 6.根据各个小生境的种群大小，然后塞入到不同集合中
+                HashMap<String, ArrayList<String>> inListHashMap = new HashMap<>();
 
-                Map.Entry<String, ArrayList<String>> entry = iterator.next();
+                ArrayList<String> outList = new ArrayList<>();
 
-                // 是否小生境个数 >= 5
-                if (entry.getValue().size() >= 5) {
-                    inListHashMap.put(entry.getKey(), entry.getValue());
-                } else {
-                    outList.addAll(entry.getValue());
+                Iterator<Map.Entry<String, ArrayList<String>>> iterator = mapArrayListForGene.entrySet().iterator();
+
+                while (iterator.hasNext()) {
+
+                    Map.Entry<String, ArrayList<String>> entry = iterator.next();
+
+                    // 是否小生境个数 >= 5  这个固定值,需要设置为全局变量，便于修改
+                    if (entry.getValue().size() >= 5) {
+                        inListHashMap.put(entry.getKey(), entry.getValue());
+                    } else {
+                        outList.addAll(entry.getValue());
+                    }
                 }
+
+
+                // 7.选择
+                //   对两种不同的集合进行不同的选择 (小生境内 | 小生境外)
+                //   进去啥,返回啥。保持样式不做修改,这样有利于样式的统一
+
+                //   7.1 进行小生境内的选择   轮盘赌 小生境内有多少个体就执行多少次选举，选出适应个体
+                HashMap<String, ArrayList<String>> inSelect = selectionIn(inListHashMap);
+
+                //   7.2 进行小生境外的选择
+                ArrayList<String> outSelect = selectionOut(outList);
+
+
+                // 8.交叉
+                //   8.1 进行小生境内交叉
+                HashMap<String, ArrayList<String>> inCross = crossCoverIn(inSelect);
+
+                //   8.2 进行小生境外交叉  方法内部进行了size判断
+                ArrayList<String> outCross = crossCoverOut(outSelect);
+
+
+                // 9.变异
+                //   9.1 进行小生境内交叉(采用的是 限制性锦标赛拥挤小生境)
+                HashMap<String, ArrayList<String[]>> inMutate = mutateIn(inCross);
+
+                //   9.2 进行小生境外交叉
+                ArrayList<String[]> outMutate = mutateOut(outCross);
+
+
+                // 10. 最大圈问题
+                if (timeFlag) {
+                    gtMeanPart(inMutate, outMutate);
+                    // 此处重置flag,防止下次迭代时进行稳定性的判断
+                    timeFlag =  false;
+                    // 使用 break 替代 exit
+                    System.out.println("退出！！");
+                    // System.exit(0);
+                    break;
+
+                }
+
+                // 11.将inMutate和outMutate合并后赋值给 paperGenetic
+                paperGenetic = mergeToGene(inMutate, outMutate);
+
             }
-
-
-            // 7.选择
-            //   对不同的集合进行不同的选择 (小生境内 | 小生境外)
-            //   进去啥,返回啥。保持样式不做修改,这样有利于样式的统一
-
-            //   7.1 进行小生境内的选择   小生境内有多少个体就执行多少次选举，选出适应个体
-            HashMap<String, ArrayList<String>> inSelect = selectionIn(inListHashMap);
-
-            //   7.2 进行小生境外的选择
-            ArrayList<String> outSelect = selectionOut(outList);
-
-
-            // 8.交叉
-            //   8.1 进行小生境内交叉
-            HashMap<String, ArrayList<String>> inCross = crossCoverIn(inSelect);
-
-            //   8.2 进行小生境外交叉  方法内部进行了size判断
-            ArrayList<String> outCross = crossCoverOut(outSelect);
-
-
-            // 9.变异
-            //   9.1 进行小生境内交叉(采用的是 限制性锦标赛拥挤小生境)
-            HashMap<String, ArrayList<String[]>> inMutate = mutateIn(inCross);
-
-
-            //   9.2 进行小生境外交叉
-            ArrayList<String[]> outMutate = mutateOut(outCross);
-
-
-            // 10. 最大圈问题
-            if (timeFlag){
-                gtMeanPart(inMutate, outMutate);
-
-                System.out.println("退出！！");
-                System.exit(0);
-
-            }
-
-            // 11.将inMutate和outMutate合并后赋值给 paperGenetic
-            paperGenetic = mergeToGene(inMutate, outMutate);
-
         }
 
 

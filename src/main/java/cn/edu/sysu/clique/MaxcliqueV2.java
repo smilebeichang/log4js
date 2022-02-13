@@ -169,18 +169,18 @@ public class MaxcliqueV2 {
             for(int i=0;i<lines;i++){
                 for(int j=0;j<lines;j++){
                     cc[i][j] = Integer.parseInt(c[i][0].split(",")[j].trim());
-                    System.out.print(cc[i][j]+",");
+                    //System.out.print(cc[i][j]+",");
                 }
-                System.out.println();
+                //System.out.println();
             }
 
             MaxcliqueV2 m=new MaxcliqueV2();
-            System.out.println("图G的最大圈解向量为：");
-            System.out.println("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
-            System.out.println("图G的最大圈个为："+m.count);
+//            System.out.println("图G的最大圈解向量为：");
+//            System.out.println("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
+//            System.out.println("图G的最大圈个为："+m.count);
 
-//            log.info("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
-//            log.info("图G的最大圈个为："+m.count);
+            log.info("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
+            log.info("图G的最大圈个为："+m.count);
 
         } catch (IOException e) {
             e.printStackTrace();

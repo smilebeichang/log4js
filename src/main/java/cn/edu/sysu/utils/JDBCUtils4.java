@@ -61,6 +61,9 @@ public class JDBCUtils4 {
 
     /**
      * 新增到数据库
+     * adi20210528
+     * adi20220119
+     *
      */
     public  void insert(int id, TYPE type1, String pattern, Double base, String penalty, Double adi1_r, Double adi2_r, Double adi3_r, Double adi4_r, Double adi5_r) throws SQLException {
         Connection conn = null;
@@ -79,11 +82,11 @@ public class JDBCUtils4 {
             Class.forName("com.mysql.jdbc.Driver");
             conn =
                     DriverManager.getConnection("jdbc:mysql://localhost/sysu?"+"user=root&password=root&useSSL=false");
-            String sql = "INSERT INTO sysu.adi20210528 \n" +
+            String sql = "INSERT INTO sysu.adi20220119 \n" +
                     "(id,type, pattern,p1,p2,p3,p4,p5, base, penalty, adi1_r, adi2_r, adi3_r, adi4_r, adi5_r) \n" +
                     "VALUES("+id+",\""+type+"\","+"\""+pattern+"\","+p1+","+p2+","+p3+","+p4+","+p5+","+base+",\""+penalty+"\","+adi1_r+","+adi2_r+","+adi3_r+","+adi4_r+","+adi5_r+");";
                     //"VALUES("+id+",\""+pattern+"\","+base+",\""+penalty+"\","+adi1_r+","+adi2_r+","+adi3_r+","+adi4_r+","+adi5_r+");";
-            //System.out.println(sql);
+            System.out.println(sql);
             ps = conn.prepareStatement(sql);
             ps.execute();
 
@@ -160,7 +163,7 @@ public class JDBCUtils4 {
             conn =
                     DriverManager.getConnection("jdbc:mysql://localhost/sysu?"+"user=root&password=root&useSSL=false");
             ps = conn.prepareStatement("SELECT t1.id \n" +
-                    "FROM sysu.adi20210523 AS t1 \n" +
+                    "FROM sysu.adi20210528 AS t1 \n" +
                     "JOIN (\n" +
                      sql  +
                     ") AS t2 \n" +

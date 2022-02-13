@@ -3,6 +3,7 @@ package cn.edu.sysu.niche;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -46,7 +47,7 @@ public class BSF {
      * 4.cut_off
      * 5.收敛规则
      */
-    public Boolean deterministicConvergence(int iter , ArrayList<String> sortListForGene) {
+    public Boolean deterministicConvergence(int iter , ArrayList<String> sortListForGene) throws SQLException {
 
 
         // 同一个内存地址,会将数据覆盖掉。故需采取遍历赋值，生成新的内存地址
@@ -62,7 +63,7 @@ public class BSF {
 
         Boolean timeFlag = false;
 
-        // 去重操作
+        // 去重操作(FIXME 这个100固定值,也需要升级为全局变量)
         if (bsf.size() > 100) {
 
             // 去重
@@ -101,46 +102,20 @@ public class BSF {
      * 比对两个集合的相似题目数
      *
      */
-    private Boolean calSim(ArrayList<String> bsf, ArrayList<String> bsfV1) {
+    private Boolean calSim(ArrayList<String> bsf, ArrayList<String> bsfV1) throws SQLException {
 
         // 需使用 bsfV1 contain bsf,否则会导致数据丢失(bsf 是全局变量,同一内存地址)
         bsfV1.retainAll(bsf);
         log.info(bsfV1.size());
 
-        // 收敛确认规则(定时器)
-        Boolean timeFlag = registerTimeTimer(bsfV1.size());
+        // 收敛规则(定时器)
+        Boolean timeFlag = new DNDR10().registerTimeTimer(bsfV1.size());
 
         return timeFlag;
 
     }
 
-    /**
-     * 如果连续15代,相似个数均大于90,则认为其是相似的，此时
-     * 1.将数据写入
-     * 2.中断程序
-     *
-     */
-    int lastCount = 0;
-    int maxCount = 15;
-    int judgmentBasis = 90;
 
-    private Boolean registerTimeTimer(int size) {
-
-        Boolean timeFlag = false;
-
-        if (size >= judgmentBasis) {
-            lastCount ++;
-            if (lastCount > maxCount){
-                timeFlag =  true;
-            }
-        } else {
-            lastCount = 0;
-        }
-        System.out.println(" 不断的尝试进行 终止判断");
-
-        return timeFlag;
-
-    }
 
 
     /**
