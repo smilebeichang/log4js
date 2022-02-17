@@ -3,6 +3,7 @@ package cn.edu.sysu.niche;
 
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.utils.JDBCUtils4;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -16,26 +17,33 @@ import java.util.*;
  * 模拟随机
  *
  *本周计划：
- * 1：random的50000取前50           周天
+ * 1：random的50000取前50           (不一定是500*100)
  *      随机生成50道题,然后判断其最大圈,这样便可以验证是否有效  待后续完成
- * 2：如果达到一定次数后，则终止       周一   500代
- * 3：收敛(阈值)                    周二
- * 4：题库数量  + 进行多轮迭代比较  周二~周四
- * 5：收敛(为什么达不到同一个值)       周二
+ * 2：如果达到一定次数后，则终止          500代
+ * 3：收敛(阈值)
+ * 4：题库数量  + 进行多轮迭代比较
+ * 5：收敛(为什么达不到同一个值)
  * 6：P-CDI
  *
  */
 public class DNDR10_Random {
 
 
+    private Logger log = Logger.getLogger(DNDR10_Random.class);
+
+    /**
+     * 这个变量需手动更改
+     */
+    int iterSize = 10;
+
     /**
      * 500 * 100 套试卷 20道题
      */
-    private static String[][] paperGenetic = new String[500 * 100][20];
+    private  String[][] paperGenetic = new String[iterSize * 100][20];
 
     int paperSize = paperGenetic.length;
 
-    private ArrayList<String> sortListForRandom = new ArrayList<>(500 * 100);
+    private ArrayList<String> sortListForRandom = new ArrayList<>(iterSize * 100);
     private ArrayList<String> sortTo50 = new ArrayList<>(50);
 
     Random rand = new Random();
@@ -125,7 +133,6 @@ public class DNDR10_Random {
      * 属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
      */
     private void getFitnessForRandom() throws SQLException {
-
 
         // 拼接字符串 每套试卷的适应度值_本身
         String[] fitTmp = new String[paperSize];
@@ -395,6 +402,70 @@ public class DNDR10_Random {
     }
 
 
+    /**
+     * 计算均值 和 波动 情况
+     * @param inBack
+     */
+    private void calAvgFitness(ArrayList<String> inBack) {
+
+        // 1.遍历list,计算每个个体的fitness值,并使用变量进行汇总统计
+        // 计算平均值
+        Double avgsum = 0.0;
+        Double avg = 0.0;
+
+        if (inBack.size()>0) {
+
+            for (String s : inBack) {
+                avgsum = avgsum + Double.valueOf(s.split("_")[0]);
+            }
+            avg = avgsum / inBack.size();
+
+        }
+
+        // 2.sum / count
+        System.out.println(avg);
+        log.info("top 50%的平均适应度值：" + avg);
+
+        // 3.计算波动  方差=1/n(s^2+....)  方差越小越稳定
+        Double sdsum = 0.0 ;
+        Double sd = 0.0 ;
+
+        if (inBack.size()>0) {
+
+            for (String s : inBack) {
+                sdsum =  sdsum + Math.pow(( Double.valueOf(s.split("_")[0]) -  avg ),2);
+            }
+            sd = sdsum / inBack.size();
+
+        }
+        System.out.println(sd);
+        log.info("top 50%的波动情况：" + sd);
+
+
+    }
+
+
+    /**
+     * top 50 数据去重
+     * 目的: 下游做最大圈和方差的时候,可规避去重
+     * 方式：list --> set --> list
+     *
+     * 迭代5轮,去重效果不明显
+     *
+     */
+    private ArrayList<String> uniqueDate(ArrayList<String> sortTo50) {
+
+        //List转Set
+        Set<String> set = new HashSet<>(sortTo50);
+        System.out.println("set.size(): " + set.size());
+
+        //Set转List
+        ArrayList<String> uniqueList = new ArrayList<>(set);
+        System.out.println("uniqueList.size(): " + uniqueList.size());
+
+        return uniqueList;
+    }
+
 
 
 
@@ -403,13 +474,23 @@ public class DNDR10_Random {
      * 1. 初始化试卷
      * 2. 计算 max clique
      * 3. 画图
+     * FIXME: 这个500代需要修复,很多时候，NicheGA 并没有跑到500代
+     *
+     * random初步结果：
+     * 最大圈顶点数：3~4
+     * 最大圈：6~10
+     * 平均适应度值：32.6~34.9
+     * 波动情况：7.8~15.5
+     *
+     * Java.lang.ArrayIndexOutOfBoundsException: 18
+     * 会不会是因为太频繁使用内存了
      *
      */
     @Test
     public  void  main() throws InterruptedException, SQLException {
 
-        // 轮询跑100代,方便查看结果
-        for (int j = 0; j < 100; j++) {
+        // 轮询跑50代,方便查看结果
+        for (int j = 0; j < 5; j++) {
 
             sortListForRandom.clear();
             sortTo50.clear();
@@ -431,18 +512,19 @@ public class DNDR10_Random {
             // 3.计算的适应度值，并取前50个体
             getFitnessForRandom();
 
+            // 去重
+            ArrayList<String> uniqueList  = uniqueDate(sortTo50);
 
             /**
              * 图G的最大圈顶点数为：2
              * 图G的最大圈个为：5
              */
-            new DNDR10().similarClique(sortTo50,1);
+            new DNDR10().similarClique(uniqueList,1);
+
+            // 计算均值 和 波动 情况
+            calAvgFitness(uniqueList);
 
         }
-
-
-
-
 
     }
 

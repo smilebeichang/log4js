@@ -29,18 +29,61 @@ import java.util.*;
  *   2.4 BSF(best so far) 趋于稳定 (最简单，此版本采纳这个)
  * 3.如何保证或者如何验证呢
  *   3.1 使用BSF(每代保留最优个体,与下一代做并集,随后去重,得到下一代：需验证是否会导致后代相似性过大)
- *   BSF 使用HashSet   保存(1.大小不受限制   2.可以达到去重的效果   3.排序不方便 )
- *       使用ArrayList 保存(1.大小不受限制   2.去重不方便         3.排序方便   )
+ *   BSF 使用ArrayList 保存(1.大小不受限制   2.去重不方便     3.排序方便 )
  *
  *
  * IDEA 设置断点条件：
  *  在断点的位置，右击断点旁边的小红点，会出来一个界面，在Condition这里填入断点条件即可。
+ *
+ *
+ *  诊断效果、质量(A:最大圈顶点数 平均、 B:fitness 波动)
+ *  任务1:指标 计算fitness的波动
+ *      1.1 验证BSF的整个适应度平均值+方差  这个更合理些 ,目前采用这个版本(平均+波动)
+ *      1.2 取top10,验证适应度平均值+方差
+ *
+ *  niche GA 初步结果:
+ *      1.最大圈顶点数：4~5
+ *      2.最大圈: 13~48
+ *      3.平均适应度值: 17.4~20.3
+ *      4.波动情况:6.4~16.0
+ *
+ *  目前对比情况:
+ *      最大圈定点数 niche GA > GA = random
+ *      最大圈      GA > niche GA > random  (此处可以做一个去重操作)
+ *      平均适应度值 random > GA > niche GA  (这个就很离谱了)
+ *      波动情况 random ~ GA ~ niche GA     (此处可以做一个去重操作)
+ *
+ *
+ *
+ *  任务2:指标 计算个体的波动
+ *      1.3 直接进行保存,然后比较个体是否一致  这个比较麻烦,验证个体变化，需确定用哪个版本做基线版本
+ *
+ *  任务3：题库的创建
+ *      300道题       5个属性
+ *      500|1000道题  8个属性
+ *
+ *  今晚任务安排：
+ *      距离11:30 还有4小时
+ *      1h 去重,然后三个模型做比较
+ *      0.5h 洗澡
+ *      1.5h PPT
+ *      1h  题库的创建
+ *
+ *
+ *  任务4：不同对象的比较
+ *      NicheGA、GA、random、P-CDI
+ *
+ *  任务5: 仿真
+ *      2^5 = 32 pattern、100个被试，rum
+ *
+ *  任务6：质量下降 查明原因
+ *  任务7：改变终止规则
+ *
  */
 public class DNDR10 {
 
     private Logger log = Logger.getLogger(DNDR10.class);
     private KLUtils klUtils = new KLUtils();
-
 
     /**
      * 迭代次数      13min 1000代
@@ -55,19 +98,16 @@ public class DNDR10 {
     private ArrayList<String> sortListForGene = new ArrayList<>(100);
 
 
-
-
     /**
      * 比较器
      */
     Comparator comp = new MyComparator();
 
 
-
     /**
-     * set存leader     */
+     * set存leader
+     */
     private HashSet<String> leaderSetForGene = new HashSet();
-
 
 
 
@@ -75,7 +115,6 @@ public class DNDR10 {
      * map(key是string存小生境leader, value是list存小生境member)
      */
     private HashMap<String, ArrayList<String>> mapArrayListForGene = new HashMap<>();
-
 
 
 
@@ -152,24 +191,74 @@ public class DNDR10 {
 
         System.out.println("================== calFitnessIn ==================");
 
-        ArrayList<String> inBack = new ArrayList<>();
+        ArrayList<String> sortTo50 = new ArrayList<>();
 
         // 1. 遍历 inMutate,调用 calFitnessOut 即可
         for (Map.Entry<String, ArrayList<String[]>> entry : inMutate.entrySet()) {
 
             ArrayList<String> outList = calFitnessOut(entry.getValue());
 
-            inBack.addAll(outList);
+            sortTo50.addAll(outList);
 
         }
 
         // 2. 遍历 outMutate
         ArrayList<String> outList = calFitnessOut(outMutate);
-        inBack.addAll(outList);
+        sortTo50.addAll(outList);
+
+        // 去重
+        ArrayList<String> uniqueList  = uniqueDate(sortTo50);
 
 
         // 3. 剩下的个体计算相似性
-        similarClique(inBack,2);
+        similarClique(uniqueList,2);
+
+        // 4. 计算fitness的均值 和 波动
+        calAvgFitness(uniqueList);
+
+
+    }
+
+    /**
+     * 验证BSF的整个适应度平均值和方差, 校验效果和波动性
+     * 如果校验以后发现效果不是很理想，可以换成top的平均值
+     *
+     *
+     */
+    private void calAvgFitness(ArrayList<String> inBack) {
+
+        // 1.遍历list,计算每个个体的fitness值,并使用变量进行汇总统计
+        // 计算平均值
+        Double avgsum = 0.0;
+        Double avg = 0.0;
+
+        if (inBack.size()>0) {
+
+            for (String s : inBack) {
+                avgsum = avgsum + Double.valueOf(s.split("_")[0]);
+            }
+            avg = avgsum / inBack.size();
+
+        }
+
+        // 2.sum / count
+        System.out.println(avg);
+        log.info("top 50%的平均适应度值：" + avg);
+
+        // 3.计算波动  方差=1/n(s^2+....)  方差越小越稳定
+        Double sdsum = 0.0 ;
+        Double sd = 0.0 ;
+
+        if (inBack.size()>0) {
+
+            for (String s : inBack) {
+                sdsum =  sdsum + Math.pow(( Double.valueOf(s.split("_")[0]) -  avg ),2);
+            }
+            sd = sdsum / inBack.size();
+
+        }
+        System.out.println(sd);
+        log.info("top 50%的波动情况：" + sd);
 
 
     }
@@ -280,6 +369,7 @@ public class DNDR10 {
      *       3.3 如果小于了某一个临界值,则表明其是真的相似
      */
     private Boolean checkAttr(List<String> listA, List<String> listB,int diffDegree) {
+
         Boolean flag = false;
 
         System.out.println(listA);
@@ -3084,21 +3174,23 @@ public class DNDR10 {
 
 
     /**
-     * 如果连续15代,相似个数均大于90,则认为其是相似的，此时
+     * 如果连续10代,相似个数均大于90,则认为其是相似的，此时
+     *
      * 1.将数据写入
      * 2.中断程序
      *
-     * FIXME ： 此处逻辑有误 待修复
+     * FIXME ： 此处逻辑有误 待修复  lastCount  被重置了
      *
      */
-    int maxCount = 15;
-    int judgmentBasis = 90;
-    public Boolean registerTimeTimer(int size) {
+    int maxCount = 10;
+    int judgmentBasis = 85;
+    public ArrayList<Object> registerTimeTimer(int size,int lastCount) {
 
         Boolean timeFlag = false;
 
         if (size >= judgmentBasis) {
-            lastCount ++;
+            lastCount = lastCount + 1;
+            System.out.println(lastCount);
             if (lastCount > maxCount){
                 timeFlag =  true;
             }
@@ -3107,8 +3199,43 @@ public class DNDR10 {
         }
         System.out.println(" 不断的尝试进行 终止判断");
 
-        return timeFlag;
+        ArrayList<Object> result = new ArrayList<>();
 
+        if (timeFlag){
+            lastCount = 0;
+        }
+        result.add(timeFlag);
+        result.add(lastCount);
+
+        if (timeFlag){
+            lastCount = 0;
+        }
+
+        return result;
+
+    }
+
+
+
+    /**
+     * top 50 数据去重
+     * 目的: 下游做最大圈和方差的时候,可规避去重
+     * 方式：list --> set --> list
+     *
+     * 迭代5轮,去重效果不明显
+     *
+     */
+    private ArrayList<String> uniqueDate(ArrayList<String> sortTo50) {
+
+        //List转Set
+        Set<String> set = new HashSet<>(sortTo50);
+        System.out.println("set.size(): " + set.size());
+
+        //Set转List
+        ArrayList<String> uniqueList = new ArrayList<>(set);
+        System.out.println("uniqueList.size(): " + uniqueList.size());
+
+        return uniqueList;
     }
 
 
@@ -3130,7 +3257,7 @@ public class DNDR10 {
         initItemBank();
 
         // 遍历50次,形成多次结果,便于比较
-        for (int j = 0; j < 50; j++) {
+        for (int j = 0; j < 5; j++) {
             timeFlag =  false;
             lastCount = 0;
             // 这个是否有必要
@@ -3200,9 +3327,11 @@ public class DNDR10 {
 
 
                 // 10. 最大圈问题
+                // timeFlag =  true;
                 if (timeFlag) {
+                    // 最大圈效果
                     gtMeanPart(inMutate, outMutate);
-                    // 此处重置flag,防止下次迭代时进行稳定性的判断
+                    // 此处重置flag,防止下次迭代时影响稳定性的判断
                     timeFlag =  false;
                     // 使用 break 替代 exit
                     System.out.println("退出！！");
@@ -3215,10 +3344,9 @@ public class DNDR10 {
                 paperGenetic = mergeToGene(inMutate, outMutate);
 
             }
+
+
         }
-
-
-
     }
 
 

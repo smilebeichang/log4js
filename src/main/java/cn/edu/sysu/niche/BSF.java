@@ -84,6 +84,9 @@ public class BSF {
             // 收敛规则(计算变化趋势 bsfV1 vs bsf)
             if( iter < 500 ){
                 timeFlag = calSim(bsf, bsfV1);
+                if(timeFlag){
+                    log.info("迭代到这个代数的时候，终止了:  "+iter);
+                }
             }else {
                 timeFlag = true;
             }
@@ -102,15 +105,19 @@ public class BSF {
      * 比对两个集合的相似题目数
      *
      */
+    int lastCount = 0;
     private Boolean calSim(ArrayList<String> bsf, ArrayList<String> bsfV1) throws SQLException {
 
         // 需使用 bsfV1 contain bsf,否则会导致数据丢失(bsf 是全局变量,同一内存地址)
         bsfV1.retainAll(bsf);
         log.info(bsfV1.size());
 
-        // 收敛规则(定时器)
-        Boolean timeFlag = new DNDR10().registerTimeTimer(bsfV1.size());
+        // 收敛规则(定时器)  取得是全局的lastCount
+        ArrayList<Object> result = new DNDR10().registerTimeTimer(bsfV1.size(),lastCount);
+        Boolean timeFlag = (Boolean) result.get(0);
+        lastCount = (int) result.get(1);
 
+        System.out.println(lastCount);
         return timeFlag;
 
     }
