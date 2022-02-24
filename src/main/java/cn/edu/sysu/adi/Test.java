@@ -18,13 +18,27 @@ public class Test {
 
     @org.junit.Test
     public void test2(){
-        int i = 100;
-        //i*=0.1;
-        //System.out.println(i);
-        for (int j = 0; j < 10; j++) {
-            i++;
-            System.out.println(i);
+
+        //随机生成
+        //String attributes ;
+        Set<String> fill_set = new HashSet<>();
+        for (int j = 0; j < 6; j++) {
+            //a的ASCII码 数字--字符--pattern
+            while (fill_set.size() == j ){
+                String c = ((char) (Math.random() * 8 + 'a'))+"";
+                fill_set.add(c);
+            }
         }
+        int p1 = fill_set.contains("a")?1:0;
+        int p2 = fill_set.contains("b")?1:0;
+        int p3 = fill_set.contains("c")?1:0;
+        int p4 = fill_set.contains("d")?1:0;
+        int p5 = fill_set.contains("e")?1:0;
+        int p6 = fill_set.contains("f")?1:0;
+        int p7 = fill_set.contains("g")?1:0;
+        int p8 = fill_set.contains("h")?1:0;
+        String ip = "("+p1+","+p2+","+p3+","+p4+","+p5+","+p6+","+p7+","+p8+")";
+        System.out.println(ip);
 
     }
 

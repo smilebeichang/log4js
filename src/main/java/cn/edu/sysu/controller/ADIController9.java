@@ -1,7 +1,7 @@
 package cn.edu.sysu.controller;
 
 import cn.edu.sysu.adi.TYPE;
-import cn.edu.sysu.niche.Niche3;
+import cn.edu.sysu.niche.others.Niche3;
 import cn.edu.sysu.pojo.Papers;
 import cn.edu.sysu.utils.JDBCUtils4;
 import cn.edu.sysu.utils.KLUtils;

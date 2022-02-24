@@ -5,7 +5,7 @@ import cn.edu.sysu.pojo.Papers;
 import cn.edu.sysu.utils.JDBCUtils4;
 import org.apache.log4j.Logger;
 import org.junit.Test;
-import cn.edu.sysu.niche.MyComparator;
+import cn.edu.sysu.niche.others.MyComparator;
 
 import java.sql.SQLException;
 import java.util.*;

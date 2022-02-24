@@ -1,5 +1,6 @@
-package cn.edu.sysu.niche;
+package cn.edu.sysu.niche.others;
 
+import cn.edu.sysu.niche.a5n3.DNDR10;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 

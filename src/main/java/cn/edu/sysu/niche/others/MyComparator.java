@@ -1,4 +1,4 @@
-package cn.edu.sysu.niche;
+package cn.edu.sysu.niche.others;
 
 import java.util.Comparator;
 

@@ -1,4 +1,4 @@
-package cn.edu.sysu.niche;
+package cn.edu.sysu.niche.others;
 
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.pojo.Papers;

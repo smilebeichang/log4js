@@ -1,73 +1,86 @@
-package cn.edu.sysu.niche;
+package cn.edu.sysu.niche.others;
 
 
-import cn.edu.sysu.adi.TYPE;
-import cn.edu.sysu.utils.JDBCUtils4;
+import cn.edu.sysu.controller.ADIController7;
 import com.sun.istack.internal.NotNull;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import java.sql.SQLException;
 import java.util.*;
-
-import static java.util.Arrays.sort;
 
 
 /**
  * @Author : song bei chang
- * @create 2021/8/20 22:01
+ * @create 2021/7/3 10:22
  *
- *  《A Diverse Niche radii Niching Technique for Multimodal Function Optimization》
+ *  复现 GA 和 Niche的代码，并实现多峰函数的曲线图
+ *      1.稳态GA
+ *      2.嵌入Niche
+ *      3.替换适应度函数
+ *      4.打印适应度值
  *
- * FIXME 本周任务 复现自适应小生境的代码
+ * 《Messy genetic algorithms Motivation analysis and first results》Goldberg,Korb, Deb  1989
  *
- *      初始化 -- 选择 -- 交叉 -- 变异 -- 修补
- *            |<----     niche      ---->|
+ * FIXME 本周任务
+ *     4.1 校验niche效果 + 相似度指标的确定
+ *          交叉变异: r表达式 rx1+(1-r)x2       abs(x1 - x2)
  *
- *      1.自适应小生境
- *          能够找到峰，评价标准是平均数和标准差，日志打印画图
- *          1.1 哪些峰需要合并
- *              将群体中的个体分配到不同小生境中
- *              距离度量定义
- *              判断哪些峰需要合并(矩阵+凹点问题)  故基因型需要为2进制的多基因序列
- *          1.2 如何合并
- *              集合调整
- *              半径调整1
- *              个体剔除操作
- *              半径调整2
- *          1.3 什么时候合并
- *              调整初始半径
- *                  1)若候选小生境数连续p次等同于实际小生境数，则 R = R * r ;
- *                  2)若候选小生境数小于2，则 R = R  / r.
+ *     4.2 niche 和 修补 的冲突
+ *          niche 当做评价因子来使用
+ *          初始化 -- 选择 -- 交叉 -- 变异 -- 修补 -- niche
  *
- *      2.代入GA
- *          1和2的区别仅仅在于修补算子,故只要1出来了，2的话，应该很好解决
+ *          今天任务：
+ *              1.初步实现dc 和 rts
+ *                     dc  目前能找到多峰,打印方式是每20代打印一次
+ *                     rts 个体数目曲线图，多样性的保存出现了点问题,待修复、或者检验代码的正确性  等高等距多峰函数func1
+ *  *              2.保证多样性，延迟over time  (下午的首要目的)
+ *                  前期能够往适应度高的地方寻找适应度值,但后期多样性没能很好的保护
  *
+ *                  （交叉|变异 因为目前没能选取到0.1|0.7故需进一步改写）
+ *                  刚开始是存在0.1 和 0.7的，但到了第70代开始，其便很可能消失
+ *
+ *                   现象：个体到了100代以后，仍然可以急剧增加或减少
+ *                   原因：因为是多峰，峰之间相互的争抢资源
+ *                   小生境保证了交叉变异部分的多样性，但选择部分没能进行有效保证。
+ *                   特别是不等高的峰值，那么其很可能出现更大概率的倾斜
+ *                   选择时，可以根据峰的个数，来人工限制峰的范围。但未知的多峰如何处理呢？
+ *
+ *
+ *          波峰的适应度值往往大于随机的值,故到了后期其也不会发生变化。应该保持一个平稳的曲线
+ *          预期100代达到了50%
+ *          1.轮盘赌的选择的原因吗？适应度越高的个体，越容易保留到下一代，而某些个体因为其本身就比较少，故不断的迭代过程中，会出现某些极值点缺失。
+ *              解决方案：1.1 在选择中做修补，防止某个解过多。如果硬性指标50，曲线图不符合要求。
+ *                      1.2 后期不再使用轮盘赌 或者说，后期不再使用选择  不合适
+ *
+ *                          选择中嵌套局部最优，搜素空间限定为局部峰值附近寻找，解的话，也使用附近的解去轮盘赌。
+ *
+ *
+ *          3.不等高不等距多峰函数 (下午的首要目的)  和函数1呈现的现象是一样的，待修复好函数1后再做考虑
+ *
+ *          5.疑问：
+ *              1.后期多样性是如何进行波动的（局部最优）
+ *                    前期为什么能进行个体数目的变化。因为前期替换的解不处于波峰位置，故数量在递增
+ *                    后期为什么会出现小生境数减少的情况，因为领域解的适应度值低于新解
+ *              2.自适应小生境，自动确认小生境的个数，范围人工确定
+ *                  邻域大小m根据leader的适应度值自适应确定
+ *                  解决方案如下：
+ *                      1.设置邻域的大小在Mmin和Mmax之间：
+ *                      2.将本次迭代中适应度最大的个体鉴定为leader。然后，成员按共享距离以降序排列。前m个排序的成员（包括leader）形成一个新的邻域组。
+ *                      3.同时，添加过的成员(已经分配的)被标记为已处理，并从当前总体中删除。重复上述过程，直到处理了所有成员分配到邻域组。
+ *
+ *                      ①根据leader的适应度值来确定系数γ    γ的取值范围[0,1]。Lleader是leader的适应度值；
+ *                      ②根据γ调整邻域大小m,  γ(Mmax-Mmin) + Mmin
  *
  */
-public class DNDR {
+public class Niche4 {
 
     /**
      * 容器
      */
-    private double[]  paper_genetic =new double[100];
-    private int POPULATION_SIZE = 100;
+    private double[]  paper_genetic =new double[200];
+    private int POPULATION_SIZE = 200;
     private int ITERATION_SIZE = 120;
     private Map<Double,Double> SIN_MAP = new HashMap<>(1000);
-    private static ArrayList<String> bankList = new ArrayList();
-
-    /**
-     *  100套试卷 10道题
-     */
-    private  String[][] paperGenetic =new String[100][10];
-
-    private JDBCUtils4 jdbcUtils = new JDBCUtils4();
-
-
-    /**
-     * 全局半径(初始化为0.1，后续可设置为0.05,0.1,0.2进行验证)
-     */
-    private  double radius = 0.1 ;
 
     /**
      *  全局变量
@@ -75,43 +88,43 @@ public class DNDR {
     private double tmp1;
     private double tmp2;
 
-    private  Logger log = Logger.getLogger(DNDR.class);
+    private  Logger log = Logger.getLogger(Niche4.class);
+    private  Logger log2 = Logger.getLogger(ADIController7.class);
 
     /**
      *  1.稳态GA
      */
     @Test
-    public void main() throws SQLException {
+    public void main(){
 
-        // 初始化  这个初始化这么简单吗？单double类型，都已经不是数组了？
-        // 为了适配一篇文献，直接采用[0,1],需要研究一下，以及改动回来
+        // 初始化
         init();
-        //initSin();
-
-        // 按照适应度排序
-        sortByFitness(paperGenetic);
-
+        initSin();
 
         // 迭代次数
         for (int i = 0; i < ITERATION_SIZE; i++) {
-            // 计算各个极值点出现的次数
-            //countFunc1();
+            // 选择
+            countFunc1();
             //countFunc3();
 
-            // 选择
+            //selection(i);
             selectionRts();
 
             for (int j = 0; j < POPULATION_SIZE - 1; j++) {
 
-                // 交叉
+                // 交叉  交叉变异没生效吗？后期次数都没再变动了
                 crossCover(j);
 
                 // 变异
                 mutate();
 
+                // 精英策略
+                //elitistStrategy();
 
-                // 限制性锦标赛选择 暂时不删除,因为需要使用其替换掉文献中的适应度共享算子
-                // rts();
+                // 确定性拥挤小生境
+                //dc(j);
+                // 限制性锦标赛选择
+                rts();
 
             }
 
@@ -128,19 +141,129 @@ public class DNDR {
 
 
 
-
-
     /**
-     *
-     * FIXME 需修改，因此算子中将小生境个数固定设置为了5
-     * 选择嵌套局部最优
-     *      搜素空间限定为局部峰值附近寻找，解的话，也使用附近的解去轮盘赌。
-     *
-     *
+     * 选择
+     *      到了150代的时候，最大波动居然能达到 【10~25】  需进一步查明原因
+     *      轮盘赌选择,的确有可能多次呈现同一个值。
+     *      在选择中做修补，防止某个解过多。如果硬性指标50，会不会不符合要求。
+     *      解决方案：
+     *              限制同一批次选择最多连续出现几次（通过count来设置）
+     *              1.只能保证最高不超过，无法保证最低不低于
+     *                  加上下限  先试试效果
+     *              2.无法保证多样性的平稳维持
+     *                  代码方面进行优化
+     *                      2.1 尝试使用锦标赛进行选取  行不通，其会导致更快的收敛
+     *                      2.2 去除选择这一步骤，后期是可以的，但前期如何选出若干波峰？
+     *                          使用count判断吗？若200/4=50，则表示可以开始小生境了
+     *                          steady state competition.  w = 10, 100 population ,100 generations
+     *                  伪吸收状态：会改变，但改变缓慢
+     *                  in the beginning of a run, it allows rapid exploitation of schema information. When an individual or a niche becomes prominent in the population, RTS then slows down its expansion to the point where other niches are allowed coexist with its niche.
      *   小生境和局部最优的联系
      *      遗传算法种群中的小生境可以定义为搜索空间中最接近遗传算法当前最优集合中的任何一个元素的部分。
      *      遗传算法种群中各个小生境相互协作，形成对整个搜索空间的覆盖。
      *      rts是如何抵抗变化的：与最相似的解竞争，判断是否进入新种群。如果窗口足够大，那么总体的潜在概率分布在很长一段时间内不会发生变化。
+     *
+     *
+     *
+     */
+    public  void selection(int iterator){
+
+            System.out.println("====================== select ======================");
+
+            // 同时考虑迭代次数和个体数的上下限 iterator upNum lowNum
+            // 上限：  50代之前，不能超过50。50代以后,不得超出60
+            int upNum = (iterator > 50 ?  60 : 50);
+            int lowNum =(iterator > 20 ?  20 : 0);
+            // 避免后期完全曲线
+            log2.info("迭代次数："+iterator+" 上限："+upNum+" 下限："+lowNum);
+
+            //轮盘赌 累加百分比
+            double[] fitPie = new double[POPULATION_SIZE];
+
+            //每套试卷的适应度占比
+            double[] fitPro = getFitness();
+
+            //累加初始值
+            double accumulate = 0;
+
+            //试卷占总试卷的适应度累加百分比
+            for (int i = 0; i < POPULATION_SIZE; i++) {
+                fitPie[i] = accumulate + fitPro[i];
+                accumulate += fitPro[i];
+            }
+
+            //累加的概率为1 数组下标从0开始
+            fitPie[POPULATION_SIZE-1] = 1;
+
+            //初始化容器 随机生成的random概率值
+            double[] randomId = new double[POPULATION_SIZE];
+
+            //生成随机id
+            for (int i = 0; i < POPULATION_SIZE; i++) {
+                randomId[i] = Math.random();
+            }
+
+            // 排序
+            Arrays.sort(randomId);
+
+            //轮盘赌 越大的适应度，其叠加时增长越快，即有更大的概率被选中
+            double[] new_paper_genetic =new double[POPULATION_SIZE];
+            int newSelectId = 0;
+            for (int i = 0; i < POPULATION_SIZE ; i++) {
+                while (newSelectId < POPULATION_SIZE && randomId[newSelectId] < fitPie[i]){
+                    // 在此处增加一个校验算子,确保单个个体数不能操作硬性指标 估计耗时会急剧上升 待优化 27s --> 33s
+                    // 1.计算new_paper_genetic中的个体数，返回一个map
+                    HashMap<Double, Integer> countResult = countSelect1(new_paper_genetic);
+                    double key =0;
+                    Integer count =0;
+                    for(Map.Entry<Double, Integer> entry : countResult.entrySet()) {
+                         key = entry.getKey();
+                         count = entry.getValue();
+                    }
+                    // 2.根据map.get()来判断,若大于50，则进行下一次的轮盘赌的子循环
+                    // 若最大个体数超过num，即此key不能被选取 需校验paper_genetic的某些值为0产生的原因
+                    if(count < upNum){
+                        new_paper_genetic[newSelectId]   = paper_genetic[i];
+                        newSelectId += 1;
+                        //break;
+                    }else if (Math.abs(paper_genetic[i] - key)>0.02){
+                        new_paper_genetic[newSelectId]   = paper_genetic[i];
+                        newSelectId += 1;
+                        //break;
+                    }else if(Math.abs(paper_genetic[i] - key)<0.02 && count >= upNum){
+                        break;
+                    }
+                    /*else {
+                        // 导致总个数减少了吗？ 数组越界 ArrayIndexOutOfBoundsException: 200
+                        // 引入i的目的是 为了跳出循环
+                        i ++;
+                        if (i >196){
+                            System.out.println("i 的值："+i);
+                        }
+                    }*/
+                }
+            }
+
+            //重新赋值种群的编码
+            paper_genetic=new_paper_genetic;
+
+    }
+
+
+    /**
+     * 前期后期是否需要进行切换吗？只要保证每个峰值附近均有解即可。
+     * 将d/2=0.1 设置为峰半径,然后在每个峰半径单独执行轮盘赌即可
+     *
+     * 选择嵌套局部最优
+     *      搜素空间限定为局部峰值附近寻找，解的话，也使用附近的解去轮盘赌。
+     *      To see this for S0, let d0 be the minimum distance from S0 to any other solution in S. Any element within B(S0,d0/2)2 has to have a fitness less than S0. Thus S0 is a locally optimal point in the space. Without a loss of generality so are all the other points in S.
+     *
+     *      现象:第5代开始,五个小数组的容量便不再变化。
+     *      原因：1.交叉变异未生效  no
+     *            (rts的替换阶段 伪吸收 导致的吗？ 将window降低至1*5 仍然收效甚微 原因：其即使和其他域的个体进行比较，因为适应度的问题，其仍然不变)
+     *             将交叉变异概率降低些，是否能延缓最开始的快速收敛   no,收效甚微
+     *             是如何使种群一直在轻微波动的呢？  换用func3执行试试
+     *           2.选择时的size未生效 no
      *
      *
      */
@@ -157,6 +280,11 @@ public class DNDR {
 
         // 个体、总和 加一层判断，防止map获取的值为null。 不能用hash 去重操作将导致数量不一致
         // 容器  后续考虑默认容量的初始值大小
+        /*HashSet<Object> hashSet1 = new HashSet<>();
+        HashSet<Object> hashSet2 = new HashSet<>();
+        HashSet<Object> hashSet3 = new HashSet<>();
+        HashSet<Object> hashSet4 = new HashSet<>();
+        HashSet<Object> hashSet5 = new HashSet<>();*/
 
         ArrayList<Double> list1 = new ArrayList<>();
         ArrayList<Double> list2 = new ArrayList<>();
@@ -221,6 +349,18 @@ public class DNDR {
 
         }
 
+        //hashSet 转 数组   目的是为了构建一个容器，感觉不需要转arr
+        /*Double[] array1 = new Double[hashSet1.size()];
+        Double[] array2 = new Double[hashSet2.size()];
+        Double[] array3 = new Double[hashSet3.size()];
+        Double[] array4 = new Double[hashSet4.size()];
+        Double[] array5 = new Double[arr5.size()];
+        array1 = hashSet1.toArray(array1);
+        array2 = hashSet2.toArray(array2);
+        array3 = hashSet3.toArray(array3);
+        array4 = hashSet4.toArray(array4);
+        array5 = hashSet5.toArray(array5);*/
+
 
         System.out.println("============ 计算适应度过程  ===================");
         ArrayList<ArrayList<Double>> arrayList = new ArrayList<>(5);
@@ -264,9 +404,10 @@ public class DNDR {
             }
 
             // 排序
-            sort(randomId);
+            Arrays.sort(randomId);
 
             //轮盘赌 越大的适应度，其叠加时增长越快，即有更大的概率被选中
+
             int newSelectId = 0;
             for (int i = 0; i < arrLen ; i++) {
                 while (newSelectId < arrLen && randomId[newSelectId] < fitPie[i]){
@@ -289,7 +430,7 @@ public class DNDR {
 
     /**
      * 交叉
-     *      完全按照老师的文档来，转换为代码，看看效果，争取实现满足效果 FIXME 什么时候开始变成了单点基因了？
+     *      完全按照老师的文档来，转换为代码，看看效果，争取实现满足效果
      *      交叉变异: r表达式 rx1+(1-r)x2
      *
      *      不修改父代,且保留两个新个体
@@ -312,9 +453,10 @@ public class DNDR {
 
     /**
      * 变异
-     *      将tmp1|tmp2变异和小生境剥离:
-     *          变异使用 r表达式 rx1+(1-r)x2
+     *      将变异和小生境剥离:
+     *          变异使用 r表达式 rx1+(1-r)x2  是否是因为这里，导致取值
      *          小生境作为修补后的评价因子
+     *          如果外部新增一个因子，是否会影响取值范围  感觉会变下小
      */
     public  void mutate()  {
 
@@ -442,6 +584,7 @@ public class DNDR {
             double key = entry.getKey();
             Integer count = entry.getValue();
             log.info("极值点："+ key+"  次数："+count);
+            log2.info("极值点："+ key+"  次数："+count);
         }
 
     }
@@ -573,82 +716,27 @@ public class DNDR {
             double key = entry.getKey();
             Integer count = entry.getValue();
             log.info("极值点："+ key+"  次数："+count);
+            log2.info("极值点："+ key+"  次数："+count);
         }
 
     }
 
 
 
-
     /**
      * 随机生成初代种群
-     *      100个体，每个个体10个基因  多基因
+     *      200个体  单基因
+     *      优化方案1：初始化一次，存入文件中，后续统一调用。但时间上估计不会相差太大。只是200个个体而已
+     *      优化方案2：初始化时保证0.001.这样可以方便后续的计算。
      *
+     *      个体的多少有什么影响吗？
+     *          越多越具有代表性。
      */
-    private void  init() throws SQLException {
-
-        System.out.println("====== 开始选题,构成试卷  轮盘赌构造  ======");
-
-        // 试卷|个体大小  提供遗传变异的基本单位
-        int  paperNum = paperGenetic.length;
-
-        // 试题|基因大小
-        int questionsNum = 10 ;
-
-        // 单套试卷的集合
-        HashSet<String> itemSet = new HashSet<>();
-
-        // 题库310道题  50:100:100:50:10   硬性约束：长度  软性约束：题型，属性比例
-        // 获取题库所有试题  [8:CHOSE:(1,0,0,0,0),....]
-        bankList = getBank();
-
-        for (int j = 0; j < paperNum; j++) {
-
-            //清空上一次迭代的数据
-            itemSet.clear();
-
-            for (int i = 0; i < questionsNum; i++) {
-                //减少频繁的gc
-                String item ;
-                //去重操作
-                while (itemSet.size() == i) {
-                    //获取试题id   轮盘赌构造
-                    int sqlId = roulette(itemSet);
-
-                    item = jdbcUtils.selectOneItem(sqlId+1);
-                    itemSet.add(item);
-                }
-            }
-
-            // 将hashSet转ArrayList 并排序
-            ArrayList<String> list = new ArrayList<>(itemSet);
-
-            // idList容器
-            ArrayList<Integer> idList = new ArrayList<>();
-            for (int i = 0; i <list.size() ; i++) {
-                idList.add(Integer.valueOf(list.get(i).split(":")[0]));
-            }
-
-            //list  排序  目前这套试卷抽取到的试题id
-            Collections.sort(idList);
-
-
-            // 根据id从数据库中查询相对应的试题
-            String ids = idList.toString().substring(1,idList.toString().length()-1);
-            ArrayList<String> bachItemList = jdbcUtils.selectBachItem(ids);
-
-
-            // 交叉变异的对象是 试题   即试卷=个体  试题=基因
-            String[] itemArray = new String[bachItemList.size()];
-            for (int i = 0; i < bachItemList.size(); i++) {
-                itemArray[i] = bachItemList.get(i);
-            }
-            // 赋值  把题库提升为全局变量，方便整体调用 容器：二维数组
-            paperGenetic[j] = itemArray;
-
+    private void  init() {
+        System.out.println("=== init POPULATION_SIZE ===");
+        for (int i = 0; i < POPULATION_SIZE; i++) {
+            paper_genetic[i] = numbCohesion(Math.random());
         }
-
-
     }
 
 
@@ -776,7 +864,26 @@ public class DNDR {
 
 
 
+    /**
+     * 确定性拥挤小生境
+     *
+     */
+    public void  dc(int i)  {
 
+        // 父代 c1 c2
+        ArrayList<Double> cList = new ArrayList<>(2);
+        cList.add(numbCohesion(paper_genetic[i]));
+        cList.add(numbCohesion(paper_genetic[i+1]));
+
+
+        // 确定性拥挤算法
+        ArrayList<Double> cwList = deterministicCrowding();
+
+        // 替换 or 保留
+        // cList: 原始父代，  cwList:新个体 原始父代 和 交叉变异后的个体进行比较操作
+        closestResembledc(cList, cwList, i);
+
+    }
 
     /**
      * 限制性选择小生境
@@ -1045,7 +1152,7 @@ public class DNDR {
      */
     private void fitnessCalculations(){
 
-        // 调用100个个体，计算每个个体的适应度值
+        // 调用200个个体，计算每个个体的适应度值
         // 计算试卷的适应度值
         for (int i = 0; i < POPULATION_SIZE; i++) {
 
@@ -1054,334 +1161,6 @@ public class DNDR {
         }
     }
 
-
-    /**
-     * 返回题库所有试题 id:type:pattern
-     *
-     */
-    private ArrayList<String> getBank() throws SQLException {
-
-        return jdbcUtils.select();
-
-    }
-
-
-    /**
-     *   逻辑判断 ：轮盘赌构造选题
-     *        1.id不能重复
-     *        2.题型|属性比例 影响适应度
-     *
-     */
-    private int roulette(HashSet<String> itemSet)  {
-
-
-        //轮盘赌 累加百分比
-        double[] fitPie = new double[bankList.size()];
-
-        //计算每道试题的适应度占比   1*0.5*0.8
-        double[] fitnessArray = getRouletteFitness(itemSet);
-
-        //id去重操作
-        HashSet<Integer> idSet = new HashSet<>();
-
-        //迭代器遍历HashSet
-        Iterator<String> it = itemSet.iterator();
-        while(it.hasNext()) {
-            idSet.add(Integer.valueOf(it.next().split(":")[0]));
-        }
-
-        //累加初始值
-        double accumulate = 0;
-
-        //试题占总试题的适应度累加百分比
-        for (int i = 0; i < bankList.size(); i++) {
-            fitPie[i] = accumulate + fitnessArray[i];
-            accumulate += fitnessArray[i];
-        }
-
-        //累加的概率为1   数组下标从0开始
-        fitPie[310-1] = 1;
-
-        //随机生成的random概率值  [0,1)
-        double randomProbability = Math.random();
-
-        //轮盘赌 越大的适应度，其叠加时增长越快，即有更大的概率被选中
-        int answerSelectId = 0;
-        int i = 0;
-
-        while (i < bankList.size() && randomProbability > fitPie[i]){
-            //id 去重
-            if(idSet.contains(i)){
-                i += 1;
-            }else{
-                i ++;
-                answerSelectId   = i;
-            }
-        }
-
-        return answerSelectId;
-
-    }
-
-
-    /**
-     * 1.根据已选试题，计算题库中每道试题的适应度值比例
-     * 2.每道题的概率为 1*penalty^n,总概率为310道题叠加
-     *      2.1  初始化的时候将全局的310题查询出来（id:type:pattern）
-     *      2.2  求出每道试题的概率 1 * 惩罚系数
-     *      2.3  求出每道试题的适应度占比
-     *  题型比例 选择[0.2,0.4]   填空[0.2,0.4]  简答[0.1,0.3] 应用[0.1,0.3]
-     *  属性比例 第1属性[0.2,0.4]第2属性[0.2,0.4] 第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
-     *
-     */
-    private double[] getRouletteFitness(HashSet<String> itemSet)  {
-
-        // 所有试题的适应度总和
-        double fitSum = 0.0;
-
-        // 每道试题的适应度值
-        double[] fitTmp = new double[bankList.size()];
-
-        // 每道试题的适应度占比   疑问:1/310 会很小,random() 这样产生的值是否符合要求
-        double[] fitPro = new double[bankList.size()];
-
-        // 数据库属性排列的规则,因为基数大,导致随机选取的题目不具有代表性
-        // 解决方案:题目顺序打乱（修改数据库的属性排序）
-
-        //题型个数
-        int typeChose  = 0;
-        int typeFill   = 0;
-        int typeShort  = 0;
-        int typeCompre = 0;
-
-
-        //此次迭代各个题型的数目
-        for (String s:itemSet) {
-            //System.out.println(s);
-
-            //计算每种题型个数
-            if(TYPE.CHOSE.toString().equals(s.split(":")[1])){
-                typeChose += 1;
-            }
-            if(TYPE.FILL.toString().equals(s.split(":")[1])){
-                typeFill += 1;
-            }
-            if(TYPE.SHORT.toString().equals(s.split(":")[1])){
-                typeShort += 1;
-            }
-            if(TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])){
-                typeCompre += 1;
-            }
-        }
-
-        //题型比例
-        double typeChoseRation  =  typeChose/10.0;
-        double typeFileRation   =  typeFill/10.0;
-        double typeShortRation  =  typeShort/10.0;
-        double typeCompreRation =  typeCompre/10.0;
-
-
-        //属性个数
-        int attributeNum1  = 0;
-        int attributeNum2  = 0;
-        int attributeNum3  = 0;
-        int attributeNum4  = 0;
-        int attributeNum5  = 0;
-
-        //此次迭代各个属性的数目
-        for (String s:itemSet) {
-            //System.out.println(s);
-
-            //计算每种题型个数
-            if("1".equals(s.split(":")[2].substring(1,2))){
-                attributeNum1 += 1;
-            }
-            if("1".equals(s.split(":")[2].substring(3,4))){
-                attributeNum2 += 1;
-            }
-            if("1".equals(s.split(":")[2].substring(5,6))){
-                attributeNum3 += 1;
-            }
-            if("1".equals(s.split(":")[2].substring(7,8))){
-                attributeNum4 += 1;
-            }
-            if("1".equals(s.split(":")[2].substring(9,10))){
-                attributeNum5 += 1;
-            }
-        }
-        //System.out.println("ar1: "+attributeNum1+"\tar2: "+attributeNum2+"\tar3: "+attributeNum3+"\tar4: "+attributeNum4+"\tar5: "+attributeNum5);
-
-        //属性比例
-        double attributeRatio1 = attributeNum1/23.0;
-        double attributeRatio2 = attributeNum2/23.0;
-        double attributeRatio3 = attributeNum3/23.0;
-        double attributeRatio4 = attributeNum4/23.0;
-        double attributeRatio5 = attributeNum5/23.0;
-
-
-
-        // 题型和属性比例 和轮盘赌搭建关系：
-        //      已抽取的属性个数越多，则惩罚系数越大 且各个属性是累乘关系
-        //      比例和一个固定值做比较即可  eg: typeChose/10    AttributeRatio1/23
-        //      如果未超出比例，则按照正常流程走，一旦超过，则适应度值急剧下降
-        for (int j = 0; j < bankList.size(); j++) {
-            double penalty = 1;
-            String[] splits = bankList.get(j).split(":");
-
-            // 题型比例
-            // 为什么小于也要做惩罚，因为选取了一次，需要实时统计比例信息，并获取惩罚系数
-            if(splits[1].contains(TYPE.CHOSE+"")){
-                if(typeChoseRation<0.4){
-                    penalty = penalty * Math.pow(0.5,typeChose);
-                }else {
-                    penalty = penalty * Math.pow(0.5,typeChose*typeChose);
-                }
-            }
-            if(splits[1].contains(TYPE.FILL+"")){
-                if(typeFileRation<0.4){
-                    penalty = penalty * Math.pow(0.5,typeFill);
-                }else {
-                    penalty = penalty * Math.pow(0.5,typeFill*typeFill);
-                }
-            }
-            if(splits[1].contains(TYPE.SHORT+"")){
-                if(typeShortRation<0.3){
-                    penalty = penalty * Math.pow(0.5,typeShort);
-                }else {
-                    penalty = penalty * Math.pow(0.5,typeShort*typeShort);
-                }
-            }
-            if(splits[1].contains(TYPE.COMPREHENSIVE+"")){
-                if(typeCompreRation<0.3){
-                    penalty = penalty * Math.pow(0.5,typeCompre);
-                }else {
-                    penalty = penalty * Math.pow(0.5,typeCompre*typeCompre);
-                }
-            }
-
-            //属性比例
-            if("1".equals(splits[2].substring(1,2))){
-                if(attributeRatio1<0.4){
-                    penalty = penalty * Math.pow(0.8,attributeNum1);
-                }else {
-                    penalty = penalty * Math.pow(0.8,attributeNum1*attributeNum1);
-                }
-            }
-            if("1".equals(splits[2].substring(3,4))){
-                if(attributeRatio2<0.4){
-                    penalty = penalty * Math.pow(0.8,attributeNum2);
-                }else {
-                    penalty = penalty * Math.pow(0.8,attributeNum2*attributeNum2);
-                }
-            }
-            if("1".equals(splits[2].substring(5,6))){
-                if(attributeRatio3<0.3){
-                    penalty = penalty * Math.pow(0.8,attributeNum3);
-                }else {
-                    penalty = penalty * Math.pow(0.8,attributeNum3*attributeNum3);
-                }
-            }
-            if("1".equals(splits[2].substring(7,8))){
-                if(attributeRatio4<0.3){
-                    penalty = penalty * Math.pow(0.8,attributeNum4);
-                }else {
-                    penalty = penalty * Math.pow(0.8,attributeNum4*attributeNum4);
-                }
-            }
-            if("1".equals(splits[2].substring(9,10))){
-                if(attributeRatio5<0.3){
-                    penalty = penalty * Math.pow(0.8,attributeNum5);
-                }else {
-                    penalty = penalty * Math.pow(0.8,attributeNum5*attributeNum5);
-                }
-            }
-
-
-            //个体值 和 总和
-            fitTmp[j] = penalty ;
-            fitSum = fitSum + penalty ;
-
-        }
-
-        // 计算出每道试题的各自比例
-        for (int i = 0; i < bankList.size(); i++) {
-            fitPro[i] = fitTmp[i] / fitSum;
-        }
-
-        //返回类型为 double[] 转 ArrayList<Double>  可以省略
-        //ArrayList<Double> arrayList = new ArrayList<>(fitPro.length);
-        //for (double anArr : fitPro) {
-        //    arrayList.add(anArr);
-        //}
-        //System.out.println(arrayList.toString());
-
-
-        return  fitPro;
-    }
-
-
-    /**
-     * 根据适应度值将原始个体进行排序
-     *
-     */
-    public void sortByFitness(String[][] paperGenetic){
-
-        String[][] tmpPaperGenetic = new String[100][10];
-
-
-
-        for (int i = 0; i < paperGenetic.length; i++) {
-            //需要将个体的基因String转换为double
-            sin1(numbCohesion(geneToDouble(paperGenetic[i])));
-        }
-
-
-    }
-
-    /**
-     * 个体基因长什么样,(24,CHOSE,(0,0,0,1,0))....*10
-     * 需要转换成什么样，需要计算出个体的适应度值
-     * 如何计算,使用惩罚因子计算适应度值  1*penalty^n
-     * 每道题的默认值适应度均为1
-     *
-     *
-     * 原始根本就没使用0~1的适应度值,直接使用惩罚系数*1，然后轮盘赌选择下一代个体
-     * 目前需要使用0~1的适应度值吗？
-     *
-     * 现象：
-     * 适应度值是纵坐标,0~1是横坐标,需要0~1的横坐标来获取适配多峰函数
-     * ①最原始的版本,的确不需要横坐标
-     * ②上一个版本,使用的是横坐标单基因型
-     * ③这个版本,需要横坐标多基因型才能满足凹点的概念
-     *
-     * 解决：
-     * ①初始化重新设计，生成0,1的多基因组
-     *    之前是不是遇到过这个问题啊，
-     *    单基因类型，所以使用了一个ram函数，解决交叉问题。
-     *    单基因求适应度是使用多峰函数1，map映射
-     *
-     * ②将原始版本的基因型转化为0~1的横坐标，这个可能不是很好转，需要多个基因片段，如果是1*Pen，得到的将呈现正态分布,不符合要求
-     *   等下周见老师询问一下建议
-     *
-     *  多个基因片段为0,1,最终取平均值，的确会导致正态分布，无法均匀分布，先看看是否有解决方案，如果没有则先忽略，后期再说。
-     *
-     *  先搞两个单基因，试试。(0.1,0.8) = 0.45
-     *  初始化的时候，的确可以直接使用if,使其均匀分布，
-     *
-     * 今晚任务:
-     *  1. 直接套用单点基因，然后做一个交叉解决凹点问题
-     *
-     *
-     *
-     *
-     */
-    private Double geneToDouble(String[] v) {
-
-
-        System.out.println(v);
-        //getRouletteFitness();
-        return 0.1;
-    }
 
 }
 

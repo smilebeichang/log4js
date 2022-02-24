@@ -2,9 +2,9 @@ package cn.edu.sysu.niche.a5n3;
 
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.clique.MaxcliqueV2;
-import cn.edu.sysu.niche.BSF;
-import cn.edu.sysu.niche.MyComparator;
-import cn.edu.sysu.niche.Niche6;
+import cn.edu.sysu.niche.others.BSF;
+import cn.edu.sysu.niche.others.MyComparator;
+import cn.edu.sysu.niche.others.Niche6;
 import cn.edu.sysu.utils.CorrectUtils;
 import cn.edu.sysu.utils.JDBCUtils4;
 import cn.edu.sysu.utils.KLUtils;

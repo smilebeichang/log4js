@@ -2,7 +2,7 @@ package cn.edu.sysu.niche.a5n5;
 
 
 import cn.edu.sysu.adi.TYPE;
-import cn.edu.sysu.niche.MyComparator;
+import cn.edu.sysu.niche.others.MyComparator;
 import cn.edu.sysu.utils.JDBCUtils4;
 import org.apache.log4j.Logger;
 import org.junit.Test;
