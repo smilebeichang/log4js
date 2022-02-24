@@ -54,18 +54,24 @@ public class DNDR10_Random {
     /**
      *  size 为310  初始化,塞入到内存中
      */
-    ArrayList<String> allItemList = jdbcUtils.selectAllItems();
+    ArrayList<String> allItemList = jdbcUtils.selectAllItemsV2();
 
     int sourceSize =  allItemList.size();
 
-    public DNDR10_Random() throws SQLException {
-    }
 
+    int psize = 998;
 
     /**
      * 比较器
      */
     Comparator comp = new MyComparator();
+
+
+    public DNDR10_Random() throws SQLException {
+    }
+
+
+
 
 
     /**
@@ -368,7 +374,7 @@ public class DNDR10_Random {
             // 去重操作
             while (itemSet.size() == i) {
                 // 获取题目id
-                item = new Random().nextInt(310)+"";
+                item = new Random().nextInt(psize)+"";
                 itemSet.add(item);
             }
         }

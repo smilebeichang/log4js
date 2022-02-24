@@ -48,7 +48,6 @@ public class DNDR10_GA {
      */
     private static double GlobalOptimal = 0;
     private static double[] LocalOptimal = new double[100];
-    private static ArrayList<String> bankList = new ArrayList();
 
 
     /**
@@ -86,6 +85,9 @@ public class DNDR10_GA {
     ArrayList<String> allItemList = jdbcUtils.selectAllItems();
 
 
+    int psize = 500;
+
+
     /**
      * 比较器
      */
@@ -116,14 +118,7 @@ public class DNDR10_GA {
         int fiveAttNum = 2;
 
 
-        // 题库310道题  50:100:100:50:10   长度，题型，属性比例
-        String sql1 = "SELECT CEILING( RAND () * 49 ) + 1  AS id";
-        String sql2 = "SELECT CEILING( RAND () * 99 ) + 51 AS id";
-        String sql3 = "SELECT CEILING( RAND () * 99 ) + 151 AS id";
-        String sql4 = "SELECT CEILING( RAND () * 49 ) + 251 AS id";
-        String sql5 = "SELECT CEILING( RAND () * 9 ) + 301 AS id";
-
-
+        // 题库500道题  80:240:400:480:20   长度，题型，属性比例
 
         /*  生成的平行试卷份数  */
         for (int j = 0; j < paperNum; j++) {
@@ -135,7 +130,7 @@ public class DNDR10_GA {
             for (int i = 0; i < oneAttNum; i++) {
                 //去重操作
                 while (id_set1.size() == i) {
-                    id = jdbcUtils.selectItem(sql1);
+                    id = new Random().nextInt(79) + 1 ;
                     id_set1.add(id);
                 }
             }
@@ -145,7 +140,7 @@ public class DNDR10_GA {
             Set<Integer> id_set2 = new HashSet<>();
             for (int i = 0; i < twoAttNum; i++) {
                 while (id_set2.size() == i) {
-                    id = jdbcUtils.selectItem(sql2);
+                    id = new Random().nextInt(159) + 81 ;
                     id_set2.add(id);
                 }
             }
@@ -155,7 +150,7 @@ public class DNDR10_GA {
             Set<Integer> id_set3 = new HashSet<>();
             for (int i = 0; i < threeAttNum; i++) {
                 while (id_set3.size() == i) {
-                    id = jdbcUtils.selectItem(sql3);
+                    id = new Random().nextInt(160) + 241 ;
                     id_set3.add(id);
                 }
             }
@@ -165,7 +160,7 @@ public class DNDR10_GA {
             Set<Integer> id_set4 = new HashSet<>();
             for (int i = 0; i < fourAttNum; i++) {
                 while (id_set4.size() == i) {
-                    id = jdbcUtils.selectItem(sql4);
+                    id = new Random().nextInt(79) + 401 ;
                     id_set4.add(id);
                 }
             }
@@ -175,7 +170,7 @@ public class DNDR10_GA {
             Set<Integer> id_set5 = new HashSet<>();
             for (int i = 0; i < fiveAttNum; i++) {
                 while (id_set5.size() == i) {
-                    id = jdbcUtils.selectItem(sql5);
+                    id = new Random().nextInt(19) + 481 ;
                     id_set5.add(id);
                 }
             }
@@ -218,7 +213,6 @@ public class DNDR10_GA {
     private void crossCover() throws SQLException {
 
         for (int k = 0; k < paperGenetic.length - 1; k++) {
-            System.out.println("K:"+k);
 
             //  单点交叉(只保留交叉一个个体)
             int point = paperGenetic[1].length;
@@ -273,7 +267,7 @@ public class DNDR10_GA {
 
         System.out.println("================== mutate ==================");
 
-        int count = 310;
+        int count = psize;
         String key = "";
 
         // 以试卷为单位、变异部分试题
@@ -285,14 +279,11 @@ public class DNDR10_GA {
                 int mutatePoint = random.nextInt((paperGenetic[0].length) - 1);
                 // 将Array 转 hashSet
                 Set<String> set = new HashSet<>(Arrays.asList(paperGenetic[i]));
-                //System.out.println(i+" 原试卷: "+set);
 
                 // 将要变异的元素   前提是试卷有序排列
                 String s = paperGenetic[i][mutatePoint];
-                System.out.println("  remove element: " + s);
                 set.remove(s);
                 int removeId = Integer.parseInt(s.split(":")[0]);
-                //System.out.println("  临时试卷：  "+set);
 
                 // 单套试卷临时存储容器
                 String[] temp1 = new String[paperGenetic[0].length];
@@ -301,12 +292,11 @@ public class DNDR10_GA {
                 while (set.size() != paperGenetic[0].length) {
                     key = random.nextInt(count) + 1 + "";
                     if (!(key + "").equals(removeId + "")) {
-                        // ArrayList<String> list = jdbcUtils.selectBachItem(key);
                         String s1 = allItemList.get(Integer.parseInt(key) - 1);
                         set.add(s1);
                     }
                 }
-                System.out.println("  add element: " + key);
+                System.out.println("  remove: " + s + "  add : " + key);
                 set.toArray(temp1);
 
                 //排序
@@ -314,10 +304,7 @@ public class DNDR10_GA {
 
                 //执行变异后的修补操作
                 correct(i);
-
             }
-
-            //System.out.println("  最终试卷： "+Arrays.toString(paperGenetic[i]));
         }
 
     }
@@ -337,7 +324,6 @@ public class DNDR10_GA {
             sortArray[i] = Integer.parseInt(temp1[i].split(":")[0]);
         }
         Arrays.sort(sortArray);
-        //System.out.println("排序后的数组: "+Arrays.toString(sortArray));
 
         //根据id的位置，映射，重新排序 tmp2
         String[] temp2 = new String[typeNum];
@@ -424,23 +410,6 @@ public class DNDR10_GA {
 
     }
 
-    /**
-     * 打印数组double[]
-     */
-    private void printDoubleArray(double[] randomId) {
-
-        //把基本数据类型转化为列表 double[]转Double[]
-        int num = randomId.length;
-        Double[] arrDouble = new Double[num];
-        for (int i = 0; i < num; i++) {
-            arrDouble[i] = randomId[i];
-        }
-
-        //Double[]转List
-        List<Double> list = Arrays.asList(arrDouble);
-        //System.out.println("随机抽取的random概率值："+list);
-
-    }
 
 
     /**
@@ -453,7 +422,6 @@ public class DNDR10_GA {
      */
     private double[] getFitness(int paperSize) {
 
-        //log.info("适应值 log4j")
 
         // 所有试卷的适应度总和
         double fitSum = 0.0;
@@ -484,7 +452,6 @@ public class DNDR10_GA {
 
             }
 
-            //System.out.printf("exp(%.3f) 为 %.3f%n", expNum, Math.exp(expNum));
 
             //均值 和 最小值
             double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
@@ -498,15 +465,11 @@ public class DNDR10_GA {
 
         }
 
-        //System.out.println("全局最优："+GlobalOptimal);
 
         for (int i = 0; i < paperSize; i++) {
             //  各自的比例
             fitPro[i] = fitTmp[i] / fitSum;
         }
-
-        //冒泡排序 打印top10
-        //klUtils.bubbleSort(fitTmp);
 
         return fitPro;
     }
@@ -516,7 +479,6 @@ public class DNDR10_GA {
      * 格式转换工具
      */
     public Double numbCohesion(Double adi) {
-
 
         return Double.valueOf(String.format("%.4f", adi));
 
@@ -543,95 +505,6 @@ public class DNDR10_GA {
     }
 
 
-    /**
-     * 返回题库所有试题 id:type:pattern
-     */
-    private ArrayList<String> getBank() throws SQLException {
-
-        return jdbcUtils.select();
-
-    }
-
-
-    /**
-     * hashMap 根据排序
-     */
-    private String hashMapSort(Map<String, Double> map) {
-
-
-        //System.out.println("============排序前============");
-        Set<Map.Entry<String, Double>> entrySet = map.entrySet();
-        for (Map.Entry s : entrySet) {
-            //System.out.println(s.getKey()+"--"+s.getValue());
-        }
-
-        //System.out.println("============排序后============");
-
-        //借助list实现hashMap排序
-
-        List<Map.Entry<String, Double>> list = new ArrayList<>(map.entrySet());
-        Collections.sort(list, (o1, o2) -> {
-
-            if (o1 == null && o2 == null) {
-                return 0;
-            }
-            if (o1 == null) {
-                return -1;
-            }
-            if (o2 == null) {
-                return 1;
-            }
-            if (o1.getValue() > o2.getValue()) {
-                return -1;
-            }
-            if (o2.getValue() > o1.getValue()) {
-                return 1;
-            }
-            return 0;
-
-
-            //按照value值，重小到大排序
-//                return o1.getValue() - o2.getValue();
-
-            //按照value值，从大到小排序
-//                return o2.getValue() - o1.getValue();
-            //return o2.getValue() >= o1.getValue()?1:-1;
-
-            //按照value值，用compareTo()方法默认是从小到大排序
-            //return o1.getValue().compareTo(o2.getValue());
-        });
-
-        //注意这里遍历的是list，也就是我们将map.Entry放进了list，排序后的集合
-        for (Map.Entry s : list) {
-            //System.out.println(s.getKey()+"--"+s.getValue());
-        }
-
-        return list.get(0).getKey() + ":" + list.get(0).getValue();
-
-    }
-
-
-    /**
-     * 通过差集 并集  来重新对list排序
-     */
-    private ArrayList<String> rearrange(String type, ArrayList<String> listA) {
-
-        //定义
-        ArrayList<String> listB = new ArrayList<>();
-        for (String s : listA) {
-            if (s.contains(type)) {
-                listB.add(s);
-            }
-        }
-
-        //差集 并集
-        listA.removeAll(listB);
-        listB.addAll(listA);
-        //System.out.println(listB);
-
-        return listB;
-
-    }
 
 
     /**
@@ -669,9 +542,6 @@ public class DNDR10_GA {
             array = sortPatch(array);
             paperGenetic[w] = array;
 
-            //打印选取的题目，打印的结果 应该是内存地址
-            //System.out.println("步骤1 size修补后的结果如下："+Arrays.toString(paperGenetic[w]));
-
         }
 
     }
@@ -704,7 +574,7 @@ public class DNDR10_GA {
             //生成一个不存在set中的key
             String key;
             while (set.size() != paperGenetic[j].length) {
-                key = (1 + random.nextInt(310)) + "";
+                key = (1 + random.nextInt(psize)) + "";
                 if (!(key + "").equals(removeId + "")) {
                     ArrayList<String> list = jdbcUtils.selectBachItem(key);
                     try {
@@ -753,11 +623,7 @@ public class DNDR10_GA {
                 itemList = supplementPaperGenetic();
             }
 
-            //System.out.println("-->itemList: " + Arrays.asList(itemList).toString());
             for (int j = 0; j < itemList.length; j++) {
-
-                // int id = Integer.valueOf(itemList[j].trim());
-                // String[] splits = allItemList.get(id).split(":");
 
                 String[] splits = itemList[j].trim().split(":");
                 adi1r = adi1r + Double.parseDouble(splits[3]);
@@ -772,7 +638,6 @@ public class DNDR10_GA {
 
             }
 
-            //System.out.println("idsb.toString():"+idsb.toString());
             String ids = idsb.toString().substring(1);
 
             // 题型个数
@@ -785,8 +650,6 @@ public class DNDR10_GA {
 
             //此次迭代各个题型的数目
             for (String s : expList) {
-
-                //s = allItemList.get(Integer.valueOf(s.trim()));
 
                 //计算每种题型个数
                 if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
@@ -857,7 +720,6 @@ public class DNDR10_GA {
             int exp5 = 0;
 
             for (int j = 0; j < expList.length; j++) {
-                // String[] splits  = allItemList.get(Integer.valueOf(expList[j].trim())).split(":");
                 String[] splits = expList[j].trim().split(":");
                 exp1 = exp1 + Integer.parseInt(splits[2].split(",")[0].substring(1, 2));
                 exp2 = exp2 + Integer.parseInt(splits[2].split(",")[1]);
@@ -919,7 +781,6 @@ public class DNDR10_GA {
                 ed5 = Math.abs(edx5 - 0.3);
             }
 
-            //System.out.println("题型和属性超额情况： td1:"+td1+" td2:"+td2+" td3:"+td3+" td4:"+td4 + "ed1:"+ed1+" ed2:"+ed2+" ed3:"+ed3+" ed4:"+ed4+" ed5:"+ed5)
 
             // 惩罚个数  只有比例不符合要求时才惩罚，故不会有太大的影响
             double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5);
@@ -931,7 +792,6 @@ public class DNDR10_GA {
             double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
             double minrum = Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r) * 100;
 
-            //System.out.println("minrum: "+minrum)
 
             //适应度值 (min * 惩罚系数)
             minrum = minrum * Math.exp(expNum);
@@ -965,7 +825,7 @@ public class DNDR10_GA {
             // 去重操作
             while (itemSet.size() == i) {
                 // 获取题目id
-                item = new Random().nextInt(310) + "";
+                item = new Random().nextInt(psize) + "";
                 itemSet.add(item);
             }
         }
@@ -993,7 +853,6 @@ public class DNDR10_GA {
             itemArray[k] = allItemList.get(Integer.parseInt(sList.get(k)) - 1 > -1 ? Integer.parseInt(sList.get(k)) - 1 : 1);
         }
 
-        System.out.println(itemArray);
 
         return itemArray;
 

@@ -39,7 +39,8 @@ import java.util.*;
  *      波动情况 random ~ GA ~ niche GA     (此处可以做一个去重操作)
  *
  *  任务5: 仿真
- *      2^5 = 32 pattern、100个被试，rum
+ *      2^5 = 32  pattern、100个被试，rum
+ *      2^8 = 256 pattern、100个被试，rum
  *
  *  任务6：质量下降 查明原因
  *  任务7：改变终止规则
@@ -62,7 +63,9 @@ import java.util.*;
  *
  * 今下午的任务：在 3题库 * 3算法 下进行比较
  *      1.粘贴复制三份代码
- *      2.
+ *      2.适配5_500代码
+ *      3.结果展示
+ *      4.p-CDI
  *
  * 今晚上的任务：ppt
  *
@@ -130,7 +133,7 @@ public class DNDR10 {
     private Niche6 niche5 = new Niche6();
 
     /**
-     * 交叉变异系数  注:变异系数有待降低(锦标赛小生境都不需要Pm)
+     * 交叉变异系数  注:变异系数有待降低(锦标赛小生境不需要Pm)
      */
     private static double PC = 0.9;
     private static double PM = 1;
@@ -160,6 +163,8 @@ public class DNDR10 {
 
     int lastCount = 0;
 
+
+    int psize = 500;
 
     public DNDR10() throws SQLException {
     }
@@ -210,10 +215,9 @@ public class DNDR10 {
      * 验证BSF的整个适应度平均值和方差, 校验效果和波动性
      * 如果校验以后发现效果不是很理想，可以换成top的平均值
      *
-     * FIXME: 由之前的top50 的适应度的avg和sd转换为  平行试卷的avg
+     * FIXME: 由之前的top50 的适应度的 avg 和 sd 转换为  平行试卷的avg
      * 1. avg的检验是否需要过滤或者做某种操作,使其可以正常比较.目前差异过大
      * 2. avg 和 sd 的计算 考虑是否个数，有时是 13套，但有时是168套，波幅较大有很大的影响  此处可以参考老师给的毕业文献
-     *
      *
      */
     private void calAvgFitness(ArrayList<String> inBack) {
@@ -571,34 +575,7 @@ public class DNDR10 {
     }
 
 
-    private void sinkToFileV2(int[][] distanceMatrix) {
-        OutputStream os = null;
-        try {
-            os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\outputV2.txt");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        PrintWriter pw=new PrintWriter(os);
 
-
-        // 打印 遍历二维数组
-//        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
-//            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-//                // 将第一行第二行的-1过滤掉了
-//                if(distanceMatrix[i1][i2] == 1){
-//                    pw.println("V"+i1+" "+"V"+i2);
-//                }
-//            }
-//        }
-
-        pw.close();
-        try {
-            os.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
 
     /**
      * 计算适应度值,并只保留适应度大于均值的部分
@@ -864,7 +841,7 @@ public class DNDR10 {
             // 判断哪些峰需要合并(矩阵+凹点问题)  需将leaderSet 适配为 leaderSetForGene
             HashSet<String> hs = judgeMerge();
 
-            // 合并  FIXME  个体总数：228
+            // 合并
             merge(hs);
 
             // 调整初始半径
@@ -1081,10 +1058,6 @@ public class DNDR10 {
 
 
 
-
-
-
-
     /**
      * 使用构造法选取题目  (轮盘赌） 生成 paperGenetic  = new String[100][20] 试卷100套,每套20题  为交叉变异提供原始材料
      * 1.题型构造 （不考虑下限比例）
@@ -1107,9 +1080,6 @@ public class DNDR10 {
         // 单套试卷的集合
         HashSet<String> itemSet = new HashSet<>();
 
-
-        // 获取题库所有题目  [8:CHOSE:(1,0,0,0,0),....] 旁路缓存的概念
-        //bankList = getBank();
 
         // 生成了二维数组 paperGenetic
         for (int j = 0; j < paperNum; j++) {
@@ -1144,7 +1114,6 @@ public class DNDR10 {
             // list排序
             Collections.sort(idList);
 
-
             // 根据id从数据库中查询相对应的题目
             String ids = idList.toString().substring(1, idList.toString().length() - 1);
 
@@ -1176,7 +1145,7 @@ public class DNDR10 {
             // 去重操作
             while (itemSet.size() == i) {
                 // 获取题目id
-                item = new Random().nextInt(310)+"";
+                item = new Random().nextInt(psize)+"";
                 itemSet.add(item);
             }
         }
@@ -1246,7 +1215,7 @@ public class DNDR10 {
         }
 
         //累加的概率为1   数组下标从0开始
-        fitPie[310 - 1] = 1;
+        fitPie[psize - 1] = 1;
 
         //随机生成的random概率值  [0,1)
         double randomProbability = Math.random();
@@ -1334,7 +1303,7 @@ public class DNDR10 {
         int attributeNum4 = 0;
         int attributeNum5 = 0;
 
-        //此次迭代各个属性的数目
+        //此次迭代各个属性的数目  FIXME:此处使用的就是pattern,故需修复8_1000题库
         for (String s : itemSet) {
 
             //计算每种题型个数
@@ -1466,14 +1435,10 @@ public class DNDR10 {
      */
     private void getFitnessForGene(int paperSize) throws SQLException {
 
-        //log.info("适应值 log4j")
 
-        // 所有试卷的适应度总和
-        double fitSum = 0.0;
         // 拼接字符串 每套试卷的适应度值_本身
         String[] fitTmp = new String[paperSize];
-        // 每套试卷的适应度占比
-        double[] fitPro = new double[paperSize];
+
 
         // 计算试卷的适应度值，即衡量试卷优劣的指标之一 Fs
         for (int i = 0; i < paperSize; i++) {
@@ -1498,17 +1463,6 @@ public class DNDR10 {
             System.out.println("-->itemList: " + Arrays.asList(itemList).toString());
             for (int j = 0; j < itemList.length; j++) {
 
-                /**
-                 *
-                 * -->itemList: [null, null, null, null, null, null, null]
-                 * -->itemList.length: 20
-                 * j: 0
-                 * itemList[j]: null
-                 *
-                 * paperGenetic 在上一轮出现了问题,长度为20,但里面的值均为null。
-                 * 校验方案:在每层做一个长度及null值的校验
-                 */
-
                 String[] splits = itemList[j].split(":");
                 adi1r = adi1r + Double.parseDouble(splits[3]);
                 adi2r = adi2r + Double.parseDouble(splits[4]);
@@ -1518,7 +1472,6 @@ public class DNDR10 {
 
                 // 拼接ids
                 idsb.append(",").append(splits[0]);
-
 
             }
 
@@ -1689,7 +1642,6 @@ public class DNDR10 {
 
         }
 
-        //return  fitTmp;
     }
 
 
@@ -1700,7 +1652,6 @@ public class DNDR10 {
 
 
         // 计算试卷的适应度值，即衡量试卷优劣的指标之一 Fs
-
         double adi1r = 0;
         double adi2r = 0;
         double adi3r = 0;
@@ -1712,18 +1663,6 @@ public class DNDR10 {
         // 获取原始adi  数组里面裹数组
         //String[] itemList = paperGenetic[0];
         for (int j = 0; j < itemArray.length; j++) {
-
-            /**
-             *
-             * -->itemList: [null, null, null, null, null, null, null, null, null, null, null, null, null, null]
-             * -->itemList.length: 20
-             * j: 0
-             * itemList[j]: null
-             */
-            //System.out.println("-->itemList: " + Arrays.asList(itemArray));
-            //System.out.println("-->itemList.length: " + itemArray.length);
-            //System.out.println("j: " + j);
-            //System.out.println("itemList[j]: " + itemArray[j]);
 
             String[] splits = itemArray[j].split(":");
             adi1r = adi1r + Double.parseDouble(splits[3]);
@@ -1737,8 +1676,6 @@ public class DNDR10 {
 
         }
 
-        String ids = idsb.toString().substring(1);
-        //System.out.println(ids);
 
         // 题型个数
         String[] expList = paperGenetic[0];
@@ -2010,7 +1947,6 @@ public class DNDR10 {
      */
     private double[] getFitness(int paperSize) {
 
-        //log.info("适应值 log4j")
 
         // 所有试卷的适应度总和
         double fitSum = 0.0;

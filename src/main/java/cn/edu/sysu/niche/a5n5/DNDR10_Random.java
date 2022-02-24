@@ -13,7 +13,7 @@ import java.util.*;
 
 /**
  * @Author : song bei chang
- * @create : 2022/01/17 00:11
+ * @create : 2022/02/24 00:11
  *
  * 模拟随机
  *
@@ -58,14 +58,21 @@ public class DNDR10_Random {
 
     int sourceSize =  allItemList.size();
 
-    public DNDR10_Random() throws SQLException {
-    }
+
+    int psize = 500;
 
 
     /**
      * 比较器
      */
     Comparator comp = new MyComparator();
+
+
+    public DNDR10_Random() throws SQLException {
+    }
+
+
+
 
 
     /**
@@ -158,7 +165,6 @@ public class DNDR10_Random {
                 itemList = supplementPaperGenetic();
             }
 
-            //System.out.println("-->itemList: " + Arrays.asList(itemList).toString());
             for (int j = 0; j < itemList.length; j++) {
 
                 int id = Integer.valueOf(itemList[j].trim());
@@ -172,10 +178,8 @@ public class DNDR10_Random {
                 // 拼接ids
                 idsb.append(",").append(splits[0]);
 
-
             }
 
-            //System.out.println("idsb.toString():"+idsb.toString());
             String ids = idsb.toString().substring(1);
 
             // 题型个数
@@ -322,7 +326,6 @@ public class DNDR10_Random {
                 ed5 = Math.abs(edx5 - 0.3);
             }
 
-            //System.out.println("题型和属性超额情况： td1:"+td1+" td2:"+td2+" td3:"+td3+" td4:"+td4 + "ed1:"+ed1+" ed2:"+ed2+" ed3:"+ed3+" ed4:"+ed4+" ed5:"+ed5)
 
             // 惩罚个数  只有比例不符合要求时才惩罚，故不会有太大的影响
             double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5);
@@ -334,7 +337,6 @@ public class DNDR10_Random {
             double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
             double minrum = Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r) * 100;
 
-            //System.out.println("minrum: "+minrum)
 
             //适应度值 (min * 惩罚系数)
             minrum = minrum * Math.exp(expNum);
@@ -368,7 +370,7 @@ public class DNDR10_Random {
             // 去重操作
             while (itemSet.size() == i) {
                 // 获取题目id
-                item = new Random().nextInt(310)+"";
+                item = new Random().nextInt(psize)+"";
                 itemSet.add(item);
             }
         }
@@ -396,7 +398,6 @@ public class DNDR10_Random {
             itemArray[k] = allItemList.get(Integer.parseInt(sList.get(k))-1 > -1?Integer.parseInt(sList.get(k))-1:1);
         }
 
-        System.out.println(itemArray);
 
         return itemArray;
 
@@ -483,8 +484,6 @@ public class DNDR10_Random {
      * 平均适应度值：32.6~34.9
      * 波动情况：7.8~15.5
      *
-     * Java.lang.ArrayIndexOutOfBoundsException: 18
-     * 会不会是因为太频繁使用内存了
      *
      */
     @Test
@@ -516,10 +515,7 @@ public class DNDR10_Random {
             // 去重
             ArrayList<String> uniqueList  = uniqueDate(sortTo50);
 
-            /**
-             * 图G的最大圈顶点数为：2
-             * 图G的最大圈个为：5
-             */
+
             new DNDR10().similarClique(uniqueList,1);
 
             // 计算均值 和 波动 情况

@@ -1,7 +1,10 @@
-package cn.edu.sysu.niche;
+package cn.edu.sysu.niche.a5n3;
 
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.clique.MaxcliqueV2;
+import cn.edu.sysu.niche.BSF;
+import cn.edu.sysu.niche.MyComparator;
+import cn.edu.sysu.niche.Niche6;
 import cn.edu.sysu.utils.CorrectUtils;
 import cn.edu.sysu.utils.JDBCUtils4;
 import cn.edu.sysu.utils.KLUtils;
@@ -41,6 +44,20 @@ import java.util.*;
  *      1.1 验证BSF的整个适应度平均值+方差  这个更合理些 ,目前采用这个版本(平均+波动)
  *      1.2 取top10,验证适应度平均值+方差
  *
+ *
+ *  任务2:指标 计算个体的波动
+ *      1.3 直接进行保存,然后比较个体是否一致  这个比较麻烦,验证个体变化，需确定用哪个版本做基线版本
+ *
+ *  任务3：题库的创建
+ *      300道题       5个属性
+ *      500|1000道题  8个属性
+ *
+ *
+ *
+ *  任务4：不同对象的比较
+ *      NicheGA、GA、random、P-CDI
+ *
+ *
  *  niche GA 初步结果:
  *      1.最大圈顶点数：4~5
  *      2.最大圈: 13~48
@@ -53,31 +70,31 @@ import java.util.*;
  *      平均适应度值 random > GA > niche GA  (这个就很离谱了)
  *      波动情况 random ~ GA ~ niche GA     (此处可以做一个去重操作)
  *
- *
- *
- *  任务2:指标 计算个体的波动
- *      1.3 直接进行保存,然后比较个体是否一致  这个比较麻烦,验证个体变化，需确定用哪个版本做基线版本
- *
- *  任务3：题库的创建
- *      300道题       5个属性
- *      500|1000道题  8个属性
- *
- *  今晚任务安排：
- *      距离11:30 还有4小时
- *      1h 去重,然后三个模型做比较
- *      0.5h 洗澡
- *      1.5h PPT
- *      1h  题库的创建
- *
- *
- *  任务4：不同对象的比较
- *      NicheGA、GA、random、P-CDI
- *
  *  任务5: 仿真
  *      2^5 = 32 pattern、100个被试，rum
  *
  *  任务6：质量下降 查明原因
  *  任务7：改变终止规则
+ *
+ *
+ *
+ * 本周任务：
+ *      1.  适应度平均值和适应度方差  是基于组卷的,代码的修改   周天上午
+ *      2.  复现：P-CDI                                 找资料,并初步看文献,周天上午
+ *          [24] D. I. Belov, “Uniform test assembly,” Psychometrika,  2008.
+ *          [25] D. I. Belov, “Uniform test assembly: Concepts, problems, solvers, and applications for adaptive testing,”  2017.
+ *          基于多目标粒子群优化的认知诊断模型平行组卷算法研究
+ *          A Discrete Multiobjective Particle Swarm Optimizer for Automated Assembly of Parallel Cognitive Diagnosis Tests
+ *
+ *          p-CDI  是随便找一个启发式策略就好了吗?还是必须某个方案   建议先做一个demo出来,不然周五没法交差
+ *
+ *      3.  比较：4种模型 * 3题库                         周一解决3题库,周二进行比较
+ *      4.  迭代次数过小  是否会有影响                      周三
+ *
+ *
+ * 今下午的任务：在3题库 * 3 算法 下进行比较
+ *      第一
+ * 今晚上的任务：ppt
  *
  */
 public class DNDR10 {
@@ -222,6 +239,10 @@ public class DNDR10 {
     /**
      * 验证BSF的整个适应度平均值和方差, 校验效果和波动性
      * 如果校验以后发现效果不是很理想，可以换成top的平均值
+     *
+     * FIXME: 由之前的top50 的适应度的avg和sd转换为  平行试卷的avg
+     * 1. avg的检验是否需要过滤或者做某种操作,使其可以正常比较.目前差异过大
+     * 2. avg 和 sd 的计算 考虑是否个数，有时是 13套，但有时是168套，波幅较大有很大的影响  此处可以参考老师给的毕业文献
      *
      *
      */
@@ -3174,16 +3195,15 @@ public class DNDR10 {
 
 
     /**
-     * 如果连续10代,相似个数均大于90,则认为其是相似的，此时
-     *
-     * 1.将数据写入
-     * 2.中断程序
+     * 如果连续10代,相似个数均大于90,则认为其是相似的
+     *  1.将数据写入
+     *  2.中断程序
      *
      * FIXME ： 此处逻辑有误 待修复  lastCount  被重置了
      *
      */
     int maxCount = 10;
-    int judgmentBasis = 85;
+    int judgmentBasis = 90;
     public ArrayList<Object> registerTimeTimer(int size,int lastCount) {
 
         Boolean timeFlag = false;
@@ -3257,7 +3277,7 @@ public class DNDR10 {
         initItemBank();
 
         // 遍历50次,形成多次结果,便于比较
-        for (int j = 0; j < 5; j++) {
+        for (int j = 0; j < 20; j++) {
             timeFlag =  false;
             lastCount = 0;
             // 这个是否有必要
@@ -3271,6 +3291,7 @@ public class DNDR10 {
                 iterationClear();
 
                 // 4.适应度值排序   sortListForGene = new ArrayList<>(100)
+                //  4.1 此处顺便做了收敛flag的判断
                 sortFitnessForGene(i);
 
                 // 5.将群体中的个体分配到不同小生境中 leader + members    mapArrayListForGene(key,value)

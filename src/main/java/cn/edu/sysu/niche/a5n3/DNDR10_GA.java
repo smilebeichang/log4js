@@ -1,6 +1,7 @@
-package cn.edu.sysu.niche;
+package cn.edu.sysu.niche.a5n3;
 
 import cn.edu.sysu.adi.TYPE;
+import cn.edu.sysu.niche.MyComparator;
 import cn.edu.sysu.pojo.Papers;
 import cn.edu.sysu.utils.JDBCUtils4;
 import org.apache.log4j.Logger;
@@ -23,7 +24,7 @@ import java.util.*;
  * <p>
  * 2.诊断效果、质量(A:最大圈顶点数 平均、 B:fitness 波动)
  * <p>
- * 3.题库*3 属性500:5 ->1000:8/10
+ * 3.题库*3 属性500:5 ->1000:8
  * <p>
  * 4.nicheGA、GA、random、p-cdi
  * 4.1 进行打印操作
@@ -54,7 +55,7 @@ public class DNDR10_GA {
      * 迭代次数  50
      * 这个参数也需要不停的修改，适配 Niche GA
      */
-    private int ITERATION_SIZE = 10;
+    private int ITERATION_SIZE = 25;
 
 
     /**
@@ -1087,7 +1088,7 @@ public class DNDR10_GA {
     public void main() throws SQLException {
 
         // 轮询跑50代,方便查看结果
-        for (int j = 0; j < 5; j++) {
+        for (int j = 0; j < 20; j++) {
 
             //构造初始试卷  100套、每套20题
             initItemBank();

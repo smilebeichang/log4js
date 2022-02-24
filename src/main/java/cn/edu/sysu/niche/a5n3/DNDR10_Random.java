@@ -1,7 +1,8 @@
-package cn.edu.sysu.niche;
+package cn.edu.sysu.niche.a5n3;
 
 
 import cn.edu.sysu.adi.TYPE;
+import cn.edu.sysu.niche.MyComparator;
 import cn.edu.sysu.utils.JDBCUtils4;
 import org.apache.log4j.Logger;
 import org.junit.Test;
@@ -34,7 +35,7 @@ public class DNDR10_Random {
     /**
      * 这个变量需手动更改
      */
-    int iterSize = 10;
+    int iterSize = 25;
 
     /**
      * 500 * 100 套试卷 20道题
@@ -490,7 +491,7 @@ public class DNDR10_Random {
     public  void  main() throws InterruptedException, SQLException {
 
         // 轮询跑50代,方便查看结果
-        for (int j = 0; j < 5; j++) {
+        for (int j = 0; j < 20; j++) {
 
             sortListForRandom.clear();
             sortTo50.clear();

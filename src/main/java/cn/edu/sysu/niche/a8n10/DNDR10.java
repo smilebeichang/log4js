@@ -190,6 +190,8 @@ public class DNDR10 {
 
     int lastCount = 0;
 
+    int psize = 998;
+
 
     public DNDR10() throws SQLException {
     }
@@ -1206,7 +1208,7 @@ public class DNDR10 {
             // 去重操作
             while (itemSet.size() == i) {
                 // 获取题目id
-                item = new Random().nextInt(310)+"";
+                item = new Random().nextInt(psize)+"";
                 itemSet.add(item);
             }
         }
@@ -1276,7 +1278,7 @@ public class DNDR10 {
         }
 
         //累加的概率为1   数组下标从0开始
-        fitPie[310 - 1] = 1;
+        fitPie[psize - 1] = 1;
 
         //随机生成的random概率值  [0,1)
         double randomProbability = Math.random();

@@ -83,8 +83,10 @@ public class DNDR10_GA {
     /**
      * size 为310  初始化,塞入到内存中
      */
-    ArrayList<String> allItemList = jdbcUtils.selectAllItems();
+    ArrayList<String> allItemList = jdbcUtils.selectAllItemsV2();
 
+
+    int psize = 998;
 
     /**
      * 比较器
@@ -135,7 +137,8 @@ public class DNDR10_GA {
             for (int i = 0; i < oneAttNum; i++) {
                 //去重操作
                 while (id_set1.size() == i) {
-                    id = jdbcUtils.selectItem(sql1);
+                    //id = jdbcUtils.selectItem(sql1);
+                    id = new Random().nextInt(49) + 1 ;
                     id_set1.add(id);
                 }
             }
@@ -145,7 +148,8 @@ public class DNDR10_GA {
             Set<Integer> id_set2 = new HashSet<>();
             for (int i = 0; i < twoAttNum; i++) {
                 while (id_set2.size() == i) {
-                    id = jdbcUtils.selectItem(sql2);
+                    //id = jdbcUtils.selectItem(sql2);
+                    id = new Random().nextInt(99) + 51 ;
                     id_set2.add(id);
                 }
             }
@@ -155,7 +159,8 @@ public class DNDR10_GA {
             Set<Integer> id_set3 = new HashSet<>();
             for (int i = 0; i < threeAttNum; i++) {
                 while (id_set3.size() == i) {
-                    id = jdbcUtils.selectItem(sql3);
+                    //id = jdbcUtils.selectItem(sql3);
+                    id = new Random().nextInt(99) + 151 ;
                     id_set3.add(id);
                 }
             }
@@ -165,7 +170,8 @@ public class DNDR10_GA {
             Set<Integer> id_set4 = new HashSet<>();
             for (int i = 0; i < fourAttNum; i++) {
                 while (id_set4.size() == i) {
-                    id = jdbcUtils.selectItem(sql4);
+                    //id = jdbcUtils.selectItem(sql4);
+                    id = new Random().nextInt(49) + 251 ;
                     id_set4.add(id);
                 }
             }
@@ -175,7 +181,8 @@ public class DNDR10_GA {
             Set<Integer> id_set5 = new HashSet<>();
             for (int i = 0; i < fiveAttNum; i++) {
                 while (id_set5.size() == i) {
-                    id = jdbcUtils.selectItem(sql5);
+                    //id = jdbcUtils.selectItem(sql5);
+                    id = new Random().nextInt(9) + 301 ;
                     id_set5.add(id);
                 }
             }
@@ -191,7 +198,7 @@ public class DNDR10_GA {
 
             String ids = idList.toString().substring(1, idList.toString().length() - 1);
 
-            ArrayList<String> bachItemList = jdbcUtils.selectBachItem(ids);
+            ArrayList<String> bachItemList = jdbcUtils.selectBachItemV2(ids);
 
 
             // 把题库提升为全局变量，方便整体调用 容器：二维数组
@@ -273,7 +280,7 @@ public class DNDR10_GA {
 
         System.out.println("================== mutate ==================");
 
-        int count = 310;
+        int count = psize;
         String key = "";
 
         // 以试卷为单位、变异部分试题
@@ -301,7 +308,7 @@ public class DNDR10_GA {
                 while (set.size() != paperGenetic[0].length) {
                     key = random.nextInt(count) + 1 + "";
                     if (!(key + "").equals(removeId + "")) {
-                        // ArrayList<String> list = jdbcUtils.selectBachItem(key);
+                        // ArrayList<String> list = jdbcUtils.selectBachItemV2(key);
                         String s1 = allItemList.get(Integer.parseInt(key) - 1);
                         set.add(s1);
                     }
@@ -548,7 +555,7 @@ public class DNDR10_GA {
      */
     private ArrayList<String> getBank() throws SQLException {
 
-        return jdbcUtils.select();
+        return jdbcUtils.selectV2();
 
     }
 
@@ -704,9 +711,9 @@ public class DNDR10_GA {
             //生成一个不存在set中的key
             String key;
             while (set.size() != paperGenetic[j].length) {
-                key = (1 + random.nextInt(310)) + "";
+                key = (1 + random.nextInt(psize)) + "";
                 if (!(key + "").equals(removeId + "")) {
-                    ArrayList<String> list = jdbcUtils.selectBachItem(key);
+                    ArrayList<String> list = jdbcUtils.selectBachItemV2(key);
                     try {
                         //频繁建立链接，将导致无从数据中拿到数据 解决方案①thread.sleep  ②放在map中
                         Thread.sleep(200);
@@ -965,7 +972,7 @@ public class DNDR10_GA {
             // 去重操作
             while (itemSet.size() == i) {
                 // 获取题目id
-                item = new Random().nextInt(310) + "";
+                item = new Random().nextInt(psize) + "";
                 itemSet.add(item);
             }
         }
