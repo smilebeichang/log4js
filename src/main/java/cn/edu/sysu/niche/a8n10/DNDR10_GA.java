@@ -48,7 +48,6 @@ public class DNDR10_GA {
      */
     private static double GlobalOptimal = 0;
     private static double[] LocalOptimal = new double[100];
-    private static ArrayList<String> bankList = new ArrayList();
 
 
     /**
@@ -86,7 +85,7 @@ public class DNDR10_GA {
     ArrayList<String> allItemList = jdbcUtils.selectAllItemsV2();
 
 
-    int psize = 998;
+    int psize = 1000;
 
     /**
      * 比较器
@@ -100,8 +99,7 @@ public class DNDR10_GA {
 
     /**
      * 生成题库(以试卷为单位：id  长度，属性类型，属性比例)
-     * 原始比例： 5+10+10+5+1 = 31
-     * 属性类型：1个属性的1题[1,50]  2个属性的2题[51,150]  3个属性的2题[151,250] 4个属性的1题[251,300]
+     * 属性类型： 32:96:192:320:224:96:32:8
      */
     private void initItemBank() throws SQLException {
 
@@ -110,23 +108,19 @@ public class DNDR10_GA {
         /*  试卷数 */
         int paperNum = paperGenetic.length;
 
-        /* 单张试卷每种题型的题目数量 */
-        int oneAttNum = 3;
-        int twoAttNum = 6;
-        int threeAttNum = 6;
-        int fourAttNum = 3;
-        int fiveAttNum = 2;
+        /* 单张试卷每种题型的题目数量
+         * 1+2+4+6+4+2+1
+         **/
+        int oneAttNum = 1;
+        int twoAttNum = 2;
+        int threeAttNum = 4;
+        int fourAttNum = 6;
+        int fiveAttNum = 4;
+        int sixAttNum = 2;
+        int sevenAttNum = 1;
 
 
-        // 题库310道题  50:100:100:50:10   长度，题型，属性比例
-        String sql1 = "SELECT CEILING( RAND () * 49 ) + 1  AS id";
-        String sql2 = "SELECT CEILING( RAND () * 99 ) + 51 AS id";
-        String sql3 = "SELECT CEILING( RAND () * 99 ) + 151 AS id";
-        String sql4 = "SELECT CEILING( RAND () * 49 ) + 251 AS id";
-        String sql5 = "SELECT CEILING( RAND () * 9 ) + 301 AS id";
-
-
-
+        // 题库1000道题
         /*  生成的平行试卷份数  */
         for (int j = 0; j < paperNum; j++) {
             ArrayList<Integer> idList = new ArrayList<>();
@@ -137,8 +131,7 @@ public class DNDR10_GA {
             for (int i = 0; i < oneAttNum; i++) {
                 //去重操作
                 while (id_set1.size() == i) {
-                    //id = jdbcUtils.selectItem(sql1);
-                    id = new Random().nextInt(49) + 1 ;
+                    id = new Random().nextInt(31) + 1 ;
                     id_set1.add(id);
                 }
             }
@@ -148,8 +141,7 @@ public class DNDR10_GA {
             Set<Integer> id_set2 = new HashSet<>();
             for (int i = 0; i < twoAttNum; i++) {
                 while (id_set2.size() == i) {
-                    //id = jdbcUtils.selectItem(sql2);
-                    id = new Random().nextInt(99) + 51 ;
+                    id = new Random().nextInt(95) + 33 ;
                     id_set2.add(id);
                 }
             }
@@ -159,8 +151,7 @@ public class DNDR10_GA {
             Set<Integer> id_set3 = new HashSet<>();
             for (int i = 0; i < threeAttNum; i++) {
                 while (id_set3.size() == i) {
-                    //id = jdbcUtils.selectItem(sql3);
-                    id = new Random().nextInt(99) + 151 ;
+                    id = new Random().nextInt(191) + 129 ;
                     id_set3.add(id);
                 }
             }
@@ -170,8 +161,7 @@ public class DNDR10_GA {
             Set<Integer> id_set4 = new HashSet<>();
             for (int i = 0; i < fourAttNum; i++) {
                 while (id_set4.size() == i) {
-                    //id = jdbcUtils.selectItem(sql4);
-                    id = new Random().nextInt(49) + 251 ;
+                    id = new Random().nextInt(319) + 321 ;
                     id_set4.add(id);
                 }
             }
@@ -181,13 +171,33 @@ public class DNDR10_GA {
             Set<Integer> id_set5 = new HashSet<>();
             for (int i = 0; i < fiveAttNum; i++) {
                 while (id_set5.size() == i) {
-                    //id = jdbcUtils.selectItem(sql5);
-                    id = new Random().nextInt(9) + 301 ;
+                    id = new Random().nextInt(223) + 641 ;
                     id_set5.add(id);
                 }
             }
             idList.addAll(id_set5);
 
+
+            //随机抽取6个属性的试题
+            Set<Integer> id_set6 = new HashSet<>();
+            for (int i = 0; i < sixAttNum; i++) {
+                while (id_set6.size() == i) {
+                    id = new Random().nextInt(95) + 865 ;
+                    id_set6.add(id);
+                }
+            }
+            idList.addAll(id_set6);
+
+
+            //随机抽取7个属性的试题
+            Set<Integer> id_set7 = new HashSet<>();
+            for (int i = 0; i < sevenAttNum; i++) {
+                while (id_set7.size() == i) {
+                    id = new Random().nextInt(31) + 961 ;
+                    id_set7.add(id);
+                }
+            }
+            idList.addAll(id_set7);
 
             //list 排序
             Collections.sort(idList);
@@ -367,11 +377,10 @@ public class DNDR10_GA {
      * ①计算适应度：以试卷为单位，min
      * ②轮盘赌进行筛选 paperGenetic=newPaperGenetic;
      * <p>
-     * <p>
      * 精度取小数点后三位,  指标信息取前top10的avg
      * <p>
-     * *    选择（轮盘赌）：择优录取+多样式减低
-     * *    交叉+变异：增加多样性(外部作用)
+     *     选择（轮盘赌）：择优录取+多样式减低
+     *     交叉+变异：增加多样性(外部作用)
      */
     public void selection() {
 
@@ -662,7 +671,7 @@ public class DNDR10_GA {
             while (setBegin.size() != paperGenetic[0].length) {
                 //  where 1=1
                 String sql = " 1=1 order by RAND() limit 1 ";
-                ArrayList<String> arrayList = jdbcUtils.selectBySql(sql);
+                ArrayList<String> arrayList = jdbcUtils.selectBySqlV2(sql);
                 HashSet<String> tmp = new HashSet<>(arrayList);
                 setBegin.addAll(tmp);
             }
@@ -735,7 +744,7 @@ public class DNDR10_GA {
     }
 
 
-    private void getFitnessForGA() throws SQLException {
+    private void getFitnessForGA()  {
 
         // 拼接字符串 每套试卷的适应度值_本身
         String[] fitTmp = new String[paperSize];
@@ -748,6 +757,8 @@ public class DNDR10_GA {
             double adi3r = 0;
             double adi4r = 0;
             double adi5r = 0;
+            double adi6r = 0;
+            double adi7r = 0;
 
             StringBuilder idsb = new StringBuilder();
 
@@ -772,6 +783,8 @@ public class DNDR10_GA {
                 adi3r = adi3r + Double.parseDouble(splits[5]);
                 adi4r = adi4r + Double.parseDouble(splits[6]);
                 adi5r = adi5r + Double.parseDouble(splits[7]);
+                adi6r = adi6r + Double.parseDouble(splits[8]);
+                adi7r = adi7r + Double.parseDouble(splits[9]);
 
                 // 拼接ids
                 idsb.append(",").append(splits[0]);
@@ -810,7 +823,7 @@ public class DNDR10_GA {
                 }
             }
 
-            // 题型比例/10  属性比例/23 是固定值,到了后期需要修正
+            // 题型比例/10  属性比例/28 是固定值,到了后期需要修正
             // 题型比例
             double typeChoseRation = typeChose / 20.0;
             double typeFileRation = typeFill / 20.0;
@@ -862,32 +875,35 @@ public class DNDR10_GA {
             int exp3 = 0;
             int exp4 = 0;
             int exp5 = 0;
+            int exp6 = 0;
+            int exp7 = 0;
 
             for (int j = 0; j < expList.length; j++) {
-                // String[] splits  = allItemList.get(Integer.valueOf(expList[j].trim())).split(":");
                 String[] splits = expList[j].trim().split(":");
-                exp1 = exp1 + Integer.parseInt(splits[2].split(",")[0].substring(1, 2));
-                exp2 = exp2 + Integer.parseInt(splits[2].split(",")[1]);
-                exp3 = exp3 + Integer.parseInt(splits[2].split(",")[2]);
-                exp4 = exp4 + Integer.parseInt(splits[2].split(",")[3]);
-                exp5 = exp5 + Integer.parseInt(splits[2].split(",")[4].substring(0, 1));
+                exp1 = exp1 + Double.valueOf(splits[2]) > 0.0?1:0;
+                exp2 = exp2 + Double.valueOf(splits[3]) > 0.0?1:0;
+                exp3 = exp3 + Double.valueOf(splits[4]) > 0.0?1:0;
+                exp4 = exp4 + Double.valueOf(splits[5]) > 0.0?1:0;
+                exp5 = exp5 + Double.valueOf(splits[6]) > 0.0?1:0;
+                exp6 = exp6 + Double.valueOf(splits[7]) > 0.0?1:0;
+                exp7 = exp7 + Double.valueOf(splits[8]) > 0.0?1:0;
             }
 
             // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
             //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
             // 23.0 可能存在误差,待研究
             double ed1;
-            double edx1 = exp1 / 23.0;
-            if (edx1 >= 0.2 && edx1 < 0.4) {
+            double edx1 = exp1 / 28.0;
+            if (edx1 >= 0.1 && edx1 < 0.3) {
                 ed1 = 0;
-            } else if (edx1 < 0.2) {
-                ed1 = Math.abs(0.2 - edx1);
+            } else if (edx1 < 0.1) {
+                ed1 = Math.abs(0.1 - edx1);
             } else {
-                ed1 = Math.abs(edx1 - 0.4);
+                ed1 = Math.abs(edx1 - 0.3);
             }
 
             double ed2;
-            double edx2 = exp2 / 23.0;
+            double edx2 = exp2 / 28.0;
             if (edx2 >= 0.2 && edx2 < 0.4) {
                 ed2 = 0;
             } else if (edx2 < 0.2) {
@@ -897,48 +913,62 @@ public class DNDR10_GA {
             }
 
             double ed3;
-            double edx3 = exp3 / 23.0;
-            if (edx3 >= 0.1 && edx3 < 0.3) {
+            double edx3 = exp3 / 28.0;
+            if (edx3 >= 0.2 && edx3 < 0.4) {
                 ed3 = 0;
-            } else if (edx3 < 0.1) {
-                ed3 = Math.abs(0.1 - edx3);
+            } else if (edx3 < 0.2) {
+                ed3 = Math.abs(0.2 - edx3);
             } else {
-                ed3 = Math.abs(edx3 - 0.3);
+                ed3 = Math.abs(edx3 - 0.4);
             }
 
             double ed4;
-            double edx4 = exp4 / 23.0;
-            if (edx4 >= 0.1 && edx4 < 0.3) {
+            double edx4 = exp4 / 28.0;
+            if (edx4 >= 0.2 && edx4 < 0.4) {
                 ed4 = 0;
-            } else if (edx4 < 0.1) {
-                ed4 = Math.abs(0.1 - edx4);
+            } else if (edx4 < 0.2) {
+                ed4 = Math.abs(0.2 - edx4);
             } else {
-                ed4 = Math.abs(edx4 - 0.3);
+                ed4 = Math.abs(edx4 - 0.4);
             }
 
             double ed5;
-            double edx5 = exp5 / 23.0;
-            if (edx5 >= 0.1 && edx5 < 0.3) {
+            double edx5 = exp5 / 28.0;
+            if (edx5 >= 0.2 && edx5 < 0.4) {
                 ed5 = 0;
-            } else if (edx5 < 0.1) {
-                ed5 = Math.abs(0.1 - edx5);
+            } else if (edx5 < 0.2) {
+                ed5 = Math.abs(0.2 - edx5);
             } else {
-                ed5 = Math.abs(edx5 - 0.3);
+                ed5 = Math.abs(edx5 - 0.4);
             }
 
-            //System.out.println("题型和属性超额情况： td1:"+td1+" td2:"+td2+" td3:"+td3+" td4:"+td4 + "ed1:"+ed1+" ed2:"+ed2+" ed3:"+ed3+" ed4:"+ed4+" ed5:"+ed5)
+            double ed6;
+            double edx6 = exp6 / 28.0;
+            if (edx6 >= 0.1 && edx6 < 0.3) {
+                ed6 = 0;
+            } else if (edx6 < 0.1) {
+                ed6 = Math.abs(0.1 - edx6);
+            } else {
+                ed6 = Math.abs(edx6 - 0.3);
+            }
+
+            double ed7;
+            double edx7 = exp7 / 28.0;
+            if (edx7 >= 0.1 && edx7 < 0.3) {
+                ed7 = 0;
+            } else if (edx7 < 0.1) {
+                ed7 = Math.abs(0.1 - edx7);
+            } else {
+                ed7 = Math.abs(edx7 - 0.3);
+            }
+
 
             // 惩罚个数  只有比例不符合要求时才惩罚，故不会有太大的影响
-            double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5);
-
-            //System.out.printf("exp(%.3f) 为 %.3f%n", expNum, Math.exp(expNum))
-
+            double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5 + ed6 + ed7);
 
             //均值 和 最小值
             double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
-            double minrum = Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r) * 100;
-
-            //System.out.println("minrum: "+minrum)
+            double minrum = Math.min(Math.min(Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r), adi6r), adi7r) * 100;
 
             //适应度值 (min * 惩罚系数)
             minrum = minrum * Math.exp(expNum);
@@ -961,7 +991,7 @@ public class DNDR10_GA {
     }
 
 
-    public String[] supplementPaperGenetic() throws SQLException {
+    public String[] supplementPaperGenetic() {
 
         // 单套试卷的集合
         HashSet<String> itemSet = new HashSet<>();
@@ -1094,7 +1124,7 @@ public class DNDR10_GA {
     @Test
     public void main() throws SQLException {
 
-        // 轮询跑50代,方便查看结果
+        // 轮询跑20代,方便查看结果
         for (int j = 0; j < 20; j++) {
 
             //构造初始试卷  100套、每套20题
@@ -1115,8 +1145,6 @@ public class DNDR10_GA {
                 //elitistStrategy();
 
             }
-
-            System.out.println();
 
 
             // 计算适应度值,并取top 50

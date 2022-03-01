@@ -59,7 +59,7 @@ public class DNDR10_Random {
     int sourceSize =  allItemList.size();
 
 
-    int psize = 998;
+    int psize = 1000;
 
     /**
      * 比较器
@@ -78,7 +78,7 @@ public class DNDR10_Random {
      * 生成 paperGenetic  = new String[500*100][20]  为交叉变异提供原始材料
      *
      */
-    private void initItemBank() throws InterruptedException {
+    private void initItemBank() {
 
         System.out.println("====== 开始选题,构成试卷  轮盘赌构造 ======");
 
@@ -103,7 +103,6 @@ public class DNDR10_Random {
                     int sqlId = rand.nextInt(sourceSize - 1 );
                     itemSet.add(sqlId+"");
                 }
-
             }
 
             // 将hashSet转ArrayList
@@ -152,6 +151,8 @@ public class DNDR10_Random {
             double adi3r = 0;
             double adi4r = 0;
             double adi5r = 0;
+            double adi6r = 0;
+            double adi7r = 0;
 
             StringBuilder idsb = new StringBuilder();
 
@@ -174,6 +175,8 @@ public class DNDR10_Random {
                 adi3r = adi3r + Double.parseDouble(splits[5]);
                 adi4r = adi4r + Double.parseDouble(splits[6]);
                 adi5r = adi5r + Double.parseDouble(splits[7]);
+                adi6r = adi6r + Double.parseDouble(splits[8]);
+                adi7r = adi7r + Double.parseDouble(splits[9]);
 
                 // 拼接ids
                 idsb.append(",").append(splits[0]);
@@ -264,32 +267,37 @@ public class DNDR10_Random {
             int exp3 = 0;
             int exp4 = 0;
             int exp5 = 0;
+            int exp6 = 0;
+            int exp7 = 0;
 
             for (int j = 0; j < expList.length; j++) {
                 String[] splits  = allItemList.get(Integer.valueOf(expList[j].trim())).split(":");
 
-                exp1 = exp1 + Integer.parseInt(splits[2].split(",")[0].substring(1, 2));
-                exp2 = exp2 + Integer.parseInt(splits[2].split(",")[1]);
-                exp3 = exp3 + Integer.parseInt(splits[2].split(",")[2]);
-                exp4 = exp4 + Integer.parseInt(splits[2].split(",")[3]);
-                exp5 = exp5 + Integer.parseInt(splits[2].split(",")[4].substring(0, 1));
+                exp1 = exp1 + Double.valueOf(splits[2]) > 0.0?1:0;
+                exp2 = exp2 + Double.valueOf(splits[3]) > 0.0?1:0;
+                exp3 = exp3 + Double.valueOf(splits[4]) > 0.0?1:0;
+                exp4 = exp4 + Double.valueOf(splits[5]) > 0.0?1:0;
+                exp5 = exp5 + Double.valueOf(splits[6]) > 0.0?1:0;
+                exp6 = exp6 + Double.valueOf(splits[7]) > 0.0?1:0;
+                exp7 = exp7 + Double.valueOf(splits[8]) > 0.0?1:0;
+
             }
 
             // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
             //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
             // 23.0 可能存在误差,待研究
             double ed1;
-            double edx1 = exp1 / 23.0;
-            if (edx1 >= 0.2 && edx1 < 0.4) {
+            double edx1 = exp1 / 28.0;
+            if (edx1 >= 0.1 && edx1 < 0.3) {
                 ed1 = 0;
-            } else if (edx1 < 0.2) {
-                ed1 = Math.abs(0.2 - edx1);
+            } else if (edx1 < 0.1) {
+                ed1 = Math.abs(0.1 - edx1);
             } else {
-                ed1 = Math.abs(edx1 - 0.4);
+                ed1 = Math.abs(edx1 - 0.3);
             }
 
             double ed2;
-            double edx2 = exp2 / 23.0;
+            double edx2 = exp2 / 28.0;
             if (edx2 >= 0.2 && edx2 < 0.4) {
                 ed2 = 0;
             } else if (edx2 < 0.2) {
@@ -299,46 +307,61 @@ public class DNDR10_Random {
             }
 
             double ed3;
-            double edx3 = exp3 / 23.0;
-            if (edx3 >= 0.1 && edx3 < 0.3) {
+            double edx3 = exp3 / 28.0;
+            if (edx3 >= 0.2 && edx3 < 0.4) {
                 ed3 = 0;
-            } else if (edx3 < 0.1) {
-                ed3 = Math.abs(0.1 - edx3);
+            } else if (edx3 < 0.2) {
+                ed3 = Math.abs(0.2 - edx3);
             } else {
-                ed3 = Math.abs(edx3 - 0.3);
+                ed3 = Math.abs(edx3 - 0.4);
             }
 
             double ed4;
-            double edx4 = exp4 / 23.0;
-            if (edx4 >= 0.1 && edx4 < 0.3) {
+            double edx4 = exp4 / 28.0;
+            if (edx4 >= 0.2 && edx4 < 0.4) {
                 ed4 = 0;
-            } else if (edx4 < 0.1) {
-                ed4 = Math.abs(0.1 - edx4);
+            } else if (edx4 < 0.2) {
+                ed4 = Math.abs(0.2 - edx4);
             } else {
-                ed4 = Math.abs(edx4 - 0.3);
+                ed4 = Math.abs(edx4 - 0.4);
             }
 
             double ed5;
-            double edx5 = exp5 / 23.0;
-            if (edx5 >= 0.1 && edx5 < 0.3) {
+            double edx5 = exp5 / 28.0;
+            if (edx5 >= 0.2 && edx5 < 0.4) {
                 ed5 = 0;
-            } else if (edx5 < 0.1) {
-                ed5 = Math.abs(0.1 - edx5);
+            } else if (edx5 < 0.2) {
+                ed5 = Math.abs(0.2 - edx5);
             } else {
-                ed5 = Math.abs(edx5 - 0.3);
+                ed5 = Math.abs(edx5 - 0.4);
             }
 
-            //System.out.println("题型和属性超额情况： td1:"+td1+" td2:"+td2+" td3:"+td3+" td4:"+td4 + "ed1:"+ed1+" ed2:"+ed2+" ed3:"+ed3+" ed4:"+ed4+" ed5:"+ed5)
+            double ed6;
+            double edx6 = exp6 / 28.0;
+            if (edx6 >= 0.1 && edx6 < 0.3) {
+                ed6 = 0;
+            } else if (edx6 < 0.1) {
+                ed6 = Math.abs(0.1 - edx6);
+            } else {
+                ed6 = Math.abs(edx6 - 0.3);
+            }
+
+            double ed7;
+            double edx7 = exp7 / 28.0;
+            if (edx7 >= 0.1 && edx7 < 0.3) {
+                ed7 = 0;
+            } else if (edx7 < 0.1) {
+                ed7 = Math.abs(0.1 - edx7);
+            } else {
+                ed7 = Math.abs(edx7 - 0.3);
+            }
 
             // 惩罚个数  只有比例不符合要求时才惩罚，故不会有太大的影响
-            double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5);
-
-            //System.out.printf("exp(%.3f) 为 %.3f%n", expNum, Math.exp(expNum))
-
+            double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5 + ed6 + ed7);
 
             //均值 和 最小值
             double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
-            double minrum = Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r) * 100;
+            double minrum = Math.min(Math.min(Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r), adi6r), adi7r) * 100;
 
             //System.out.println("minrum: "+minrum)
 
@@ -494,9 +517,9 @@ public class DNDR10_Random {
      *
      */
     @Test
-    public  void  main() throws InterruptedException, SQLException {
+    public  void  main() throws SQLException {
 
-        // 轮询跑50代,方便查看结果
+        // 轮询跑20代,方便查看结果
         for (int j = 0; j < 20; j++) {
 
             sortListForRandom.clear();

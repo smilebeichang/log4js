@@ -12,30 +12,15 @@ import java.util.*;
 
 
 /**
- * Created by IntelliJ IDEA.
  *
  * @Author : song bei chang
- * <p>
+ *
  * 模拟GA
- * <p>
- * 1.模拟GA
- * 1.1 选择、交叉、变异
- * 1.2 迭代120代后,计算其最大圈  这个多样性很难保证,数据容易丢失  至少这是一个值得保证的点
- * <p>
+ *
+ * 1.模拟GA  选择、交叉、变异
+ *
  * 2.诊断效果、质量(A:最大圈顶点数 平均、 B:fitness 波动)
- * <p>
- * 3.题库*3 属性500:5 ->1000:8
- * <p>
- * 4.nicheGA、GA、random、p-cdi
- * 4.1 进行打印操作
- * <p>
- * 5.模拟仿真:2^5=32 pattern
- * 1000个被试、真被试、rum
- * <p>
- * 6.质量下降
- * <p>
- * 7.改进BSF
- * 改变抽取条件(规则)
+ *
  */
 public class DNDR10_GA {
 
@@ -118,7 +103,7 @@ public class DNDR10_GA {
         int fiveAttNum = 2;
 
 
-        // 题库500道题  80:240:400:480:20   长度，题型，属性比例
+        // 题库500道题  80:160:160:80:20   长度，题型，属性比例
 
         /*  生成的平行试卷份数  */
         for (int j = 0; j < paperNum; j++) {

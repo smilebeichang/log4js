@@ -600,6 +600,60 @@ public class JDBCUtils4 {
      * 查询，并返回id
      * adi20210528  adi_5_500   adi_8_1000
      */
+    public   ArrayList<String> selectBySqlV2(String sqlWhere) throws SQLException {
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs ;
+        ArrayList<String> list = new ArrayList<>();
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        try {
+            conn =
+                    DriverManager.getConnection("jdbc:mysql://localhost/sysu?"+"user=root&password=root&useSSL=false");
+            ps = conn.prepareStatement("select * from sysu.adi_8_1000 where " + sqlWhere );
+            rs = ps.executeQuery();
+
+            while(rs.next()) {
+                int id = rs.getInt("id");
+                String type = rs.getString("type");
+                double adi1_r = rs.getDouble("adi1_r");
+                double adi2_r = rs.getDouble("adi2_r");
+                double adi3_r = rs.getDouble("adi3_r");
+                double adi4_r = rs.getDouble("adi4_r");
+                double adi5_r = rs.getDouble("adi5_r");
+                double adi6_r = rs.getDouble("adi6_r");
+                double adi7_r = rs.getDouble("adi7_r");
+                double adi8_r = rs.getDouble("adi8_r");
+
+
+                list.add(id+":"+type+":"+adi1_r+":"+adi2_r+":"+adi3_r+":"+adi4_r+":"+adi5_r+":"+adi6_r+":"+adi7_r+":"+adi8_r);
+            }
+
+        } catch (SQLException ex) {
+            System.out.println("SQLException: " + ex.getMessage());
+        }finally {
+            if(ps!= null) {
+                ps.close();
+            }
+            if(conn!= null) {
+                conn.close();
+            }
+        }
+        return list;
+
+    }
+
+
+    /**
+     * 查询，并返回id
+     * adi20210528  adi_5_500   adi_8_1000
+     */
     public   ArrayList<String> selectBySql(String sqlWhere) throws SQLException {
 
         Connection conn = null;

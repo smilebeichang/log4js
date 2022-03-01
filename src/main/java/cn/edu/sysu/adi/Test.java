@@ -9,12 +9,24 @@ import java.util.*;
 /**
  * @Author : song bei chang
  * @create 2021/5/26 0:18
+ * 测试类
  */
 public class Test {
 
-    //LogFactory.getLog   Logger.getLogger
-    //private static Log logger = LogFactory.getLog(Test.class);
 
+    @org.junit.Test
+    public void test3(){
+        Random random = new Random();
+        double a=1,b=0.5;
+        for (int i = 0; i < 20; i++) {
+
+            // 产生N(a,b)的数： 即均值为a，方差为b的随机数
+            double v = Math.sqrt(b) * random.nextGaussian() + a;
+            random.nextGaussian();
+            System.out.println(v);
+
+        }
+    }
 
     @org.junit.Test
     public void test2(){

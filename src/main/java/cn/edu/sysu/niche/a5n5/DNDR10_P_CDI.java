@@ -1,7 +1,6 @@
 package cn.edu.sysu.niche.a5n5;
 
 
-import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.niche.others.MyComparator;
 import cn.edu.sysu.utils.JDBCUtils4;
 import org.apache.log4j.Logger;
@@ -15,17 +14,27 @@ import java.util.*;
  * @Author : song bei chang
  * @create : 2022/02/24 00:11
  *
- * 模拟随机
+ * 模拟 p_CDI
  *
- * 1：random的50000取前50  (不一定是500*100)
- *      随机生成50道题,然后判断其最大圈,这样便可以验证是否有效  待后续完成
-
+ * 复现：P-CDI (构造法扰动排序约束)                   周二晚上
+ *            [24] D. I. Belov, “Uniform test assembly,” Psychometrika,  2008.
+ *            [25] D. I. Belov, “Uniform test assembly: Concepts, problems, solvers, and applications for adaptive testing,”  2017.
+ *            基于多目标粒子群优化的认知诊断模型平行组卷算法研究
+ *            A Discrete Multi objective Particle Swarm Optimizer for Automated Assembly of Parallel Cognitive Diagnosis Tests
  *
+ *            首先，根据公式(3)计算所有项目的CDI。
+ *            然后按顺序构建M个测试，每个测试的组装如下:通过添加服从标准高斯分布的随机数,扰动每个项目的CDI;选择CDI受干扰最大的L个项进入测试。
+ *            生成所有M个测试后,执行第III-D节中介绍的约束处理策略以纠正可能违反约束的情况。
+ *            CDI较大的项目应该具有更好的区分不同属性掌握模式的能力。因此,使用扰动的CDI作为项目选择的指标可以帮助构建高质量的测试,同时减轻CDI大的项目的重复选择。
+ *
+ *            难点一: CDI的计算  (题库是直接将ADI给算出来了  需后续优化,本版本暂时采用AvgADI替代CDI)
+ *            难点二: 正态分布的随机数  OK
+ *            难点三: 模拟P-CDI
  */
-public class DNDR10_Random {
+public class DNDR10_P_CDI {
 
 
-    private Logger log = Logger.getLogger(DNDR10_Random.class);
+    private Logger log = Logger.getLogger(DNDR10_P_CDI.class);
 
     /**
      * 这个变量需手动更改
@@ -40,6 +49,12 @@ public class DNDR10_Random {
     int paperSize = paperGenetic.length;
 
     private ArrayList<String> sortListForRandom = new ArrayList<>(iterSize * 100);
+
+    /**
+     * 之前构建最大圈 是直接取top 50,现在是排序,然后构造直接生成平行试卷,不用判断题目与题目之间的相似性
+     * 故这里用不到该类,但初期可以先用,也需后续优化
+     *
+     */
     private ArrayList<String> sortTo50 = new ArrayList<>(50);
 
     Random rand = new Random();
@@ -63,7 +78,7 @@ public class DNDR10_Random {
     Comparator comp = new MyComparator();
 
 
-    public DNDR10_Random() throws SQLException {
+    public DNDR10_P_CDI() throws SQLException {
     }
 
 
@@ -74,7 +89,7 @@ public class DNDR10_Random {
      * 生成 paperGenetic  = new String[500*100][20]  为交叉变异提供原始材料
      *
      */
-    private void initItemBank() throws InterruptedException {
+    private void initItemBank()  {
 
         System.out.println("====== 开始选题,构成试卷  轮盘赌构造 ======");
 
@@ -112,17 +127,13 @@ public class DNDR10_Random {
             // 根据id从数据库中查询相对应的题目
             String ids = idList.toString().substring(1, idList.toString().length() - 1);
 
-            List<String> sList = Arrays.asList(ids.split(","));
-            String[] itemArray = new String[sList.size()];
-
-            for (int k = 0; k < sList.size(); k++) {
-                itemArray[k] = sList.get(k);
-            }
-
+            String[] itemArray = ids.split(",");
 
             // 赋值给全局变量 (容器：二维数组)
             paperGenetic[j] = itemArray;
+
         }
+
     }
 
 
@@ -177,184 +188,33 @@ public class DNDR10_Random {
 
             String ids = idsb.toString().substring(1);
 
-            // 题型个数
-            String[] expList = itemList;
-            int typeChose = 0;
-            int typeFill = 0;
-            int typeShort = 0;
-            int typeCompre = 0;
-
-
-            //此次迭代各个题型的数目
-            for (String s : expList) {
-
-                s = allItemList.get(Integer.valueOf(s.trim()));
-
-                //计算每种题型个数
-                if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
-                    typeChose += 1;
-                }
-                if (TYPE.FILL.toString().equals(s.split(":")[1])) {
-                    typeFill += 1;
-                }
-                if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
-                    typeShort += 1;
-                }
-                if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
-                    typeCompre += 1;
-                }
-            }
-
-            // 题型比例/10  属性比例/23 是固定值,到了后期需要修正
-            // 题型比例
-            double typeChoseRation = typeChose / 20.0;
-            double typeFileRation = typeFill / 20.0;
-            double typeShortRation = typeShort / 20.0;
-            double typeCompreRation = typeCompre / 20.0;
-
-            // 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
-            // 先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
-            double td1;
-            if (typeChoseRation >= 0.2 && typeChoseRation < 0.4) {
-                td1 = 0;
-            } else if (typeChoseRation < 0.2) {
-                td1 = Math.abs(0.2 - typeChoseRation);
-            } else {
-                td1 = Math.abs(typeChoseRation - 0.4);
-            }
-
-            double td2;
-            if (typeFileRation >= 0.2 && typeFileRation < 0.4) {
-                td2 = 0;
-            } else if (typeFileRation < 0.2) {
-                td2 = Math.abs(0.2 - typeFileRation);
-            } else {
-                td2 = Math.abs(typeFileRation - 0.4);
-            }
-
-            double td3;
-            if (typeShortRation >= 0.1 && typeShortRation < 0.3) {
-                td3 = 0;
-            } else if (typeShortRation < 0.1) {
-                td3 = Math.abs(0.1 - typeShortRation);
-            } else {
-                td3 = Math.abs(typeShortRation - 0.3);
-            }
-
-            double td4;
-            if (typeCompreRation >= 0.1 && typeCompreRation < 0.3) {
-                td4 = 0;
-            } else if (typeCompreRation < 0.1) {
-                td4 = Math.abs(0.1 - typeCompreRation);
-            } else {
-                td4 = Math.abs(typeCompreRation - 0.3);
-            }
-
-
-            // 属性个数
-            int exp1 = 0;
-            int exp2 = 0;
-            int exp3 = 0;
-            int exp4 = 0;
-            int exp5 = 0;
-
-            for (int j = 0; j < expList.length; j++) {
-                String[] splits  = allItemList.get(Integer.valueOf(expList[j].trim())).split(":");
-
-                exp1 = exp1 + Integer.parseInt(splits[2].split(",")[0].substring(1, 2));
-                exp2 = exp2 + Integer.parseInt(splits[2].split(",")[1]);
-                exp3 = exp3 + Integer.parseInt(splits[2].split(",")[2]);
-                exp4 = exp4 + Integer.parseInt(splits[2].split(",")[3]);
-                exp5 = exp5 + Integer.parseInt(splits[2].split(",")[4].substring(0, 1));
-            }
-
-            // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
-            //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
-            // 23.0 可能存在误差,待研究
-            double ed1;
-            double edx1 = exp1 / 23.0;
-            if (edx1 >= 0.2 && edx1 < 0.4) {
-                ed1 = 0;
-            } else if (edx1 < 0.2) {
-                ed1 = Math.abs(0.2 - edx1);
-            } else {
-                ed1 = Math.abs(edx1 - 0.4);
-            }
-
-            double ed2;
-            double edx2 = exp2 / 23.0;
-            if (edx2 >= 0.2 && edx2 < 0.4) {
-                ed2 = 0;
-            } else if (edx2 < 0.2) {
-                ed2 = Math.abs(0.2 - edx2);
-            } else {
-                ed2 = Math.abs(edx2 - 0.4);
-            }
-
-            double ed3;
-            double edx3 = exp3 / 23.0;
-            if (edx3 >= 0.1 && edx3 < 0.3) {
-                ed3 = 0;
-            } else if (edx3 < 0.1) {
-                ed3 = Math.abs(0.1 - edx3);
-            } else {
-                ed3 = Math.abs(edx3 - 0.3);
-            }
-
-            double ed4;
-            double edx4 = exp4 / 23.0;
-            if (edx4 >= 0.1 && edx4 < 0.3) {
-                ed4 = 0;
-            } else if (edx4 < 0.1) {
-                ed4 = Math.abs(0.1 - edx4);
-            } else {
-                ed4 = Math.abs(edx4 - 0.3);
-            }
-
-            double ed5;
-            double edx5 = exp5 / 23.0;
-            if (edx5 >= 0.1 && edx5 < 0.3) {
-                ed5 = 0;
-            } else if (edx5 < 0.1) {
-                ed5 = Math.abs(0.1 - edx5);
-            } else {
-                ed5 = Math.abs(edx5 - 0.3);
-            }
-
-
-            // 惩罚个数  只有比例不符合要求时才惩罚，故不会有太大的影响
-            double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5);
-
-            //System.out.printf("exp(%.3f) 为 %.3f%n", expNum, Math.exp(expNum))
-
 
             //均值 和 最小值
             double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
-            double minrum = Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r) * 100;
 
-
-            //适应度值 (min * 惩罚系数)
-            minrum = minrum * Math.exp(expNum);
-
-            // 个体
             // 本身的基因型选用id拼接,其具有代表性
-            fitTmp[i] = minrum + "_" + ids;
-            sortListForRandom.add(minrum + "_" + ids);
+            fitTmp[i] = avgrum + "_" + ids;
+            sortListForRandom.add(avgrum + "_" + ids);
 
         }
 
-        Collections.sort(sortListForRandom, comp);
+
+        // 扰动并构造平行试卷
+        ArrayList<String> newListForPCDI = perturbToAssembled(sortListForRandom);
+
+
+        Collections.sort(newListForPCDI, comp);
 
 
         for (int i = 0; i < 50; i++) {
-            sortTo50.add(sortListForRandom.get(i));
+            sortTo50.add(newListForPCDI.get(i));
         }
 
     }
 
 
 
-    public String[] supplementPaperGenetic() throws SQLException {
+    public String[] supplementPaperGenetic()   {
 
         // 单套试卷的集合
         HashSet<String> itemSet = new HashSet<>();
@@ -447,7 +307,8 @@ public class DNDR10_Random {
      * 目的: 下游做最大圈和方差的时候,可规避去重
      * 方式：list --> set --> list
      *
-     * 迭代5轮,去重效果不明显
+     *
+     * FIXME 此处的去重,可能需要进一步考虑,因为存在题目一样,但适应度值不一样的情况
      *
      */
     private ArrayList<String> uniqueDate(ArrayList<String> sortTo50) {
@@ -468,21 +329,15 @@ public class DNDR10_Random {
 
     /**
      * 主程序
-     * 1. 初始化试卷
-     * 2. 计算 max clique
-     * 3. 画图
-     * FIXME: 这个500代需要修复,很多时候，NicheGA 并没有跑到500代
-     *
-     * random初步结果：
-     * 最大圈顶点数：3~4
-     * 最大圈：6~10
-     * 平均适应度值：32.6~34.9
-     * 波动情况：7.8~15.5
+     * 1. 初始化试卷  类似于 random
+     * 2. 扰动, 取 top50
+     * 3. 计算 max clique
+     * 4. 画图
      *
      *
      */
     @Test
-    public  void  main() throws InterruptedException, SQLException {
+    public  void  main() throws  SQLException {
 
         // 轮询跑50代,方便查看结果
         for (int j = 0; j < 20; j++) {
@@ -507,6 +362,8 @@ public class DNDR10_Random {
             // 3.计算的适应度值，并取前50个体
             getFitnessForRandom();
 
+
+
             // 去重
             ArrayList<String> uniqueList  = uniqueDate(sortTo50);
 
@@ -520,6 +377,23 @@ public class DNDR10_Random {
 
     }
 
+    /**
+     * 扰动CDI,并返回新的集合
+     *
+     *
+     */
+    private ArrayList<String> perturbToAssembled(ArrayList<String> sortListForRandom) {
+
+        ArrayList<String> newListForPCDI =  new ArrayList<>();
+
+        for (String s : sortListForRandom) {
+            String[] s1 = s.split("_");
+            double pv = rand.nextGaussian() * Double.valueOf(s1[0]);
+            newListForPCDI.add(pv+"_"+s1[1]);
+        }
+
+        return newListForPCDI;
+    }
 
 
 }

@@ -23,7 +23,7 @@ import java.util.*;
  *
  *
  *  任务4：不同对象的比较
- *      NicheGA、GA、random、P-CDI
+ *      NicheGA、GA、random
  *
  *
  *  niche GA 初步结果:
@@ -43,31 +43,20 @@ import java.util.*;
  *      2^8 = 256 pattern、100个被试，rum
  *
  *  任务6：质量下降 查明原因
- *  任务7：改变终止规则
+ *  任务7：改变终止规则,改进BSF
+ *  * 改变抽取条件(规则)
  *
  *
  *
  * 本周任务：
- *      1.  适应度平均值和适应度方差  是基于组卷的,代码的修改   周天上午
- *      2.  复现：P-CDI                                 找资料,并初步看文献,周天上午
- *          [24] D. I. Belov, “Uniform test assembly,” Psychometrika,  2008.
- *          [25] D. I. Belov, “Uniform test assembly: Concepts, problems, solvers, and applications for adaptive testing,”  2017.
- *          基于多目标粒子群优化的认知诊断模型平行组卷算法研究
- *          A Discrete Multiobjective Particle Swarm Optimizer for Automated Assembly of Parallel Cognitive Diagnosis Tests
+ *      1.  前端页面展示   周六+周天
+ *      2.  论文(方法和背景部分)                             周一~周四
+ *      3.  复现：P-CDI (构造法扰动排序约束)   周二
+ *      4.  比较：4种模型 * 3题库                           周天周一
+ *      5.  适应度平均值和适应度方差  是基于组卷的,代码的修改
+ *      6.  SPSS 的使用和统计方法的先后步骤  anova方差齐性校验  周天
+ *      7.  迭代次数过小  是否会有影响
  *
- *          p-CDI  是随便找一个启发式策略就好了吗?还是必须某个方案   建议先做一个demo出来,不然周五没法交差
- *
- *      3.  比较：4种模型 * 3题库                         周一解决3题库,周二进行比较
- *      4.  迭代次数过小  是否会有影响                      周三
- *
- *
- * 今下午的任务：在 3题库 * 3算法 下进行比较
- *      1.粘贴复制三份代码
- *      2.适配5_500代码
- *      3.结果展示
- *      4.p-CDI
- *
- * 今晚上的任务：ppt
  *
  */
 public class DNDR10 {
@@ -554,14 +543,12 @@ public class DNDR10 {
                 for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
                     pw.print(distanceMatrix[i1][i2]+" , ");
                 }
-                pw.print("333");
                 pw.println();
             }
 
             for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
                 pw.print(distanceMatrix[i1][i2]+" , ");
             }
-            pw.print("333");
             pw.println();
         }
 
@@ -3191,7 +3178,6 @@ public class DNDR10 {
 
             // 2.迭代次数 500
             for (int i = 0; i < iterationSize; i++) {
-
 
                 // 3.置空leader容器
                 iterationClear();
