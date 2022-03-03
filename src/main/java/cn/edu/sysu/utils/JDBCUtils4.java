@@ -35,13 +35,13 @@ public class JDBCUtils4 {
         try {
             conn =
                     DriverManager.getConnection("jdbc:mysql://localhost/sysu?"+"user=root&password=root&useSSL=false");
-            ps = conn.prepareStatement("select * from sysu.adi_5_500 order by id  ;");
+            ps = conn.prepareStatement("select * from sysu.adi_8_1000 order by id  ;");
             rs = ps.executeQuery();
             while(rs.next()) {
                 int id = rs.getInt("id");
                 String type = rs.getString("type");
-                String attributes = rs.getString("pattern");
-                list.add(id+":"+type+":"+attributes);
+                String penalty = rs.getString("penalty");
+                list.add(id+":"+type+":"+penalty);
             }
 
         } catch (SQLException ex) {
@@ -458,7 +458,6 @@ public class JDBCUtils4 {
                 double adi7_r = rs.getDouble("adi7_r");
                 double adi8_r = rs.getDouble("adi8_r");
 
-                //list.add(id+":"+type+":"+pattern+":"+adi1_r+":"+adi2_r+":"+adi3_r+":"+adi4_r+":"+adi5_r+":"+adi6_r+":"+adi7_r+":"+adi8_r);
                 list.add(id+":"+type+":"+adi1_r+":"+adi2_r+":"+adi3_r+":"+adi4_r+":"+adi5_r+":"+adi6_r+":"+adi7_r+":"+adi8_r);
             }
 
@@ -707,7 +706,7 @@ public class JDBCUtils4 {
      * 查询，并返回id,type,pattern
      * adi20210528  adi_5_500  adi_8_1000
      */
-    public  String selectOneItemV2(int sqlId) throws SQLException {
+    public  String selectOneItemV2(int sqlId)  {
 
 
         ResultSet rs ;
@@ -719,15 +718,15 @@ public class JDBCUtils4 {
         }
 
         try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost/sysu?" + "user=root&password=root&useSSL=false");
-             PreparedStatement ps = conn.prepareStatement("SELECT t1.id,t1.type,t1.pattern \n" +
+             PreparedStatement ps = conn.prepareStatement("SELECT t1.id,t1.type,t1.penalty \n" +
                      "FROM sysu.adi_8_1000 AS t1 \n" +
                      "WHERE t1.id = " + sqlId)) {
             rs = ps.executeQuery();
             while(rs.next()){
                 int id = rs.getInt("id");
                 String type = rs.getString("type");
-                String attributes = rs.getString("pattern");
-                item = id + ":" + type + ":" + attributes;
+                String penalty = rs.getString("penalty");
+                item = id + ":" + type + ":" + penalty;
 
             }
             if(ps!= null) {

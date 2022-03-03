@@ -19,82 +19,31 @@ import java.util.*;
 
 /**
  * @Author : song bei chang
- * @create : 2022/02/08 10:12
- * <p>
- * <p>
+ * @create : 2022/03/02 10:12
+ *
  * 本周进度安排:  GA -->  收敛（重难点）  -->  最大圈clique
- * <p>
- * 1.小生境达到稳定后,开始计算最大圈
- * 2.稳定性的判断标准：
- * 2.1 整个集群
- * 2.2 小生境的前50%
- * 2.3 leader的方差
- * 2.4 BSF(best so far) 趋于稳定 (最简单，此版本采纳这个)
- * 3.如何保证或者如何验证呢
- * 3.1 使用BSF(每代保留最优个体,与下一代做并集,随后去重,得到下一代：需验证是否会导致后代相似性过大)
- * BSF 使用ArrayList 保存(1.大小不受限制   2.去重不方便     3.排序方便 )
- * <p>
- * <p>
- * IDEA 设置断点条件：
- * 在断点的位置，右击断点旁边的小红点，会出来一个界面，在Condition这里填入断点条件即可。
- * <p>
- * <p>
+ *
  * 诊断效果、质量(A:最大圈顶点数 平均、 B:fitness 波动)
  * 任务1:指标 计算fitness的波动
- * 1.1 验证BSF的整个适应度平均值+方差  这个更合理些 ,目前采用这个版本(平均+波动)
- * 1.2 取top10,验证适应度平均值+方差
- * <p>
- * <p>
- * 任务2:指标 计算个体的波动
- * 1.3 直接进行保存,然后比较个体是否一致  这个比较麻烦,验证个体变化，需确定用哪个版本做基线版本
- * <p>
- * 任务3：题库的创建
- * 300道题       5个属性
- * 500|1000道题  8个属性
- * <p>
- * <p>
- * <p>
+ *  1.2 以平行试卷为最小单元,验证适应度平均值+方差
+ *
  * 任务4：不同对象的比较
  * NicheGA、GA、random、P-CDI
- * <p>
- * <p>
- * niche GA 初步结果:
- * 1.最大圈顶点数：4~5
- * 2.最大圈: 13~48
- * 3.平均适应度值: 17.4~20.3
- * 4.波动情况:6.4~16.0
- * <p>
+ *
  * 目前对比情况:
  * 最大圈定点数 niche GA > GA = random
  * 最大圈      GA > niche GA > random  (此处可以做一个去重操作)
  * 平均适应度值 random > GA > niche GA  (这个就很离谱了)
  * 波动情况 random ~ GA ~ niche GA     (此处可以做一个去重操作)
- * <p>
+ *
  * 任务5: 仿真
  * 2^5 = 32 pattern、100个被试，rum
- * <p>
+ *
  * 任务6：质量下降 查明原因
  * 任务7：改变终止规则
- * <p>
- * <p>
- * <p>
- * 本周任务：
- * 1.  适应度平均值和适应度方差  是基于组卷的,代码的修改   周天上午
- * 2.  复现：P-CDI                                 找资料,并初步看文献,周天上午
- * [24] D. I. Belov, “Uniform test assembly,” Psychometrika,  2008.
- * [25] D. I. Belov, “Uniform test assembly: Concepts, problems, solvers, and applications for adaptive testing,”  2017.
- * 基于多目标粒子群优化的认知诊断模型平行组卷算法研究
- * A Discrete Multiobjective Particle Swarm Optimizer for Automated Assembly of Parallel Cognitive Diagnosis Tests
- * <p>
- * p-CDI  是随便找一个启发式策略就好了吗?还是必须某个方案   建议先做一个demo出来,不然周五没法交差
- * <p>
- * 3.  比较：4种模型 * 3题库                         周一解决3题库,周二进行比较
- * 4.  迭代次数过小  是否会有影响                      周三
- * <p>
- * <p>
- * 今下午的任务：在3题库 * 3 算法 下进行比较
- * 第一
- * 今晚上的任务：ppt
+ *
+ * 今下午的任务：在3题库 * 4 算法下进行比较
+ *
  */
 public class DNDR10 {
 
@@ -706,7 +655,6 @@ public class DNDR10 {
                 itemList = supplementPaperGenetic();
             }
 
-            System.out.println("-->itemList: " + Arrays.asList(itemList).toString());
             for (int j = 0; j < itemList.length; j++) {
 
                 String[] splits = itemList[j].split(":");
@@ -802,14 +750,22 @@ public class DNDR10 {
             int exp3 = 0;
             int exp4 = 0;
             int exp5 = 0;
+            int exp6 = 0;
+            int exp7 = 0;
 
             for (int j = 0; j < expList.length; j++) {
                 String[] splits = expList[j].split(":");
-                exp1 = exp1 + Integer.parseInt(splits[2].split(",")[0].substring(1, 2));
-                exp2 = exp2 + Integer.parseInt(splits[2].split(",")[1]);
-                exp3 = exp3 + Integer.parseInt(splits[2].split(",")[2]);
-                exp4 = exp4 + Integer.parseInt(splits[2].split(",")[3]);
-                exp5 = exp5 + Integer.parseInt(splits[2].split(",")[4].substring(0, 1));
+
+                //String[] splits  = allItemList.get(Integer.valueOf(expList[j].trim())).split(":");
+
+
+                exp1 = exp1 + Double.valueOf(splits[2]) > 0.0?1:0;
+                exp2 = exp2 + Double.valueOf(splits[3]) > 0.0?1:0;
+                exp3 = exp3 + Double.valueOf(splits[4]) > 0.0?1:0;
+                exp4 = exp4 + Double.valueOf(splits[5]) > 0.0?1:0;
+                exp5 = exp5 + Double.valueOf(splits[6]) > 0.0?1:0;
+                exp6 = exp6 + Double.valueOf(splits[7]) > 0.0?1:0;
+                exp7 = exp7 + Double.valueOf(splits[8]) > 0.0?1:0;
             }
 
             // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
@@ -1193,7 +1149,7 @@ public class DNDR10 {
     }
 
 
-    public String[] supplementPaperGenetic() throws SQLException {
+    public String[] supplementPaperGenetic() {
 
         // 单套试卷的集合
         HashSet<String> itemSet = new HashSet<>();
@@ -1358,35 +1314,47 @@ public class DNDR10 {
         int attributeNum3 = 0;
         int attributeNum4 = 0;
         int attributeNum5 = 0;
+        int attributeNum6 = 0;
+        int attributeNum7 = 0;
 
         //此次迭代各个属性的数目
         for (String s : itemSet) {
 
-            //计算每种题型个数
-            if ("1".equals(s.split(":")[2].substring(1, 2))) {
+            String s1 = s.substring(1, s.length() - 1);
+            String[] split = s1.split(",");
+            if (!"0.0".equals(split[0])) {
                 attributeNum1 += 1;
             }
-            if ("1".equals(s.split(":")[2].substring(3, 4))) {
+
+            if (!"0.0".equals(split[1])) {
                 attributeNum2 += 1;
             }
-            if ("1".equals(s.split(":")[2].substring(5, 6))) {
+            if (!"0.0".equals(split[2])) {
                 attributeNum3 += 1;
             }
-            if ("1".equals(s.split(":")[2].substring(7, 8))) {
+            if (!"0.0".equals(split[3])) {
                 attributeNum4 += 1;
             }
-            if ("1".equals(s.split(":")[2].substring(9, 10))) {
+            if (!"0.0".equals(split[4])) {
                 attributeNum5 += 1;
             }
+            if (!"0.0".equals(split[5])) {
+                attributeNum6 += 1;
+            }
+            if (!"0.0".equals(split[6])) {
+                attributeNum7 += 1;
+            }
         }
-        //System.out.println("ar1: "+attributeNum1+"\tar2: "+attributeNum2+"\tar3: "+attributeNum3+"\tar4: "+attributeNum4+"\tar5: "+attributeNum5);
+
 
         //属性比例
-        double attributeRatio1 = attributeNum1 / 23.0;
-        double attributeRatio2 = attributeNum2 / 23.0;
-        double attributeRatio3 = attributeNum3 / 23.0;
-        double attributeRatio4 = attributeNum4 / 23.0;
-        double attributeRatio5 = attributeNum5 / 23.0;
+        double attributeRatio1 = attributeNum1 / 28.0;
+        double attributeRatio2 = attributeNum2 / 28.0;
+        double attributeRatio3 = attributeNum3 / 28.0;
+        double attributeRatio4 = attributeNum4 / 28.0;
+        double attributeRatio5 = attributeNum5 / 28.0;
+        double attributeRatio6 = attributeNum6 / 28.0;
+        double attributeRatio7 = attributeNum7 / 28.0;
 
 
         // 题型和属性比例 与轮盘赌搭建关系：
@@ -1429,42 +1397,57 @@ public class DNDR10 {
             }
 
             //属性比例
-            if ("1".equals(splits[2].substring(1, 2))) {
+            String s1 = splits[2].substring(1, splits[2].length() - 1);
+            String[] split = s1.split(",");
+            if (!"0.0".equals(split[0])) {
                 if (attributeRatio1 < 0.4) {
                     penalty = penalty * Math.pow(0.8, attributeNum1);
                 } else {
                     penalty = penalty * Math.pow(0.8, attributeNum1 * attributeNum1);
                 }
             }
-            if ("1".equals(splits[2].substring(3, 4))) {
+            if (!"0.0".equals(split[1])) {
                 if (attributeRatio2 < 0.4) {
                     penalty = penalty * Math.pow(0.8, attributeNum2);
                 } else {
                     penalty = penalty * Math.pow(0.8, attributeNum2 * attributeNum2);
                 }
             }
-            if ("1".equals(splits[2].substring(5, 6))) {
+            if (!"0.0".equals(split[2])) {
                 if (attributeRatio3 < 0.3) {
                     penalty = penalty * Math.pow(0.8, attributeNum3);
                 } else {
                     penalty = penalty * Math.pow(0.8, attributeNum3 * attributeNum3);
                 }
             }
-            if ("1".equals(splits[2].substring(7, 8))) {
+            if (!"0.0".equals(split[3])) {
                 if (attributeRatio4 < 0.3) {
                     penalty = penalty * Math.pow(0.8, attributeNum4);
                 } else {
                     penalty = penalty * Math.pow(0.8, attributeNum4 * attributeNum4);
                 }
             }
-            if ("1".equals(splits[2].substring(9, 10))) {
+            if (!"0.0".equals(split[4])) {
                 if (attributeRatio5 < 0.3) {
                     penalty = penalty * Math.pow(0.8, attributeNum5);
                 } else {
                     penalty = penalty * Math.pow(0.8, attributeNum5 * attributeNum5);
                 }
             }
-
+            if (!"0.0".equals(split[5])) {
+                if (attributeRatio4 < 0.3) {
+                    penalty = penalty * Math.pow(0.8, attributeNum6);
+                } else {
+                    penalty = penalty * Math.pow(0.8, attributeNum6 * attributeNum6);
+                }
+            }
+            if (!"0.0".equals(split[6])) {
+                if (attributeRatio5 < 0.3) {
+                    penalty = penalty * Math.pow(0.8, attributeNum7);
+                } else {
+                    penalty = penalty * Math.pow(0.8, attributeNum7 * attributeNum7);
+                }
+            }
 
             //个体值 和 总和
             fitTmp[j] = penalty;
@@ -1491,7 +1474,6 @@ public class DNDR10 {
      */
     private void getFitnessForGene(int paperSize) throws SQLException {
 
-        //log.info("适应值 log4j")
 
         // 所有试卷的适应度总和
         double fitSum = 0.0;
@@ -1508,6 +1490,8 @@ public class DNDR10 {
             double adi3r = 0;
             double adi4r = 0;
             double adi5r = 0;
+            double adi6r = 0;
+            double adi7r = 0;
 
             StringBuilder idsb = new StringBuilder();
 
@@ -1522,24 +1506,15 @@ public class DNDR10 {
 
             System.out.println("-->itemList: " + Arrays.asList(itemList).toString());
             for (int j = 0; j < itemList.length; j++) {
-
-                /**
-                 *
-                 * -->itemList: [null, null, null, null, null, null, null]
-                 * -->itemList.length: 20
-                 * j: 0
-                 * itemList[j]: null
-                 *
-                 * paperGenetic 在上一轮出现了问题,长度为20,但里面的值均为null。
-                 * 校验方案:在每层做一个长度及null值的校验
-                 */
-
+                System.out.println("itemList[j]:--> "+itemList[j]);
                 String[] splits = itemList[j].split(":");
-                adi1r = adi1r + Double.parseDouble(splits[3]);
-                adi2r = adi2r + Double.parseDouble(splits[4]);
-                adi3r = adi3r + Double.parseDouble(splits[5]);
-                adi4r = adi4r + Double.parseDouble(splits[6]);
-                adi5r = adi5r + Double.parseDouble(splits[7]);
+                adi1r = adi1r + Double.parseDouble(splits[2]);
+                adi2r = adi2r + Double.parseDouble(splits[3]);
+                adi3r = adi3r + Double.parseDouble(splits[4]);
+                adi4r = adi4r + Double.parseDouble(splits[5]);
+                adi5r = adi5r + Double.parseDouble(splits[6]);
+                adi6r = adi6r + Double.parseDouble(splits[7]);
+                adi7r = adi7r + Double.parseDouble(splits[8]);
 
                 // 拼接ids
                 idsb.append(",").append(splits[0]);
@@ -1628,30 +1603,36 @@ public class DNDR10 {
             int exp3 = 0;
             int exp4 = 0;
             int exp5 = 0;
+            int exp6 = 0;
+            int exp7 = 0;
 
             for (int j = 0; j < expList.length; j++) {
                 String[] splits = expList[j].split(":");
-                exp1 = exp1 + Integer.parseInt(splits[2].split(",")[0].substring(1, 2));
-                exp2 = exp2 + Integer.parseInt(splits[2].split(",")[1]);
-                exp3 = exp3 + Integer.parseInt(splits[2].split(",")[2]);
-                exp4 = exp4 + Integer.parseInt(splits[2].split(",")[3]);
-                exp5 = exp5 + Integer.parseInt(splits[2].split(",")[4].substring(0, 1));
+                //String[] splits  = allItemList.get(Integer.valueOf(expList[j].trim())).split(":");
+
+                exp1 = exp1 + Double.valueOf(splits[2]) > 0.0?1:0;
+                exp2 = exp2 + Double.valueOf(splits[3]) > 0.0?1:0;
+                exp3 = exp3 + Double.valueOf(splits[4]) > 0.0?1:0;
+                exp4 = exp4 + Double.valueOf(splits[5]) > 0.0?1:0;
+                exp5 = exp5 + Double.valueOf(splits[6]) > 0.0?1:0;
+                exp6 = exp6 + Double.valueOf(splits[7]) > 0.0?1:0;
+                exp7 = exp7 + Double.valueOf(splits[8]) > 0.0?1:0;
             }
 
             // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
             //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
             double ed1;
-            double edx1 = exp1 / 23.0;
-            if (edx1 >= 0.2 && edx1 < 0.4) {
+            double edx1 = exp1 / 28.0;
+            if (edx1 >= 0.1 && edx1 < 0.3) {
                 ed1 = 0;
-            } else if (edx1 < 0.2) {
-                ed1 = Math.abs(0.2 - edx1);
+            } else if (edx1 < 0.1) {
+                ed1 = Math.abs(0.1 - edx1);
             } else {
-                ed1 = Math.abs(edx1 - 0.4);
+                ed1 = Math.abs(edx1 - 0.3);
             }
 
             double ed2;
-            double edx2 = exp2 / 23.0;
+            double edx2 = exp2 / 28.0;
             if (edx2 >= 0.2 && edx2 < 0.4) {
                 ed2 = 0;
             } else if (edx2 < 0.2) {
@@ -1661,48 +1642,62 @@ public class DNDR10 {
             }
 
             double ed3;
-            double edx3 = exp3 / 23.0;
-            if (edx3 >= 0.1 && edx3 < 0.3) {
+            double edx3 = exp3 / 28.0;
+            if (edx3 >= 0.2 && edx3 < 0.4) {
                 ed3 = 0;
-            } else if (edx3 < 0.1) {
-                ed3 = Math.abs(0.1 - edx3);
+            } else if (edx3 < 0.2) {
+                ed3 = Math.abs(0.2 - edx3);
             } else {
-                ed3 = Math.abs(edx3 - 0.3);
+                ed3 = Math.abs(edx3 - 0.4);
             }
 
             double ed4;
-            double edx4 = exp4 / 23.0;
-            if (edx4 >= 0.1 && edx4 < 0.3) {
+            double edx4 = exp4 / 28.0;
+            if (edx4 >= 0.2 && edx4 < 0.4) {
                 ed4 = 0;
-            } else if (edx4 < 0.1) {
-                ed4 = Math.abs(0.1 - edx4);
+            } else if (edx4 < 0.2) {
+                ed4 = Math.abs(0.2 - edx4);
             } else {
-                ed4 = Math.abs(edx4 - 0.3);
+                ed4 = Math.abs(edx4 - 0.4);
             }
 
             double ed5;
-            double edx5 = exp5 / 23.0;
-            if (edx5 >= 0.1 && edx5 < 0.3) {
+            double edx5 = exp5 / 28.0;
+            if (edx5 >= 0.2 && edx5 < 0.4) {
                 ed5 = 0;
-            } else if (edx5 < 0.1) {
-                ed5 = Math.abs(0.1 - edx5);
+            } else if (edx5 < 0.2) {
+                ed5 = Math.abs(0.2 - edx5);
             } else {
-                ed5 = Math.abs(edx5 - 0.3);
+                ed5 = Math.abs(edx5 - 0.4);
             }
 
-            //System.out.println("题型和属性超额情况： td1:"+td1+" td2:"+td2+" td3:"+td3+" td4:"+td4 + "ed1:"+ed1+" ed2:"+ed2+" ed3:"+ed3+" ed4:"+ed4+" ed5:"+ed5)
+            double ed6;
+            double edx6 = exp6 / 28.0;
+            if (edx6 >= 0.1 && edx6 < 0.3) {
+                ed6 = 0;
+            } else if (edx6 < 0.1) {
+                ed6 = Math.abs(0.1 - edx6);
+            } else {
+                ed6 = Math.abs(edx6 - 0.3);
+            }
+
+            double ed7;
+            double edx7 = exp7 / 28.0;
+            if (edx7 >= 0.1 && edx7 < 0.3) {
+                ed7 = 0;
+            } else if (edx7 < 0.1) {
+                ed7 = Math.abs(0.1 - edx7);
+            } else {
+                ed7 = Math.abs(edx7 - 0.3);
+            }
 
             // 惩罚个数  只有比例不符合要求时才惩罚，故不会有太大的影响
-            double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5);
-
-            //System.out.printf("exp(%.3f) 为 %.3f%n", expNum, Math.exp(expNum))
-
+            double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5 + ed6 + ed7);
 
             //均值 和 最小值
             double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
-            double minrum = Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r) * 100;
+            double minrum = Math.min(Math.min(Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r), adi6r), adi7r) * 100;
 
-            //System.out.println("minrum: "+minrum)
 
             //适应度值 (min * 惩罚系数)
             minrum = minrum * Math.exp(expNum);
@@ -1738,17 +1733,6 @@ public class DNDR10 {
         //String[] itemList = paperGenetic[0];
         for (int j = 0; j < itemArray.length; j++) {
 
-            /**
-             *
-             * -->itemList: [null, null, null, null, null, null, null, null, null, null, null, null, null, null]
-             * -->itemList.length: 20
-             * j: 0
-             * itemList[j]: null
-             */
-            //System.out.println("-->itemList: " + Arrays.asList(itemArray));
-            //System.out.println("-->itemList.length: " + itemArray.length);
-            //System.out.println("j: " + j);
-            //System.out.println("itemList[j]: " + itemArray[j]);
 
             String[] splits = itemArray[j].split(":");
             adi1r = adi1r + Double.parseDouble(splits[3]);
@@ -2485,19 +2469,19 @@ public class DNDR10 {
             //for (int j = 0; j < outCross.size()-1 ; j++) {
             for (int j = 0; j < outCross.size(); j++) {
 
-
+                // FIXME 待修复
+                // PM = 0;
                 if (Math.random() < PM) {
 
-                    // 限制性锦标赛拥挤小生境  传进去是单个个体，返回的单个个体
-                    ArrayList<String[]> rts = niche5.RTS(outCross, j);
+                    // 限制性锦标赛拥挤小生境  传进去是单个个体,返回的单个个体
+                    ArrayList<String[]> rts = niche5.RTSV2(outCross, j);
 
                     String[] c1 = rts.get(0);
                     // 执行修补操作
                     String[] c2 = cu.correctTypeV2(c1);
-                    String[] c3 = cu.correctAttributeV2(c2);
-
-                    outMutate.add(c3);
-
+                    // FIXME 待完成修补操作  属性校验晚些完成，因为其涉及一个比例的考量
+                    //String[] c3 = cu.correctAttributeV2(c2);
+                    outMutate.add(c2);
 
                 } else {
 
@@ -2506,12 +2490,12 @@ public class DNDR10 {
                     String[] itemArray = new String[sList.size()];
 
                     for (int k = 0; k < sList.size(); k++) {
-                        //System.out.println("K:"+k);
-                        //System.out.println("sList:"+sList);
+
                         itemArray[k] = allItemList.get(Integer.parseInt(sList.get(k)) - 1 > -1 ? Integer.parseInt(sList.get(k)) - 1 : 1);
                     }
-                    String[] c3 = cu.correctAttributeV2(itemArray);
-                    outMutate.add(c3);
+                    // FIXME 待修复
+                    //String[] c3 = cu.correctAttributeV2(itemArray);
+                    outMutate.add(itemArray);
                 }
             }
         }
@@ -2642,14 +2626,6 @@ public class DNDR10 {
                 // 数组转字符串(逗号分隔),然后从题库中搜索
                 String ids = StringUtils.join(temp, ",");
 
-//                ArrayList<String> bachItemList = jdbcUtils.selectBachItem(ids);
-//
-//                // ArrayList 转 []
-//                // 交叉变异的针对的是题目   即试卷=个体  题目=基因
-//                String[] itemArray = new String[bachItemList.size()];
-//                for (int h = 0; h < bachItemList.size(); h++) {
-//                    itemArray[h] = bachItemList.get(h);
-//                }
 
                 List<String> sList = Arrays.asList(ids.split(","));
                 String[] itemArray = new String[sList.size()];
@@ -3174,15 +3150,15 @@ public class DNDR10 {
         String[] strings = cu.correctLength(temp);
 
 
-        // 题型比例校验
-        String[] stringsV2 = cu.correctType(strings);
+        // 题型比例校验 FIXME 待完成
+        //String[] stringsV2 = cu.correctType(strings);
 
 
-        // 属性比例校验
-        String[] stringsV3 = cu.correctAttribute(stringsV2);
+        // 属性比例校验 FIXME 待完成
+        //String[] stringsV3 = cu.correctAttributeV3(stringsV2);
 
 
-        return stringsV3;
+        return strings;
 
 
     }
@@ -3347,7 +3323,6 @@ public class DNDR10 {
                     timeFlag = false;
                     // 使用 break 替代 exit
                     System.out.println("退出！！");
-                    // System.exit(0);
                     break;
 
                 }

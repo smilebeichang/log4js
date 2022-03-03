@@ -316,6 +316,26 @@ public class DNDR10_P_CDI {
 
 
     /**
+     * 扰动CDI,并返回新的集合
+     *
+     *
+     */
+    private ArrayList<String> perturbToAssembled(ArrayList<String> sortListForRandom) {
+
+        ArrayList<String> newListForPCDI =  new ArrayList<>();
+
+        for (String s : sortListForRandom) {
+            String[] s1 = s.split("_");
+            double pv = rand.nextGaussian() * Double.valueOf(s1[0]);
+            newListForPCDI.add(pv+"_"+s1[1]);
+        }
+
+        return newListForPCDI;
+    }
+
+
+
+    /**
      * 主程序
      * 1. 初始化试卷  类似于 random
      * 2. 扰动, 取 top50
@@ -364,23 +384,6 @@ public class DNDR10_P_CDI {
 
     }
 
-    /**
-     * 扰动CDI,并返回新的集合
-     *
-     *
-     */
-    private ArrayList<String> perturbToAssembled(ArrayList<String> sortListForRandom) {
-
-        ArrayList<String> newListForPCDI =  new ArrayList<>();
-
-        for (String s : sortListForRandom) {
-            String[] s1 = s.split("_");
-            double pv = rand.nextGaussian() * Double.valueOf(s1[0]);
-            newListForPCDI.add(pv+"_"+s1[1]);
-        }
-
-        return newListForPCDI;
-    }
 
 
 }
