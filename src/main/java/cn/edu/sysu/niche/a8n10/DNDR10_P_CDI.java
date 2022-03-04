@@ -375,10 +375,10 @@ public class DNDR10_P_CDI {
             ArrayList<String> uniqueList  = uniqueDate(sortTo50);
 
 
-            new DNDR10().similarClique(uniqueList,1);
+            ArrayList<String> mqList = new DNDR10().similarClique(uniqueList, 1);
 
             // 计算均值 和 波动 情况
-            calAvgFitness(uniqueList);
+            new DNDR10().calAvgFitness(uniqueList,mqList);
 
         }
 

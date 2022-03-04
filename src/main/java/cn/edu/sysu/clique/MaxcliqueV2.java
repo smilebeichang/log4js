@@ -40,13 +40,20 @@ public class MaxcliqueV2 {
 
     private Logger log = Logger.getLogger(MaxcliqueV2.class);
 
+    /** 新定义一个ArrayList 用于接收最终最大圈结果 */
+    private static ArrayList<String> mqList = new ArrayList<>(10);
+
     public void backtrack(int i){
         if(i>n){
+            StringBuilder sb = new StringBuilder();
             for(int j=1;j<=n;j++){
                 bestx[j]=x[j];
                 System.out.print(x[j]+" ");
+                sb.append(x[j]+"_");
             }
             System.out.println();
+            String s = sb.toString().substring(0, sb.toString().length() - 1);
+            mqList.add(s);
             bestn=cn;
             count++;
             return;
@@ -78,6 +85,7 @@ public class MaxcliqueV2 {
                 backtrack(i+1);
             }
         }
+
     }
 
     public int maxclique(int nn,int[][] aa){
@@ -96,7 +104,6 @@ public class MaxcliqueV2 {
     public static void main(String[] args) {
 
         //a的下标从1开始，-1的值无用
-        //int[][] a={{-1,-1,-1,-1,-1,-1},{-1,0,1,0,1,1},{-1,1,0,1,0,1},{-1,0,1,0,0,1},{-1,1,0,0,0,1},{-1,1,1,1,1,0}};
         int[][] a={
                 {-1,-1,-1,-1,-1,-1},
                 {-1,0,1,0,1,1},
@@ -106,28 +113,6 @@ public class MaxcliqueV2 {
                 {-1,1,1,1,1,0}
         };
         int n=5;
-
-//        int[][] a={
-//                {-1,-1,-1,-1,-1},
-//                {-1,0,1,1,0},
-//                {-1,1,0,1,0},
-//                {-1,1,1,0,0},
-//                {-1,0,0,1,0}
-//        };
-//
-//        int n=4;
-
-//        int[][] a={
-//                {-1,-1,-1,-1,-1,-1,-1},
-//                {-1,0,1,1,0,0,1},
-//                {-1,1,0,1,0,1,1},
-//                {-1,1,1,0,1,0,1},
-//                {-1,0,0,1,0,0,1},
-//                {-1,0,1,0,0,0,0},
-//                {-1,1,1,1,1,0,0},
-//        };
-//        int n=6;
-
 
 
         MaxcliqueV2 m=new MaxcliqueV2();
@@ -158,7 +143,7 @@ public class MaxcliqueV2 {
             //按行读取
             while((line=br.readLine())!=null) {
                 //按空格进行分割
-                sp = line.split("333");
+                sp = line.split(", 333");
                 //sp = line.split(" ");
                 for(int i=0;i<sp.length;i++){
                     c[count][i] = sp[i];
@@ -176,8 +161,10 @@ public class MaxcliqueV2 {
 
             MaxcliqueV2 m=new MaxcliqueV2();
 
+            System.out.println("图G的最大圈解向量为：");
             log.info("图G的最大圈顶点数为："+m.maxclique(lines-1, cc));
             log.info("图G的最大圈个为："+m.count);
+            System.out.println("集合输出:"+mqList.get(mqList.size()-1));
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -202,7 +189,7 @@ public class MaxcliqueV2 {
     /**
      * 开放此方法,用于其他类调用
      */
-    public  void readFromFileV1() {
+    public  ArrayList<String> readFromFileV1() {
         FileReader file = null;
         try {
             file = new FileReader("F:\\song\\SYSU\\Log4j\\input\\output.txt");
@@ -211,6 +198,7 @@ public class MaxcliqueV2 {
         }
         System.out.println("文件测试数据如下：");
         txtString(file);
+        return mqList;
     }
 
     /**

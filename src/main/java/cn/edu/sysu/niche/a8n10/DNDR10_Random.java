@@ -549,10 +549,10 @@ public class DNDR10_Random {
              * 图G的最大圈顶点数为：2
              * 图G的最大圈个为：5
              */
-            new DNDR10().similarClique(uniqueList,1);
+            ArrayList<String> mqList = new DNDR10().similarClique(uniqueList, 1);
 
             // 计算均值 和 波动 情况
-            calAvgFitness(uniqueList);
+            new DNDR10().calAvgFitness(uniqueList,mqList);
 
         }
 

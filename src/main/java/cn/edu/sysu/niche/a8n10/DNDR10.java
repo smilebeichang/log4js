@@ -27,9 +27,6 @@ import java.util.*;
  * 任务1:指标 计算fitness的波动
  *  1.2 以平行试卷为最小单元,验证适应度平均值+方差
  *
- * 任务4：不同对象的比较
- * NicheGA、GA、random、P-CDI
- *
  * 目前对比情况:
  * 最大圈定点数 niche GA > GA = random
  * 最大圈      GA > niche GA > random  (此处可以做一个去重操作)
@@ -42,7 +39,11 @@ import java.util.*;
  * 任务6：质量下降 查明原因
  * 任务7：改变终止规则
  *
- * 今下午的任务：在3题库 * 4 算法下进行比较
+ * 今任务：
+ *      1. 方差的计算
+ *          ( 需要返回最大圈的位置,即其中一个集合,可能需要修改最大圈算法 ,直接取最后一位,就是担心适应度值跟不上.先计算到时再说)
+ *          ( 根据位置,计算适应度值 avg 和 sd )
+ *      2. 论文的补充
  *
  */
 public class DNDR10 {
@@ -172,11 +173,11 @@ public class DNDR10 {
         ArrayList<String> uniqueList = uniqueDate(sortTo50);
 
 
-        // 3. 剩下的个体计算相似性
-        similarClique(uniqueList, 2);
+        // 3. 剩下的个体计算相似性  需要返回第一个平行试卷的集合
+        ArrayList<String> mqList = similarClique(uniqueList, 2);
 
         // 4. 计算fitness的均值 和 波动
-        calAvgFitness(uniqueList);
+        calAvgFitness(uniqueList,mqList);
 
 
     }
@@ -185,23 +186,36 @@ public class DNDR10 {
      * 验证BSF的整个适应度平均值和方差, 校验效果和波动性
      * 如果校验以后发现效果不是很理想，可以换成top的平均值
      * <p>
-     * FIXME: 由之前的top50 的适应度的avg和sd转换为  平行试卷的avg
-     * 1. avg的检验是否需要过滤或者做某种操作,使其可以正常比较.目前差异过大
-     * 2. avg 和 sd 的计算 考虑是否个数，有时是 13套，但有时是168套，波幅较大有很大的影响  此处可以参考老师给的毕业文献
+     * FIXME: 平行试卷的avg
+     * 1. avg 的检验是否需要过滤或者做某种操作,使其可以正常比较.目前差异过大
+     * 2. avg 和 sd 的计算(只取top适应度值最大的一份,然后比较适应度值的方差)
      */
-    private void calAvgFitness(ArrayList<String> inBack) {
+    public void calAvgFitness(ArrayList<String> inBack,ArrayList<String> mqList) {
+
+
+        ArrayList<String> avgList = new ArrayList<>();
+        List <String> ml = Arrays.asList(mqList.get(mqList.size() - 1).split("_"));
+
+        // 遍历ml,获得下标
+        for (int i = 0;i< ml.size();i++) {
+            if ("1".equals(ml.get(i))){
+                System.out.println(inBack.get(i));
+                avgList.add(inBack.get(i));
+            }
+        }
+
 
         // 1.遍历list,计算每个个体的fitness值,并使用变量进行汇总统计
         // 计算平均值
         Double avgsum = 0.0;
         Double avg = 0.0;
 
-        if (inBack.size() > 0) {
+        if (avgList.size() > 0) {
 
-            for (String s : inBack) {
+            for (String s : avgList) {
                 avgsum = avgsum + Double.valueOf(s.split("_")[0]);
             }
-            avg = avgsum / inBack.size();
+            avg = avgsum / avgList.size();
 
         }
 
@@ -213,12 +227,12 @@ public class DNDR10 {
         Double sdsum = 0.0;
         Double sd = 0.0;
 
-        if (inBack.size() > 0) {
+        if (avgList.size() > 0) {
 
-            for (String s : inBack) {
+            for (String s : avgList) {
                 sdsum = sdsum + Math.pow((Double.valueOf(s.split("_")[0]) - avg), 2);
             }
-            sd = sdsum / inBack.size();
+            sd = sdsum / avgList.size();
 
         }
         System.out.println(sd);
@@ -227,13 +241,16 @@ public class DNDR10 {
 
     }
 
+
     /**
      * 15%,算出最大的圈 maximum clique
+     *
      * 1.通过题目相似个数,形成距离关系w矩阵
      * 2.写入文件
      * 3.读取文件,计算最大圈
+     *
      */
-    public void similarClique(ArrayList<String> inBack, int algorithm) {
+    public ArrayList<String>  similarClique(ArrayList<String> inBack, int algorithm) {
 
         // 距离关系w矩阵
         int[][] distanceMatrix = new int[inBack.size() + 1][inBack.size() + 1];
@@ -295,22 +312,17 @@ public class DNDR10 {
             }
         }
 
-        // 打印 遍历二维数组
-//        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
-//            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-//                System.out.print(distanceMatrix[i1][i2]+" , ");
-//            }
-//            System.out.println();
-//        }
+
 
         // 写入文件
         sinkToFileV1(distanceMatrix);
-        //sinkToFileV2(distanceMatrix);
 
         // 读取文件
-        readFromFileV1();
+        ArrayList<String> mqList = readFromFileV1();
 
         System.out.println(" + ----------------------- + ");
+
+        return mqList;
 
     }
 
@@ -501,9 +513,9 @@ public class DNDR10 {
     /**
      * 读取文件,输出最大圈顶点数和最大圈的个数
      */
-    private void readFromFileV1() {
+    private ArrayList<String> readFromFileV1() {
 
-        mq.readFromFileV1();
+        return  mq.readFromFileV1();
 
     }
 
@@ -559,34 +571,6 @@ public class DNDR10 {
     }
 
 
-    private void sinkToFileV2(int[][] distanceMatrix) {
-        OutputStream os = null;
-        try {
-            os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\outputV2.txt");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        PrintWriter pw = new PrintWriter(os);
-
-
-        // 打印 遍历二维数组
-//        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
-//            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-//                // 将第一行第二行的-1过滤掉了
-//                if(distanceMatrix[i1][i2] == 1){
-//                    pw.println("V"+i1+" "+"V"+i2);
-//                }
-//            }
-//        }
-
-        pw.close();
-        try {
-            os.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
 
     /**
      * 计算适应度值,并只保留适应度大于均值的部分

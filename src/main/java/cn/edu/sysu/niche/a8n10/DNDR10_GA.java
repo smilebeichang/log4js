@@ -1156,10 +1156,10 @@ public class DNDR10_GA {
 
 
             // 最大圈
-            new DNDR10().similarClique(uniqueList, 1);
+            ArrayList<String> mqList = new DNDR10().similarClique(uniqueList, 1);
 
             // 计算均值 和 波动 情况
-            calAvgFitness(uniqueList);
+            new DNDR10().calAvgFitness(uniqueList,mqList);
 
         }
 
