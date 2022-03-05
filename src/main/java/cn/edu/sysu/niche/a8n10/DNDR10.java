@@ -8,6 +8,7 @@ import cn.edu.sysu.niche.others.Niche6;
 import cn.edu.sysu.utils.CorrectUtils;
 import cn.edu.sysu.utils.JDBCUtils4;
 import cn.edu.sysu.utils.KLUtils;
+import cn.edu.sysu.utils.KLUtilsV2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.junit.Test;
@@ -174,21 +175,21 @@ public class DNDR10 {
 
 
         // 3. 剩下的个体计算相似性  需要返回第一个平行试卷的集合
-        ArrayList<String> mqList = similarClique(uniqueList, 2);
+        ArrayList<String> mqList = new KLUtilsV2().similarClique(uniqueList, 2,allItemList);
 
         // 4. 计算fitness的均值 和 波动
-        calAvgFitness(uniqueList,mqList);
+        new KLUtilsV2().calAvgFitness(uniqueList,mqList);
 
 
     }
 
     /**
-     * 验证BSF的整个适应度平均值和方差, 校验效果和波动性
+     * 验证BSF的整套平行试卷的适应度平均值和方差, 校验效果和波动性
      * 如果校验以后发现效果不是很理想，可以换成top的平均值
-     * <p>
+     *
      * FIXME: 平行试卷的avg
-     * 1. avg 的检验是否需要过滤或者做某种操作,使其可以正常比较.目前差异过大
-     * 2. avg 和 sd 的计算(只取top适应度值最大的一份,然后比较适应度值的方差)
+     * 1. avg 和 sd 的计算(只取top适应度值最大的一份,然后比较适应度值的方差,可以均返回,然后循坏做比较即可)
+     * 2. avg 的检验是否需要过滤或者做某种操作,使其可以正常比较.目前差异过大
      */
     public void calAvgFitness(ArrayList<String> inBack,ArrayList<String> mqList) {
 
@@ -240,92 +241,6 @@ public class DNDR10 {
 
 
     }
-
-
-    /**
-     * 15%,算出最大的圈 maximum clique
-     *
-     * 1.通过题目相似个数,形成距离关系w矩阵
-     * 2.写入文件
-     * 3.读取文件,计算最大圈
-     *
-     */
-    public ArrayList<String>  similarClique(ArrayList<String> inBack, int algorithm) {
-
-        // 距离关系w矩阵
-        int[][] distanceMatrix = new int[inBack.size() + 1][inBack.size() + 1];
-
-        // 遍历计算距离关系,并生成01矩阵 初始化矩阵
-        for (int i = 0; i < inBack.size() + 1; i++) {
-
-            // 赋值
-            for (int j = 0; j < inBack.size() + 1; j++) {
-
-                // 第一行
-                if (i < 1) {
-                    distanceMatrix[i][j] = -1;
-                }
-
-                // 第一列
-                if (j == 0) {
-                    distanceMatrix[i][j] = -1;
-                }
-            }
-        }
-
-        // 遍历集合
-        for (int i = 0; i < inBack.size(); i++) {
-
-            // 矩阵 (根据题目的相似个数 判断相似个体,若题目相同数低于4,则赋值为1)
-            String aids = inBack.get(i).split("_")[1];
-
-            for (int j = 0; j < inBack.size(); j++) {
-
-                if (!inBack.get(i).equals(inBack.get(j))) {
-
-                    String bids = inBack.get(j).split("_")[1];
-
-                    // 将基因型转为list,使用list来判断相似个数
-                    List<String> ListA = stringToList(aids);
-                    List<String> ListB = stringToList(bids);
-
-                    // 计算相似题目个数
-                    int counter = 0;
-                    for (String c : ListB) {
-                        for (String d : ListA) {
-                            if (c.equals(d)) {
-                                counter = counter + 1;
-                            }
-                        }
-                    }
-
-                    // 以15%为界限  第三行开始,第二列开始 最大相似设置的过大,将导致计算缓慢
-                    // 而且只能延缓  无法最终解决
-                    if (counter < 4) {
-
-                        // 校验两个集合的相似程度
-                        if (checkAttr(ListA, ListB, algorithm)) {
-                            distanceMatrix[i + 1][j + 1] = 1;
-                        }
-                    }
-                }
-            }
-        }
-
-
-
-        // 写入文件
-        sinkToFileV1(distanceMatrix);
-
-        // 读取文件
-        ArrayList<String> mqList = readFromFileV1();
-
-        System.out.println(" + ----------------------- + ");
-
-        return mqList;
-
-    }
-
 
     /**
      * 校验两个集合的相似程度
@@ -510,14 +425,6 @@ public class DNDR10 {
 
     }
 
-    /**
-     * 读取文件,输出最大圈顶点数和最大圈的个数
-     */
-    private ArrayList<String> readFromFileV1() {
-
-        return  mq.readFromFileV1();
-
-    }
 
 
     /**
@@ -529,46 +436,6 @@ public class DNDR10 {
     }
 
 
-    /**
-     * 写入文件
-     *
-     * @param distanceMatrix
-     */
-    private void sinkToFileV1(int[][] distanceMatrix) {
-        OutputStream os = null;
-        try {
-            os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\output.txt");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        PrintWriter pw = new PrintWriter(os);
-
-
-        // 打印 遍历二维数组
-        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
-            if (i1 == 0) {
-                for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-                    pw.print(distanceMatrix[i1][i2] + " , ");
-                }
-                pw.print("333");
-                pw.println();
-            }
-
-            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-                pw.print(distanceMatrix[i1][i2] + " , ");
-            }
-            pw.print("333");
-            pw.println();
-        }
-
-        pw.close();
-        try {
-            os.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
 
 
 

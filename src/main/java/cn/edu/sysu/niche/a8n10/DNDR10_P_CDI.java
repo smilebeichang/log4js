@@ -3,6 +3,7 @@ package cn.edu.sysu.niche.a8n10;
 
 import cn.edu.sysu.niche.others.MyComparator;
 import cn.edu.sysu.utils.JDBCUtils4;
+import cn.edu.sysu.utils.KLUtilsV2;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -126,16 +127,14 @@ public class DNDR10_P_CDI {
     /**
      * 返回：每套试卷的适应度_ids
      * <p>
-     * 方案  进行乘以一个exp 来进行适应度值的降低，高等数学里以自然常数e为底的指数函数
-     * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
-     * 属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
+     *     适应度居然采用的 avg(ads1+ads2+ads3+....  此处需要做修改)
      */
     private void getFitnessForRandom() {
 
         // 拼接字符串 每套试卷的适应度值_本身
         String[] fitTmp = new String[paperSize];
 
-        // 计算试卷的适应度值，即衡量试卷优劣的指标之一 Fs
+        // 计算试卷的适应度值,即衡量试卷优劣的指标之一 Fs
         for (int i = 0; i < paperSize; i++) {
 
             double adi1r = 0;
@@ -375,10 +374,10 @@ public class DNDR10_P_CDI {
             ArrayList<String> uniqueList  = uniqueDate(sortTo50);
 
 
-            ArrayList<String> mqList = new DNDR10().similarClique(uniqueList, 1);
+            ArrayList<String> mqList = new KLUtilsV2().similarClique(uniqueList, 1,allItemList);
 
             // 计算均值 和 波动 情况
-            new DNDR10().calAvgFitness(uniqueList,mqList);
+            new KLUtilsV2().calAvgFitness(uniqueList,mqList);
 
         }
 

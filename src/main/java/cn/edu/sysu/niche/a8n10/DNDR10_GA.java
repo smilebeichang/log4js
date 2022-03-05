@@ -4,6 +4,7 @@ import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.niche.others.MyComparator;
 import cn.edu.sysu.pojo.Papers;
 import cn.edu.sysu.utils.JDBCUtils4;
+import cn.edu.sysu.utils.KLUtilsV2;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -1156,10 +1157,10 @@ public class DNDR10_GA {
 
 
             // 最大圈
-            ArrayList<String> mqList = new DNDR10().similarClique(uniqueList, 1);
+            ArrayList<String> mqList = new KLUtilsV2().similarClique(uniqueList, 1,allItemList);
 
             // 计算均值 和 波动 情况
-            new DNDR10().calAvgFitness(uniqueList,mqList);
+            new KLUtilsV2().calAvgFitness(uniqueList,mqList);
 
         }
 

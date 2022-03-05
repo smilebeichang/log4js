@@ -4,6 +4,7 @@ package cn.edu.sysu.niche.a8n10;
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.niche.others.MyComparator;
 import cn.edu.sysu.utils.JDBCUtils4;
+import cn.edu.sysu.utils.KLUtilsV2;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -539,20 +540,17 @@ public class DNDR10_Random {
 
             }
 
-            // 3.计算的适应度值，并取前50个体
+            // 3.计算的适应度,并取前50个体
             getFitnessForRandom();
 
             // 去重
             ArrayList<String> uniqueList  = uniqueDate(sortTo50);
 
-            /**
-             * 图G的最大圈顶点数为：2
-             * 图G的最大圈个为：5
-             */
-            ArrayList<String> mqList = new DNDR10().similarClique(uniqueList, 1);
+
+            ArrayList<String> mqList = new KLUtilsV2().similarClique(uniqueList, 1,allItemList);
 
             // 计算均值 和 波动 情况
-            new DNDR10().calAvgFitness(uniqueList,mqList);
+            new KLUtilsV2().calAvgFitness(uniqueList,mqList);
 
         }
 
