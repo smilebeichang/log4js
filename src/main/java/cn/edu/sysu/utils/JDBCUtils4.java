@@ -229,7 +229,7 @@ public class JDBCUtils4 {
 
     /**
      * 查询，并返回id
-     * adi20210528  adi_5_500  adi_8_1000
+     * adi20210528  adi_5_500
      */
     public  int selectItem(String sql) throws SQLException {
 
@@ -274,7 +274,7 @@ public class JDBCUtils4 {
 
     /**
      * 查询，并返回list
-     * adi20210528  adi_5_500  adi_8_1000
+     * adi_8_1000
      */
     public  ArrayList<String> selectBachItemV2(String ids) throws SQLException {
         ArrayList<String> list = new ArrayList<>();
@@ -328,7 +328,7 @@ public class JDBCUtils4 {
 
     /**
      * 查询，并返回list
-     * adi20210528  adi_5_500  adi_8_1000
+     * adi20210528  adi_5_500
      */
     public  ArrayList<String> selectBachItem(String ids) throws SQLException {
         ArrayList<String> list = new ArrayList<>();
@@ -425,7 +425,7 @@ public class JDBCUtils4 {
     /**
      * 查询，并返回list
      *
-     * adi20210528  adi_5_500   adi_8_1000
+     * adi_8_1000
      *
      */
     public  ArrayList<String> selectAllItemsV2() throws SQLException {
@@ -478,7 +478,7 @@ public class JDBCUtils4 {
     /**
      * 查询，并返回list
      *
-     * adi20210528  adi_5_500   adi_8_1000
+     * adi20210528  adi_5_500
      *
      */
     public  ArrayList<String> selectAllItems() throws SQLException {

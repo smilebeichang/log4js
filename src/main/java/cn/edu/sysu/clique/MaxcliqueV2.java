@@ -56,7 +56,7 @@ public class MaxcliqueV2 {
             mqList.add(s);
             bestn=cn;
             count++;
-            return;
+
         }
         else{
             boolean ok=true;
@@ -190,15 +190,19 @@ public class MaxcliqueV2 {
      * 开放此方法,用于其他类调用
      */
     public  ArrayList<String> readFromFileV1() {
+
         FileReader file = null;
+
         try {
             file = new FileReader("F:\\song\\SYSU\\Log4j\\input\\output.txt");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+
         System.out.println("文件测试数据如下：");
         txtString(file);
         return mqList;
+
     }
 
     /**

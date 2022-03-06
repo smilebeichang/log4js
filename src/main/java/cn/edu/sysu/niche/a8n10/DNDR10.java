@@ -1,7 +1,6 @@
 package cn.edu.sysu.niche.a8n10;
 
 import cn.edu.sysu.adi.TYPE;
-import cn.edu.sysu.clique.MaxcliqueV2;
 import cn.edu.sysu.niche.others.BSF;
 import cn.edu.sysu.niche.others.MyComparator;
 import cn.edu.sysu.niche.others.Niche6;
@@ -13,7 +12,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import java.io.*;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -22,29 +20,6 @@ import java.util.*;
  * @Author : song bei chang
  * @create : 2022/03/02 10:12
  *
- * 本周进度安排:  GA -->  收敛（重难点）  -->  最大圈clique
- *
- * 诊断效果、质量(A:最大圈顶点数 平均、 B:fitness 波动)
- * 任务1:指标 计算fitness的波动
- *  1.2 以平行试卷为最小单元,验证适应度平均值+方差
- *
- * 目前对比情况:
- * 最大圈定点数 niche GA > GA = random
- * 最大圈      GA > niche GA > random  (此处可以做一个去重操作)
- * 平均适应度值 random > GA > niche GA  (这个就很离谱了)
- * 波动情况 random ~ GA ~ niche GA     (此处可以做一个去重操作)
- *
- * 任务5: 仿真
- * 2^5 = 32 pattern、100个被试，rum
- *
- * 任务6：质量下降 查明原因
- * 任务7：改变终止规则
- *
- * 今任务：
- *      1. 方差的计算
- *          ( 需要返回最大圈的位置,即其中一个集合,可能需要修改最大圈算法 ,直接取最后一位,就是担心适应度值跟不上.先计算到时再说)
- *          ( 根据位置,计算适应度值 avg 和 sd )
- *      2. 论文的补充
  *
  */
 public class DNDR10 {
@@ -118,10 +93,6 @@ public class DNDR10 {
     Boolean timeFlag = false;
 
 
-    /**
-     * 计算最大圈
-     */
-    MaxcliqueV2 mq = new MaxcliqueV2();
 
     /**
      * 长度、题型、属性校验
@@ -178,7 +149,7 @@ public class DNDR10 {
         ArrayList<String> mqList = new KLUtilsV2().similarClique(uniqueList, 2,allItemList);
 
         // 4. 计算fitness的均值 和 波动
-        new KLUtilsV2().calAvgFitness(uniqueList,mqList);
+        new KLUtilsV2().calAvgFitness(uniqueList,mqList,1);
 
 
     }
@@ -239,189 +210,6 @@ public class DNDR10 {
         System.out.println(sd);
         log.info("top 50%的波动情况：" + sd);
 
-
-    }
-
-    /**
-     * 校验两个集合的相似程度
-     *
-     * @param listA
-     * @param listB FIXME 此处应该加上其他验证逻辑 而不仅仅是题目不同
-     *              功能相似： 题型、属性(拿单个题目计算还是一套试卷)
-     *              思考：
-     *              1.如果是单个题目的话,计算量会比较大
-     *              每道题目 其余试卷的每道题挨个进行比较，意义不大
-     *              2.如果是单套试卷的话,整套试卷经过了correct,其应该是相似的
-     *              3.此处以单套试卷为单位，先进行计算
-     *              3.1 通过ids,获取属性和类型
-     *              3.2 分别计算属性和类型的数目 sum(abs())
-     *              3.3 如果小于了某一个临界值,则表明其是真的相似
-     */
-    private Boolean checkAttr(List<String> listA, List<String> listB, int diffDegree) {
-
-        Boolean flag = false;
-
-        System.out.println(listA);
-
-
-        // 根据id从数据库中查询相对应的题目
-        String idsA = listA.toString().substring(1, listA.toString().length() - 1);
-
-        List<String> sListA = Arrays.asList(idsA.split(","));
-
-        // 题型
-        int typeChoseA = 0;
-        int typeFillA = 0;
-        int typeShortA = 0;
-        int typeCompreA = 0;
-
-        // 属性
-        int attributeNum1A = 0;
-        int attributeNum2A = 0;
-        int attributeNum3A = 0;
-        int attributeNum4A = 0;
-        int attributeNum5A = 0;
-        int attributeNum6A = 0;
-        int attributeNum7A = 0;
-
-
-        for (int k = 0; k < sListA.size(); k++) {
-
-            String s = allItemList.get(Integer.parseInt(sListA.get(k).trim()) - 1 > -1 ? Integer.parseInt(sListA.get(k).trim()) - 1 : 1);
-
-            //计算每种题型个数
-            if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
-                typeChoseA += 1;
-            }
-            if (TYPE.FILL.toString().equals(s.split(":")[1])) {
-                typeFillA += 1;
-            }
-            if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
-                typeShortA += 1;
-            }
-            if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
-                typeCompreA += 1;
-            }
-
-
-            //计算每种属性的个数
-            if (!"0.0".equals(s.split(":")[2])) {
-                attributeNum1A += 1;
-            }
-            if (!"0.0".equals(s.split(":")[3])) {
-                attributeNum2A += 1;
-            }
-            if (!"0.0".equals(s.split(":")[4])) {
-                attributeNum3A += 1;
-            }
-            if (!"0.0".equals(s.split(":")[5])) {
-                attributeNum4A += 1;
-            }
-            if (!"0.0".equals(s.split(":")[6])) {
-                attributeNum5A += 1;
-            }
-            if (!"0.0".equals(s.split(":")[7])) {
-                attributeNum6A += 1;
-            }
-            if (!"0.0".equals(s.split(":")[8])) {
-                attributeNum7A += 1;
-            }
-
-        }
-
-
-        // 根据id从数据库中查询相对应的题目
-        String idsB = listB.toString().substring(1, listB.toString().length() - 1);
-
-        List<String> sListB = Arrays.asList(idsB.split(","));
-
-        // 题型
-        int typeChoseB = 0;
-        int typeFillB = 0;
-        int typeShortB = 0;
-        int typeCompreB = 0;
-
-        // 属性
-        int attributeNum1B = 0;
-        int attributeNum2B = 0;
-        int attributeNum3B = 0;
-        int attributeNum4B = 0;
-        int attributeNum5B = 0;
-        int attributeNum6B = 0;
-        int attributeNum7B = 0;
-
-
-        for (int k = 0; k < sListB.size(); k++) {
-
-            String s = allItemList.get(Integer.parseInt(sListB.get(k).trim()) - 1 > -1 ? Integer.parseInt(sListB.get(k).trim()) - 1 : 1);
-
-            //计算每种题型个数
-            if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
-                typeChoseB += 1;
-            }
-            if (TYPE.FILL.toString().equals(s.split(":")[1])) {
-                typeFillB += 1;
-            }
-            if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
-                typeShortB += 1;
-            }
-            if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
-                typeCompreB += 1;
-            }
-
-
-            //计算每种题型个数
-            if (!"0.0".equals(s.split(":")[2])) {
-                attributeNum1B += 1;
-            }
-            if (!"0.0".equals(s.split(":")[3])) {
-                attributeNum2B += 1;
-            }
-            if (!"0.0".equals(s.split(":")[4])) {
-                attributeNum3B += 1;
-            }
-            if (!"0.0".equals(s.split(":")[5])) {
-                attributeNum4B += 1;
-            }
-            if (!"0.0".equals(s.split(":")[6])) {
-                attributeNum5B += 1;
-            }
-            if (!"0.0".equals(s.split(":")[7])) {
-                attributeNum6B += 1;
-            }
-            if (!"0.0".equals(s.split(":")[8])) {
-                attributeNum7B += 1;
-            }
-        }
-
-
-        // 属性
-        int type = Math.abs(typeChoseA - typeChoseB) + Math.abs(typeFillA - typeFillB) + Math.abs(typeShortA - typeShortB) + Math.abs(typeCompreA - typeCompreB);
-
-        int attr = Math.abs(attributeNum1A - attributeNum1B) + Math.abs(attributeNum2A - attributeNum2B) + Math.abs(attributeNum3A - attributeNum3B) + Math.abs(attributeNum4A - attributeNum4B) + Math.abs(attributeNum5A - attributeNum5B)+ Math.abs(attributeNum6A - attributeNum6B)+ Math.abs(attributeNum7A - attributeNum7B);
-
-        System.out.println(type + ":" + attr);
-
-        // 可在此处做相关推断，并赋予不同的值,或者 switch case
-        switch (diffDegree) {
-            case 1:
-                if (type < 6 && attr < 6) {
-                    flag = true;
-                }
-                break;
-            case 2:
-                if (type < 6 && attr < 12) {
-                    flag = true;
-                }
-                break;
-            default:
-                if (type < 6 && attr < 18) {
-                    flag = true;
-                }
-        }
-
-
-        return flag;
 
     }
 
@@ -761,17 +549,13 @@ public class DNDR10 {
 
     /**
      * 将群体中的个体分配到不同小生境中 21.9524_3,27,45......
-     * <p>
+     *
      * 步骤：
      * 1.选取leader
-     * 注: 最后有些个体其实不应该成为leader,待后续进行合并和剔除操作
-     * <p>
+     *   注: 最后有些个体其实不应该成为leader,待后续进行合并和剔除操作
      * 2.选取member
-     * 注: 需保证数据总数不变
-     * <p>
-     * 新增方法:限制每个小生境的数量  不大于
-     * 1.判断是否有大于1/2,有的话将其抛成三部分
-     * 2.若无,则直接返回
+     *   注: 需保证数据总数不变
+     *
      */
     private void distributeNicheForGene() {
 
@@ -800,10 +584,6 @@ public class DNDR10 {
                     List<String> ListA = stringToList(aids);
                     List<String> ListB = stringToList(bids);
 
-                    // 假设上面ListA 和 ListB都存在数据
-                    // aids：3,4,9,28,34,36,43,52,59,102,116,126,129,138,145,213,230,233,247,267
-                    // bids：8,10,17,18,24,25,26,39,71,72,81,84,92,102,107,141,143,150,273,303
-
 
                     // 使用题目相同的个数进行判断相似性
                     int counter = 0;
@@ -817,17 +597,15 @@ public class DNDR10 {
                     max = Math.max(max, counter);
                 }
 
-                // 若重复的题目小于3,则不隶属于现存的任何一个小生境,故新增一个leader  注释:count 和 mark 需要相互对应
+                // 若重复的题目小于3,则不隶属于现存的任何一个小生境,故新增一个leader  注释:count 和 mark 需同一值
                 if (max < 3) {
                     leaderSetForGene.add(sortListForGene.get(i));
                 }
             }
         }
 
-        // 选取member leaderSetForGene 表示小生境的峰值
+        // 选取member
         int sum = 0;
-        //log.info("小生境数目: " + leaderSetForGene.size());
-
         for (String leader : leaderSetForGene) {
 
             ArrayList<String> memberList = new ArrayList<>();
@@ -839,7 +617,7 @@ public class DNDR10 {
                 if (!StringUtils.isBlank(s)) {
                     String bids = s.split("_")[1];
 
-                    // 判断两套试卷的相似程度: 如果相似题目数达到一定数目，则判定为是同一个小生境 如1
+                    // 判断两套试卷的相似程度
                     List<String> ListA = stringToList(aids);
                     List<String> ListB = stringToList(bids);
 
@@ -864,6 +642,7 @@ public class DNDR10 {
 
             sum = memberList.size() + sum;
         }
+
         System.out.println("此次迭代个体总数目：" + sum);
 
 
@@ -930,7 +709,7 @@ public class DNDR10 {
      * <p>
      * 总结：在初始化的时候，不需要完全保证题型和属性符合要求，后续使用GA迭代和轮盘赌解决即可
      */
-    private void initItemBank() throws SQLException {
+    private void initItemBank()  {
 
         System.out.println("====== 开始选题,构成试卷  轮盘赌构造 ======");
 
@@ -1323,7 +1102,7 @@ public class DNDR10 {
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
      * 属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
      */
-    private void getFitnessForGene(int paperSize) throws SQLException {
+    private void getFitnessForGene(int paperSize)  {
 
 
         // 所有试卷的适应度总和
@@ -1860,222 +1639,6 @@ public class DNDR10 {
     }
 
 
-    /**
-     * 每套试卷的适应度占比
-     * <p>
-     * selection 计算适应度值
-     * 方案  进行乘以一个exp 来进行适应度值的降低，高等数学里以自然常数e为底的指数函数
-     * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
-     * 属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
-     */
-    private double[] getFitness(int paperSize) {
-
-        //log.info("适应值 log4j")
-
-        // 所有试卷的适应度总和
-        double fitSum = 0.0;
-        // 每套试卷的适应度值
-        double[] fitTmp = new double[paperSize];
-        // 每套试卷的适应度占比  返回结果部分
-        double[] fitPro = new double[paperSize];
-
-        // 计算试卷的适应度值，即衡量试卷优劣的指标之一 Fs
-        for (int i = 0; i < paperSize; i++) {
-
-            double adi1r = 0;
-            double adi2r = 0;
-            double adi3r = 0;
-            double adi4r = 0;
-            double adi5r = 0;
-
-            // 获取原始adi
-            String[] itemList = paperGenetic[i];
-            for (int j = 0; j < itemList.length; j++) {
-
-                String[] splits = itemList[j].split(":");
-                adi1r = adi1r + Double.parseDouble(splits[3]);
-                adi2r = adi2r + Double.parseDouble(splits[4]);
-                adi3r = adi3r + Double.parseDouble(splits[5]);
-                adi4r = adi4r + Double.parseDouble(splits[6]);
-                adi5r = adi5r + Double.parseDouble(splits[7]);
-
-            }
-
-
-            // 题型个数
-            String[] expList = paperGenetic[i];
-            int typeChose = 0;
-            int typeFill = 0;
-            int typeShort = 0;
-            int typeCompre = 0;
-
-
-            //此次迭代各个题型的数目
-            for (String s : expList) {
-
-                //计算每种题型个数
-                if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
-                    typeChose += 1;
-                }
-                if (TYPE.FILL.toString().equals(s.split(":")[1])) {
-                    typeFill += 1;
-                }
-                if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
-                    typeShort += 1;
-                }
-                if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
-                    typeCompre += 1;
-                }
-            }
-
-            // 题型比例
-            double typeChoseRation = typeChose / 10.0;
-            double typeFileRation = typeFill / 10.0;
-            double typeShortRation = typeShort / 10.0;
-            double typeCompreRation = typeCompre / 10.0;
-
-            // 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
-            // 先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
-            double td1;
-            if (typeChoseRation >= 0.2 && typeChoseRation < 0.4) {
-                td1 = 0;
-            } else if (typeChoseRation < 0.2) {
-                td1 = Math.abs(0.2 - typeChoseRation);
-            } else {
-                td1 = Math.abs(typeChoseRation - 0.4);
-            }
-
-            double td2;
-            if (typeFileRation >= 0.2 && typeFileRation < 0.4) {
-                td2 = 0;
-            } else if (typeFileRation < 0.2) {
-                td2 = Math.abs(0.2 - typeFileRation);
-            } else {
-                td2 = Math.abs(typeFileRation - 0.4);
-            }
-
-            double td3;
-            if (typeShortRation >= 0.1 && typeShortRation < 0.3) {
-                td3 = 0;
-            } else if (typeShortRation < 0.1) {
-                td3 = Math.abs(0.1 - typeShortRation);
-            } else {
-                td3 = Math.abs(typeShortRation - 0.3);
-            }
-
-            double td4;
-            if (typeCompreRation >= 0.1 && typeCompreRation < 0.3) {
-                td4 = 0;
-            } else if (typeCompreRation < 0.1) {
-                td4 = Math.abs(0.1 - typeCompreRation);
-            } else {
-                td4 = Math.abs(typeCompreRation - 0.3);
-            }
-
-
-            // 属性个数
-            int exp1 = 0;
-            int exp2 = 0;
-            int exp3 = 0;
-            int exp4 = 0;
-            int exp5 = 0;
-
-            for (int j = 0; j < expList.length; j++) {
-                String[] splits = expList[j].split(":");
-                exp1 = exp1 + Integer.parseInt(splits[2].split(",")[0].substring(1, 2));
-                exp2 = exp2 + Integer.parseInt(splits[2].split(",")[1]);
-                exp3 = exp3 + Integer.parseInt(splits[2].split(",")[2]);
-                exp4 = exp4 + Integer.parseInt(splits[2].split(",")[3]);
-                exp5 = exp5 + Integer.parseInt(splits[2].split(",")[4].substring(0, 1));
-            }
-
-            // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
-            //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
-            double ed1;
-            double edx1 = exp1 / 23.0;
-            if (edx1 >= 0.2 && edx1 < 0.4) {
-                ed1 = 0;
-            } else if (edx1 < 0.2) {
-                ed1 = Math.abs(0.2 - edx1);
-            } else {
-                ed1 = Math.abs(edx1 - 0.4);
-            }
-
-            double ed2;
-            double edx2 = exp2 / 23.0;
-            if (edx2 >= 0.2 && edx2 < 0.4) {
-                ed2 = 0;
-            } else if (edx2 < 0.2) {
-                ed2 = Math.abs(0.2 - edx2);
-            } else {
-                ed2 = Math.abs(edx2 - 0.4);
-            }
-
-            double ed3;
-            double edx3 = exp3 / 23.0;
-            if (edx3 >= 0.1 && edx3 < 0.3) {
-                ed3 = 0;
-            } else if (edx3 < 0.1) {
-                ed3 = Math.abs(0.1 - edx3);
-            } else {
-                ed3 = Math.abs(edx3 - 0.3);
-            }
-
-            double ed4;
-            double edx4 = exp4 / 23.0;
-            if (edx4 >= 0.1 && edx4 < 0.3) {
-                ed4 = 0;
-            } else if (edx4 < 0.1) {
-                ed4 = Math.abs(0.1 - edx4);
-            } else {
-                ed4 = Math.abs(edx4 - 0.3);
-            }
-
-            double ed5;
-            double edx5 = exp5 / 23.0;
-            if (edx5 >= 0.1 && edx5 < 0.3) {
-                ed5 = 0;
-            } else if (edx5 < 0.1) {
-                ed5 = Math.abs(0.1 - edx5);
-            } else {
-                ed5 = Math.abs(edx5 - 0.3);
-            }
-
-            //System.out.println("题型和属性超额情况： td1:"+td1+" td2:"+td2+" td3:"+td3+" td4:"+td4 + "ed1:"+ed1+" ed2:"+ed2+" ed3:"+ed3+" ed4:"+ed4+" ed5:"+ed5);
-
-            // 惩罚个数  只有比例不符合要求时才惩罚，故不会有太大的影响
-            double expNum = -(td1 + td2 + td3 + td4 + ed1 + ed2 + ed3 + ed4 + ed5);
-
-            //System.out.printf("exp(%.3f) 为 %.3f%n", expNum, Math.exp(expNum));
-
-
-            //均值 和 最小值
-            double avgrum = (adi1r + adi2r + adi3r + adi4r + adi5r) / 5;
-            double minrum = Math.min(Math.min(Math.min(Math.min(adi1r, adi2r), adi3r), adi4r), adi5r) * 100;
-
-            //System.out.println("minrum: "+minrum);
-
-            //适应度值 (min * 惩罚系数)
-            minrum = minrum * Math.exp(expNum);
-            //个体、总和
-            fitTmp[i] = minrum;
-            fitSum = fitSum + minrum;
-
-
-        }
-
-        //System.out.println("全局最优："+GlobalOptimal);
-
-        for (int i = 0; i < paperSize; i++) {
-            //  各自的比例
-            fitPro[i] = fitTmp[i] / fitSum;
-        }
-
-        //冒泡排序 打印top10
-        klUtils.bubbleSort(fitTmp);
-
-        return fitPro;
-    }
 
 
     /**
@@ -2394,7 +1957,7 @@ public class DNDR10 {
      * leaderSetForGene:
      * 19.9413204_8,16,19,21,29,30,35,50,62,69,76,107,108,133,136,173,207,222,242,299
      */
-    private HashSet<String> judgeMerge() throws SQLException {
+    private HashSet<String> judgeMerge()  {
 
         // 距离w矩阵
         // leaderSetForGene  即使有为1的情况,也不影响,因为这里做的是获取要合并的集合,为1显然被排除在外。逻辑之间不冲突
@@ -3091,11 +2654,12 @@ public class DNDR10 {
     public void main() throws SQLException {
 
 
-        // 1.初始化试卷(长度，题型，属性比例) 轮盘赌构造法生成二维数组 String[][] paperGenetic = new String[100][20]
+        // 1.初始化试卷(长度,题型,属性比例) 轮盘赌构造法生成二维数组 String[][] paperGenetic = new String[100][20]
         initItemBank();
 
         // 遍历50次,形成多次结果,便于比较
         for (int j = 0; j < 20; j++) {
+
             timeFlag = false;
             lastCount = 0;
             // 这个是否有必要
@@ -3103,7 +2667,6 @@ public class DNDR10 {
 
             // 2.迭代次数 500
             for (int i = 0; i < iterationSize; i++) {
-
 
                 // 3.置空leader容器
                 iterationClear();
@@ -3182,7 +2745,6 @@ public class DNDR10 {
                 paperGenetic = mergeToGene(inMutate, outMutate);
 
             }
-
 
         }
     }

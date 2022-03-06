@@ -18,7 +18,7 @@ public class CorrectUtils {
     /**
      *  size 为310
      */
-    ArrayList<String> allItemList = jdbcUtils.selectAllItemsV2();
+    ArrayList<String> allItemList = jdbcUtils.selectAllItems();
 
     public CorrectUtils() throws SQLException {
     }
@@ -1547,8 +1547,8 @@ public class CorrectUtils {
         int af3 = Integer.parseInt(attributeFlag.split(",")[2]);
         int af4 = Integer.parseInt(attributeFlag.split(",")[3]);
         int af5 = Integer.parseInt(attributeFlag.split(",")[4]);
-        int af6 = Integer.parseInt(attributeFlag.split(",")[5]);
-        int af7 = Integer.parseInt(attributeFlag.split(",")[6]);
+//        int af6 = Integer.parseInt(attributeFlag.split(",")[5]);
+//        int af7 = Integer.parseInt(attributeFlag.split(",")[6]);
 
         //===============  2.0 解集统计    ====================
 
@@ -1631,6 +1631,7 @@ public class CorrectUtils {
         //各个属性的数目
         for (String s:itemSet) {
 
+            System.out.println(" 验证 -->" + s );
             if("1".equals(s.split(":")[2].substring(1,2))){
                 attributeNum1 += 1;
             }

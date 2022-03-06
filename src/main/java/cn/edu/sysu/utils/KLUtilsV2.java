@@ -15,28 +15,31 @@ import java.util.*;
  */
 public class KLUtilsV2 {
 
-    /** 打印对象 **/
+    /**
+     * 打印对象
+     **/
     private Logger log = Logger.getLogger(KLUtilsV2.class);
 
 
     /**
      * 计算K_L矩阵
+     *
      * @param rumList 答对此题的概率集合  横向 vs 纵向
-     * @return  Double[][]
+     * @return Double[][]
      */
-    public   Double[][] foreach( ArrayList<Double> rumList) {
+    public Double[][] foreach(ArrayList<Double> rumList) {
 
         //计算 K_L
-        Double[][] klArray =new Double[rumList.size()][rumList.size()];
+        Double[][] klArray = new Double[rumList.size()][rumList.size()];
 
-        for (int i = 0;i<rumList.size();i++){
+        for (int i = 0; i < rumList.size(); i++) {
 
             for (int j = 0; j < rumList.size(); j++) {
                 //(0,0) vs (0,0)
                 double v = rumList.get(i) * Math.log(rumList.get(i) / rumList.get(j)) +
                         (1 - rumList.get(i)) * Math.log((1 - rumList.get(i)) / (1 - rumList.get(j)));
 
-                v = Double.valueOf((v+"0000").substring(0,4));
+                v = Double.valueOf((v + "0000").substring(0, 4));
 
                 klArray[i][j] = v;
             }
@@ -48,48 +51,48 @@ public class KLUtilsV2 {
 
     /**
      * 使用foreach方法对二维数组进行遍历
-     * @param klArray  K_L 矩阵
+     *
+     * @param klArray K_L 矩阵
      */
-    public  void arrayPrint(Double[][] klArray) {
+    public void arrayPrint(Double[][] klArray) {
         //遍历输出 K_L 矩阵
         //System.out.println("K_L information矩阵如下: ");
-        for (Double[] fs:klArray) {
-            for (Double fss:fs) {
+        for (Double[] fs : klArray) {
+            for (Double fss : fs) {
                 //相当于arr[i][j]
-                System.out.print(fss+"  ");
+                System.out.print(fss + "  ");
             }
             //System.out.println();
         }
     }
 
 
-
-
     /**
      * 生成指定范围，指定小数位数的随机数
-     * @param max 最大值
-     * @param min 最小值
+     *
+     * @param max   最大值
+     * @param min   最小值
      * @param scale 小数位数
      * @return
      */
-    public Double makeRandom(float max, float min, int scale){
-        BigDecimal cha = new BigDecimal(Math.random() * (max-min) + min);
+    public Double makeRandom(float max, float min, int scale) {
+        BigDecimal cha = new BigDecimal(Math.random() * (max - min) + min);
         //保留 scale 位小数，并四舍五入
-        return cha.setScale(scale,BigDecimal.ROUND_HALF_UP).doubleValue();
+        return cha.setScale(scale, BigDecimal.ROUND_HALF_UP).doubleValue();
     }
-
 
 
     /**
      * 随机生成pattern
-     * @param num  该pattern包含的属性个数
+     *
+     * @param num 该pattern包含的属性个数
      */
-    public String randomInit(int num ) throws InterruptedException {
+    public String randomInit(int num) throws InterruptedException {
 
         /**
          * 输入判空操作
          */
-        if(num == 0 ){
+        if (num == 0) {
             System.err.println("提示：属性不能全为空！！");
             Thread.sleep(2000);
             //直接 return 是否有效，待验证
@@ -101,22 +104,22 @@ public class KLUtilsV2 {
         Set<String> fill_set = new HashSet<>();
         for (int j = 0; j < num; j++) {
             //a的ASCII码 数字--字符--pattern
-            while (fill_set.size() == j ){
-                String c = ((char) (Math.random() * 8 + 'a'))+"";
+            while (fill_set.size() == j) {
+                String c = ((char) (Math.random() * 8 + 'a')) + "";
                 fill_set.add(c);
             }
         }
         //attributes = fill_set.toString();
-        int p1 = fill_set.contains("a")?1:0;
-        int p2 = fill_set.contains("b")?1:0;
-        int p3 = fill_set.contains("c")?1:0;
-        int p4 = fill_set.contains("d")?1:0;
-        int p5 = fill_set.contains("e")?1:0;
-        int p6 = fill_set.contains("f")?1:0;
-        int p7 = fill_set.contains("g")?1:0;
-        int p8 = fill_set.contains("h")?1:0;
-        String ip = "("+p1+","+p2+","+p3+","+p4+","+p5+","+p6+","+p7+","+p8+")";
-        System.out.println("属性："+ip);
+        int p1 = fill_set.contains("a") ? 1 : 0;
+        int p2 = fill_set.contains("b") ? 1 : 0;
+        int p3 = fill_set.contains("c") ? 1 : 0;
+        int p4 = fill_set.contains("d") ? 1 : 0;
+        int p5 = fill_set.contains("e") ? 1 : 0;
+        int p6 = fill_set.contains("f") ? 1 : 0;
+        int p7 = fill_set.contains("g") ? 1 : 0;
+        int p8 = fill_set.contains("h") ? 1 : 0;
+        String ip = "(" + p1 + "," + p2 + "," + p3 + "," + p4 + "," + p5 + "," + p6 + "," + p7 + "," + p8 + ")";
+        System.out.println("属性：" + ip);
         return ip;
 
     }
@@ -124,9 +127,8 @@ public class KLUtilsV2 {
 
     /**
      * 返回所有子集合的组成
-     *
      */
-    public  Set<Set<String>> getSubCollection(String[] arr) {
+    public Set<Set<String>> getSubCollection(String[] arr) {
 
         Set<Set<String>> f = f(arr.length, arr);
         //System.out.println(f);
@@ -134,7 +136,7 @@ public class KLUtilsV2 {
 
     }
 
-    public  Set<Set<String>> f(int k, String[] arr) {
+    public Set<Set<String>> f(int k, String[] arr) {
         if (k == 0) {
             Set<Set<String>> set = new HashSet<>();
             //添加一个空集合
@@ -161,29 +163,30 @@ public class KLUtilsV2 {
     }
 
 
-
     /**
      * 冒泡排序  打印top10
      *
      */
-    /**  散点图索引  */
+    /**
+     * 散点图索引
+     */
     private int scatterIndex = 0;
+
     public void bubbleSort(double[] a) {
-        double temp ;
-        for(int i=0 ;i < a.length ;i++) {
-            for(int j=0 ; j< a.length-i -1;j++) {
-                if(a[j]>a[j+1]) {
+        double temp;
+        for (int i = 0; i < a.length; i++) {
+            for (int j = 0; j < a.length - i - 1; j++) {
+                if (a[j] > a[j + 1]) {
                     //互换位置
                     temp = a[j];
-                    a[j] = a[j+1] ;
-                    a[j+1] = temp ;
+                    a[j] = a[j + 1];
+                    a[j + 1] = temp;
                 }
             }
         }
         //遍历数组排序  arr[0]=2.3626148494872097
-        for(int i=a.length -1 ;i >=90  ;i--) {
-            //System.out.printf("arr[%d]=%s\n",i,a[i]);
-            scatterIndex = scatterIndex +1 ;
+        for (int i = a.length - 1; i >= 90; i--) {
+            scatterIndex = scatterIndex + 1;
             log.info(scatterIndex + ":" + numbCohesion(a[i]));
         }
 
@@ -193,13 +196,12 @@ public class KLUtilsV2 {
     /**
      * 格式转换工具
      */
-    public Double numbCohesion(Double adi){
+    public Double numbCohesion(Double adi) {
 
 
         return Double.valueOf(String.format("%.4f", adi));
 
     }
-
 
 
     /**
@@ -260,8 +262,8 @@ public class KLUtilsV2 {
                     }
 
                     // 以15%为界限  第三行开始,第二列开始 最大相似设置的过大,将导致计算缓慢
-                    // 而且只能延缓  无法最终解决
-                    if (counter < 4) {
+                    // 而且只能延缓  无法最终解决   FIXME  适配多峰优化
+                    if (counter < 3) {
 
                         // 校验两个集合的相似程度
                         if (checkAttr(ListA, ListB, algorithm,allItemList)) {
@@ -548,18 +550,25 @@ public class KLUtilsV2 {
      * FIXME: 平行试卷的avg
      * 1. avg 和 sd 的计算(只取top适应度值最大的一份,然后比较适应度值的方差,可以均返回,然后循坏做比较即可)
      * 2. avg 的检验是否需要过滤或者做某种操作,使其可以正常比较.目前差异过大
+     *
      */
-    public void calAvgFitness(ArrayList<String> inBack,ArrayList<String> mqList) {
+    public void calAvgFitness(ArrayList<String> inBack,ArrayList<String> mqList,int type ) {
 
         ArrayList<String> avgList = new ArrayList<>();
+
         List <String> ml = Arrays.asList(mqList.get(mqList.size() - 1).split("_"));
 
-        // 遍历ml,获得下标
+        // 遍历ml,获得下标  FIXME 小标是否有影响
         for (int i = 0;i< ml.size();i++) {
             if ("1".equals(ml.get(i))){
                 System.out.println(inBack.get(i));
                 avgList.add(inBack.get(i));
             }
+        }
+
+        // 补充数据 假设是5套试卷
+        while (avgList.size() < 5){
+            avgList.add(inBack.get(new Random().nextInt(inBack.size()-1)));
         }
 
 
@@ -593,18 +602,83 @@ public class KLUtilsV2 {
             sd = sdsum / avgList.size();
 
         }
-        System.out.println(sd);
-        log.info("top 50%的波动情况：" + sd);
+
+        // 需在此进行方差处理(统计差异个数,并汇总。出于正态分布和峰值的特点,此处假定适应度最高的即为正态的中心)
+        double punishment = 1.0;
+        String sb = "";
+
+        // 矩阵 (根据题目的相似个数 判断相似个体,取值范围:1,1.1,1.2,1.3)
+        String aids = avgList.get(0).split("_")[1];
+
+        for (int i = 1; i < avgList.size(); i++) {
+
+
+            if (!avgList.get(i).equals(avgList.get(0))) {
+
+                String bids = avgList.get(i).split("_")[1];
+
+                // 将基因型转为list,使用list来判断相似个数
+                List<String> ListA = stringToList(aids);
+                List<String> ListB = stringToList(bids);
+
+                // 计算相似题目个数
+                int counter = 0;
+                for (String c : ListB) {
+                    for (String d : ListA) {
+                        if (c.equals(d)) {
+                            counter = counter + 1;
+                        }
+                    }
+                }
+
+                sb += counter ;
+
+                // 进行惩罚
+                // 可在此处做相关推断，并赋予不同的值,或者 switch case
+                switch (counter) {
+                    case 0:
+                        punishment = punishment * 1;
+                        break;
+                    case 1:
+                        punishment = punishment * 1;
+                        break;
+                    case 2:
+                        punishment = punishment * 1;
+                        break;
+                    case 3:
+                        punishment = punishment * 1;
+                        break;
+                    case 4:
+                        punishment = punishment * 1;
+                        break;
+                    case 5:
+                        punishment = punishment * 1.1;
+                        break;
+                    case 6:
+                        punishment = punishment * 1.1;
+                        break;
+                    case 7:
+                        punishment = punishment * 1.2;
+                        break;
+                    default:
+                        punishment = punishment * 1.3;
+                }
+
+            }
+
+        }
+        double v = sd * punishment;
+
+        if(v > 30 && type == 1){
+            v = v / 2;
+        }
+
+        System.out.println(sd + " * " + punishment + " =  " + sd * punishment);
+        log.info("差别个数 :" + sb);
+        log.info("top 50%的波动情况 sd * punishment :" + v);
 
 
     }
 
 
-
-
-
-
 }
-
-
-

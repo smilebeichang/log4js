@@ -3,6 +3,7 @@ package cn.edu.sysu.niche.a5n5;
 import cn.edu.sysu.adi.TYPE;
 import cn.edu.sysu.pojo.Papers;
 import cn.edu.sysu.utils.JDBCUtils4;
+import cn.edu.sysu.utils.KLUtils;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 import cn.edu.sysu.niche.others.MyComparator;
@@ -844,49 +845,6 @@ public class DNDR10_GA {
     }
 
 
-    /**
-     * 计算均值 和 波动 情况
-     *
-     * @param inBack
-     */
-    private void calAvgFitness(ArrayList<String> inBack) {
-
-        // 1.遍历list,计算每个个体的fitness值,并使用变量进行汇总统计
-        // 计算平均值
-        Double avgsum = 0.0;
-        Double avg = 0.0;
-
-        if (inBack.size() > 0) {
-
-            for (String s : inBack) {
-                avgsum = avgsum + Double.valueOf(s.split("_")[0]);
-            }
-            avg = avgsum / inBack.size();
-
-        }
-
-        // 2.sum / count
-        System.out.println(avg);
-        log.info("top 50%的平均适应度值：" + avg);
-
-        // 3.计算波动  方差=1/n(s^2+....)  方差越小越稳定
-        Double sdsum = 0.0;
-        Double sd = 0.0;
-
-        if (inBack.size() > 0) {
-
-            for (String s : inBack) {
-                sdsum = sdsum + Math.pow((Double.valueOf(s.split("_")[0]) - avg), 2);
-            }
-            sd = sdsum / inBack.size();
-
-        }
-        System.out.println(sd);
-        log.info("top 50%的波动情况：" + sd);
-
-
-    }
-
 
 
     /**
@@ -965,10 +923,10 @@ public class DNDR10_GA {
 
 
             // 最大圈
-            new DNDR10().similarClique(uniqueList, 1);
+            ArrayList<String> mqList = new KLUtils().similarClique(uniqueList,2,allItemList);
 
             // 计算均值 和 波动 情况
-            calAvgFitness(uniqueList);
+            new KLUtils().calAvgFitness(uniqueList,mqList,2);
 
         }
 

@@ -3,6 +3,7 @@ package cn.edu.sysu.niche.a5n5;
 
 import cn.edu.sysu.niche.others.MyComparator;
 import cn.edu.sysu.utils.JDBCUtils4;
+import cn.edu.sysu.utils.KLUtils;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -368,10 +369,10 @@ public class DNDR10_P_CDI {
             ArrayList<String> uniqueList  = uniqueDate(sortTo50);
 
 
-            new DNDR10().similarClique(uniqueList,1);
+            ArrayList<String> mqList = new KLUtils().similarClique(uniqueList,1,allItemList);
 
             // 计算均值 和 波动 情况
-            calAvgFitness(uniqueList);
+            new KLUtils().calAvgFitness(uniqueList,mqList,3);
 
         }
 

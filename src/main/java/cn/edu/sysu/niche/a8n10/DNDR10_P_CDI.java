@@ -377,7 +377,7 @@ public class DNDR10_P_CDI {
             ArrayList<String> mqList = new KLUtilsV2().similarClique(uniqueList, 1,allItemList);
 
             // 计算均值 和 波动 情况
-            new KLUtilsV2().calAvgFitness(uniqueList,mqList);
+            new KLUtilsV2().calAvgFitness(uniqueList,mqList,3);
 
         }
 

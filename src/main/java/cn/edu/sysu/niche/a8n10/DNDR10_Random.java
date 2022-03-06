@@ -513,8 +513,6 @@ public class DNDR10_Random {
      * 平均适应度值：32.6~34.9
      * 波动情况：7.8~15.5
      *
-     * Java.lang.ArrayIndexOutOfBoundsException: 18
-     * 会不会是因为太频繁使用内存了
      *
      */
     @Test
@@ -550,7 +548,7 @@ public class DNDR10_Random {
             ArrayList<String> mqList = new KLUtilsV2().similarClique(uniqueList, 1,allItemList);
 
             // 计算均值 和 波动 情况
-            new KLUtilsV2().calAvgFitness(uniqueList,mqList);
+            new KLUtilsV2().calAvgFitness(uniqueList,mqList,4);
 
         }
 

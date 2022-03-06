@@ -1,18 +1,16 @@
 package cn.edu.sysu.niche.a5n5;
 
 import cn.edu.sysu.adi.TYPE;
-import cn.edu.sysu.clique.MaxcliqueV2;
 import cn.edu.sysu.niche.others.BSF;
 import cn.edu.sysu.niche.others.MyComparator;
 import cn.edu.sysu.niche.others.Niche6;
 import cn.edu.sysu.utils.CorrectUtils;
 import cn.edu.sysu.utils.JDBCUtils4;
 import cn.edu.sysu.utils.KLUtils;
+import cn.edu.sysu.utils.KLUtilsV2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.junit.Test;
-
-import java.io.*;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -22,41 +20,46 @@ import java.util.*;
  * @create : 2022/02/24 10:12
  *
  *
- *  任务4：不同对象的比较
- *      NicheGA、GA、random
+ *  任务1：不同对象的比较    质量下降 查明原因
+ *  Niche GA     (avg:20~22        sd：1.3~16.7)
+ *  GA           (avg:30~40        sd：0.3~13.1)
+ *  Random       (avg:36~40        sd：0.7~14)
+ *
+ *  现在开始怀疑,自己取的到底是不是平行试卷
+ *  平行试卷取标准是根据题目的不相似数，但sd采用的是 fitness,其是存在差异的，故需要进行适当的调整
+ *
+ *  适应度值做一定的调整,如果相似个数大有4则惩罚系数，如果大于6
+ *  直接对适应度值做惩罚,还是直接对适应度进行惩罚
+ *  前者更靠谱些，后者对适应度值进行同比例惩罚后，可能无法达到预期效果
  *
  *
- *  niche GA 初步结果:
- *      1.最大圈顶点数：4~5
- *      2.最大圈: 13~48
- *      3.平均适应度值: 17.4~20.3
- *      4.波动情况:6.4~16.0
+ *   1.为什么适应度值,其实也不应该：
+ *     筛选时,有一部分被过滤掉了,导致适应度值有所欠缺
  *
- *  目前对比情况:
- *      最大圈定点数 niche GA > GA = random
- *      最大圈      GA > niche GA > random  (此处可以做一个去重操作)
- *      平均适应度值 random > GA > niche GA  (这个就很离谱了)
- *      波动情况 random ~ GA ~ niche GA     (此处可以做一个去重操作)
+ *   2.为什么方差也对不上呢：
+ *     平行试卷的份数是对不上的,有点效果,需要继续考核
+ *     控制变量：其实也应该控制的。控制平行试卷的份数
  *
- *  任务5: 仿真
- *      2^5 = 32  pattern、100个被试，rum
- *      2^8 = 256 pattern、100个被试，rum
+ *   -- Niche Ga 方差会很小,而且是比较稳定 取决于一直拿的就是这几个解,除非终止条件有无
+ *   -- GA     方差会很大,因为最大圈无法保证,故取值比较乱
+ *   -- Random 方差会很大,因为值比较乱
  *
- *  任务6：质量下降 查明原因
- *  任务7：改变终止规则,改进BSF
- *  * 改变抽取条件(规则)
+ *  任务2: 仿真
+ *      2^5 = 32  pattern、100个被试,rum
+ *      2^8 = 256 pattern、100个被试,rum
  *
  *
+ *  任务3：改变终止规则,改进BSF
+ *        改变抽取条件(规则)
  *
- * 本周任务：
- *      1.  前端页面展示   周六+周天
- *      2.  论文(方法和背景部分)                             周一~周四
- *      3.  复现：P-CDI (构造法扰动排序约束)   周二
- *      4.  比较：4种模型 * 3题库                           周天周一
- *      5.  适应度平均值和适应度方差  是基于组卷的,代码的修改
- *      6.  SPSS 的使用和统计方法的先后步骤  anova方差齐性校验  周天
- *      7.  迭代次数过小  是否会有影响
  *
+ *  本周任务：
+ *      1.  适应度平均值和适应度方差  是基于组卷的,代码的修改
+ *          ( 需要返回最大圈的位置,即其中一个集合,可能需要修改最大圈算法 ,直接取最后一位,就是担心适应度值跟不上.先计算到时再说)
+ *          ( 根据位置,计算适应度值 avg 和 sd )
+ *      2.  论文的补充                             周一~周四
+ *      3.  SPSS 的使用和统计方法的先后步骤  anova方差齐性校验  周天
+ *      4.  迭代次数过小  是否会有影响
  *
  */
 public class DNDR10 {
@@ -96,7 +99,6 @@ public class DNDR10 {
     private HashMap<String, ArrayList<String>> mapArrayListForGene = new HashMap<>();
 
 
-
     /**
      * 100套试卷 20道题
      */
@@ -132,12 +134,6 @@ public class DNDR10 {
      */
     Boolean timeFlag = false;
 
-
-    /**
-     * 计算最大圈
-     */
-    MaxcliqueV2 mq = new MaxcliqueV2();
-
     /**
      * 长度、题型、属性校验
      */
@@ -168,7 +164,7 @@ public class DNDR10 {
      * 4. 最大圈相关算法调用
      *
      */
-    private void gtMeanPart(HashMap<String, ArrayList<String[]>> inMutate, ArrayList<String[]> outMutate) throws SQLException {
+    private void gtMeanPart(HashMap<String, ArrayList<String[]>> inMutate, ArrayList<String[]> outMutate) {
 
         System.out.println("================== calFitnessIn ==================");
 
@@ -180,7 +176,6 @@ public class DNDR10 {
             ArrayList<String> outList = calFitnessOut(entry.getValue());
 
             sortTo50.addAll(outList);
-
         }
 
         // 2. 遍历 outMutate
@@ -190,325 +185,11 @@ public class DNDR10 {
         // 去重
         ArrayList<String> uniqueList  = uniqueDate(sortTo50);
 
-
         // 3. 剩下的个体计算相似性
-        similarClique(uniqueList,2);
+        ArrayList<String> mqList = new KLUtils().similarClique(uniqueList,2,allItemList);
 
         // 4. 计算fitness的均值 和 波动
-        calAvgFitness(uniqueList);
-
-
-    }
-
-    /**
-     * 验证BSF的整个适应度平均值和方差, 校验效果和波动性
-     * 如果校验以后发现效果不是很理想，可以换成top的平均值
-     *
-     * FIXME: 由之前的top50 的适应度的 avg 和 sd 转换为  平行试卷的avg
-     * 1. avg的检验是否需要过滤或者做某种操作,使其可以正常比较.目前差异过大
-     * 2. avg 和 sd 的计算 考虑是否个数，有时是 13套，但有时是168套，波幅较大有很大的影响  此处可以参考老师给的毕业文献
-     *
-     */
-    private void calAvgFitness(ArrayList<String> inBack) {
-
-        // 1.遍历list,计算每个个体的fitness值,并使用变量进行汇总统计
-        // 计算平均值
-        Double avgsum = 0.0;
-        Double avg = 0.0;
-
-        if (inBack.size()>0) {
-
-            for (String s : inBack) {
-                avgsum = avgsum + Double.valueOf(s.split("_")[0]);
-            }
-            avg = avgsum / inBack.size();
-
-        }
-
-        // 2.sum / count
-        System.out.println(avg);
-        log.info("top 50%的平均适应度值：" + avg);
-
-        // 3.计算波动  方差=1/n(s^2+....)  方差越小越稳定
-        Double sdsum = 0.0 ;
-        Double sd = 0.0 ;
-
-        if (inBack.size()>0) {
-
-            for (String s : inBack) {
-                sdsum =  sdsum + Math.pow(( Double.valueOf(s.split("_")[0]) -  avg ),2);
-            }
-            sd = sdsum / inBack.size();
-
-        }
-        System.out.println(sd);
-        log.info("top 50%的波动情况：" + sd);
-
-
-    }
-
-    /**
-     * 15%,算出最大的圈 maximum clique
-     * 1.通过题目相似个数,形成距离关系w矩阵
-     * 2.写入文件
-     * 3.读取文件,计算最大圈
-     *
-     */
-    public void similarClique(ArrayList<String> inBack,int algorithm) {
-
-        // 距离关系w矩阵
-        int[][] distanceMatrix =new int[inBack.size()+1][inBack.size()+1];
-
-        // 遍历计算距离关系,并生成01矩阵 初始化矩阵
-        for (int i = 0; i < inBack.size()+1; i++) {
-
-            // 赋值
-            for (int j = 0; j < inBack.size() + 1; j++) {
-
-                // 第一行
-                if (i < 1) {
-                    distanceMatrix[i][j] = -1;
-                }
-
-                // 第一列
-                if (j == 0) {
-                    distanceMatrix[i][j] = -1;
-                }
-            }
-        }
-
-        // 遍历集合
-        for (int i = 0; i < inBack.size(); i++) {
-
-            // 矩阵 (根据题目的相似个数 判断相似个体,若题目相同数低于4,则赋值为1)
-            String aids = inBack.get(i).split("_")[1];
-
-            for (int j = 0; j < inBack.size(); j++) {
-
-                if (!inBack.get(i).equals(inBack.get(j))) {
-
-                    String bids = inBack.get(j).split("_")[1];
-
-                    // 将基因型转为list,使用list来判断相似个数
-                    List<String> ListA = stringToList(aids);
-                    List<String> ListB = stringToList(bids);
-
-                    // 计算相似题目个数
-                    int counter = 0;
-                    for (String c : ListB) {
-                        for (String d : ListA) {
-                            if (c.equals(d)) {
-                                counter = counter + 1;
-                            }
-                        }
-                    }
-
-                    // 以15%为界限  第三行开始,第二列开始 最大相似设置的过大,将导致计算缓慢
-                    // 而且只能延缓  无法最终解决
-                    if (counter < 4 ){
-
-                        // 校验两个集合的相似程度
-                        if (checkAttr(ListA,ListB,algorithm)){
-                            distanceMatrix[i+1][j+1]=1;
-                        }
-                    }
-                }
-            }
-        }
-
-        // 打印 遍历二维数组
-//        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
-//            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-//                System.out.print(distanceMatrix[i1][i2]+" , ");
-//            }
-//            System.out.println();
-//        }
-
-        // 写入文件
-        sinkToFileV1(distanceMatrix);
-        //sinkToFileV2(distanceMatrix);
-
-        // 读取文件
-        readFromFileV1();
-
-        System.out.println(" + ----------------------- + ");
-
-    }
-
-
-    /**
-     * 校验两个集合的相似程度
-     * @param listA
-     * @param listB
-     *
-     *  FIXME 此处应该加上其他验证逻辑 而不仅仅是题目不同
-     *  功能相似： 题型、属性(拿单个题目计算还是一套试卷)
-     *  思考：
-     *    1.如果是单个题目的话,计算量会比较大
-     *      每道题目 其余试卷的每道题挨个进行比较，意义不大
-     *    2.如果是单套试卷的话,整套试卷经过了correct,其应该是相似的
-     *    3.此处以单套试卷为单位，先进行计算
-     *       3.1 通过ids,获取属性和类型
-     *       3.2 分别计算属性和类型的数目 sum(abs())
-     *       3.3 如果小于了某一个临界值,则表明其是真的相似
-     */
-    private Boolean checkAttr(List<String> listA, List<String> listB,int diffDegree) {
-
-        Boolean flag = false;
-
-        System.out.println(listA);
-
-
-        // 根据id从数据库中查询相对应的题目
-        String idsA = listA.toString().substring(1, listA.toString().length() - 1);
-
-        List<String> sListA = Arrays.asList(idsA.split(","));
-
-        // 题型
-        int typeChoseA = 0;
-        int typeFillA = 0;
-        int typeShortA = 0;
-        int typeCompreA = 0;
-
-        // 属性
-        int attributeNum1A = 0;
-        int attributeNum2A = 0;
-        int attributeNum3A = 0;
-        int attributeNum4A = 0;
-        int attributeNum5A = 0;
-
-
-        for (int k = 0; k < sListA.size(); k++) {
-
-             String s = allItemList.get(Integer.parseInt(sListA.get(k).trim())-1 > -1?Integer.parseInt(sListA.get(k).trim())-1:1);
-
-                //计算每种题型个数
-                if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
-                    typeChoseA += 1;
-                }
-                if (TYPE.FILL.toString().equals(s.split(":")[1])) {
-                    typeFillA += 1;
-                }
-                if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
-                    typeShortA += 1;
-                }
-                if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
-                    typeCompreA += 1;
-                }
-
-
-                //计算每种题型个数
-                if ("1".equals(s.split(":")[2].substring(1, 2))) {
-                    attributeNum1A += 1;
-                }
-                if ("1".equals(s.split(":")[2].substring(3, 4))) {
-                    attributeNum2A += 1;
-                }
-                if ("1".equals(s.split(":")[2].substring(5, 6))) {
-                    attributeNum3A += 1;
-                }
-                if ("1".equals(s.split(":")[2].substring(7, 8))) {
-                    attributeNum4A += 1;
-                }
-                if ("1".equals(s.split(":")[2].substring(9, 10))) {
-                    attributeNum5A += 1;
-                }
-        }
-
-
-        // 根据id从数据库中查询相对应的题目
-        String idsB = listB.toString().substring(1, listB.toString().length() - 1);
-
-        List<String> sListB = Arrays.asList(idsB.split(","));
-
-        // 题型
-        int typeChoseB = 0;
-        int typeFillB = 0;
-        int typeShortB = 0;
-        int typeCompreB = 0;
-
-        // 属性
-        int attributeNum1B = 0;
-        int attributeNum2B = 0;
-        int attributeNum3B = 0;
-        int attributeNum4B = 0;
-        int attributeNum5B = 0;
-
-
-        for (int k = 0; k < sListB.size(); k++) {
-
-            String s = allItemList.get(Integer.parseInt(sListB.get(k).trim())-1 > -1?Integer.parseInt(sListB.get(k).trim())-1:1);
-
-            //计算每种题型个数
-            if (TYPE.CHOSE.toString().equals(s.split(":")[1])) {
-                typeChoseB += 1;
-            }
-            if (TYPE.FILL.toString().equals(s.split(":")[1])) {
-                typeFillB += 1;
-            }
-            if (TYPE.SHORT.toString().equals(s.split(":")[1])) {
-                typeShortB += 1;
-            }
-            if (TYPE.COMPREHENSIVE.toString().equals(s.split(":")[1])) {
-                typeCompreB += 1;
-            }
-
-
-            //计算每种题型个数
-            if ("1".equals(s.split(":")[2].substring(1, 2))) {
-                attributeNum1B += 1;
-            }
-            if ("1".equals(s.split(":")[2].substring(3, 4))) {
-                attributeNum2B += 1;
-            }
-            if ("1".equals(s.split(":")[2].substring(5, 6))) {
-                attributeNum3B += 1;
-            }
-            if ("1".equals(s.split(":")[2].substring(7, 8))) {
-                attributeNum4B += 1;
-            }
-            if ("1".equals(s.split(":")[2].substring(9, 10))) {
-                attributeNum5B += 1;
-            }
-        }
-
-
-
-        // 属性
-        int type = Math.abs(typeChoseA - typeChoseB) + Math.abs(typeFillA - typeFillB) + Math.abs(typeShortA - typeShortB) + Math.abs(typeCompreA - typeCompreB);
-        int attr = Math.abs(attributeNum1A - attributeNum1B) + Math.abs(attributeNum2A - attributeNum2B) + Math.abs(attributeNum3A - attributeNum3B) + Math.abs(attributeNum4A - attributeNum4B) + Math.abs(attributeNum5A - attributeNum5B);
-
-        System.out.println(type + ":" + attr);
-
-        // 可在此处做相关推断，并赋予不同的值,或者 switch case
-        switch(diffDegree){
-            case 1 :
-                if (type < 6 && attr < 6){
-                    flag = true;
-                }
-                break;
-            case 2 :
-                if (type < 6 && attr < 12){
-                    flag = true;
-                }
-                break;
-            default :
-                if (type < 6 && attr < 18){
-                    flag = true;
-                }
-        }
-
-
-        return  flag;
-
-    }
-
-    /**
-     * 读取文件,输出最大圈顶点数和最大圈的个数
-     */
-    private void readFromFileV1() {
-
-        mq.readFromFileV1();
+        new KLUtilsV2().calAvgFitness(uniqueList,mqList,1);
 
     }
 
@@ -522,55 +203,13 @@ public class DNDR10 {
     }
 
 
-
-    /**
-     * 写入文件
-     * @param distanceMatrix
-     */
-    private void sinkToFileV1(int[][] distanceMatrix) {
-        OutputStream os = null;
-        try {
-            os = new FileOutputStream("F:\\song\\SYSU\\Log4j\\input\\output.txt");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        PrintWriter pw=new PrintWriter(os);
-
-
-        // 打印 遍历二维数组
-        for (int i1 = 0; i1 < distanceMatrix.length; i1++) {
-            if (i1==0){
-                for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-                    pw.print(distanceMatrix[i1][i2]+" , ");
-                }
-                pw.println();
-            }
-
-            for (int i2 = 0; i2 < distanceMatrix[i1].length; i2++) {
-                pw.print(distanceMatrix[i1][i2]+" , ");
-            }
-            pw.println();
-        }
-
-        pw.close();
-        try {
-            os.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-
-
-
     /**
      * 计算适应度值,并只保留适应度大于均值的部分
      * @param list
      * @return inBack
      * @throws SQLException
      */
-    private ArrayList<String> calFitnessOut(ArrayList<String[]> list) throws SQLException {
+    private ArrayList<String> calFitnessOut(ArrayList<String[]> list)  {
 
         System.out.println("================== calFitnessOut ==================");
 
@@ -606,7 +245,7 @@ public class DNDR10 {
      * 计算适应度值
      * 返回：适应度_ids
      */
-    private ArrayList<String> getFitForGtMeanPart(ArrayList<String[]> list) throws SQLException {
+    private ArrayList<String> getFitForGtMeanPart(ArrayList<String[]> list)  {
 
 
         ArrayList<String> outList = new ArrayList<>();
@@ -1121,7 +760,7 @@ public class DNDR10 {
 
 
 
-    public String[] supplementPaperGenetic() throws SQLException {
+    public String[] supplementPaperGenetic()  {
 
         // 单套试卷的集合
         HashSet<String> itemSet = new HashSet<>();
@@ -1420,7 +1059,7 @@ public class DNDR10 {
      * 题型比例 选择[0.2,0.4]  填空[0.2,0.4]  简答[0.1,0.3]  应用[0.1,0.3]
      * 属性比例 第1属性[0.2,0.4]  第2属性[0.2,0.4]  第3属性[0.1,0.3] 第4属性[0.1,0.3] 第5属性[0.1,0.3]
      */
-    private void getFitnessForGene(int paperSize) throws SQLException {
+    private void getFitnessForGene(int paperSize)  {
 
 
         // 拼接字符串 每套试卷的适应度值_本身
@@ -1554,7 +1193,7 @@ public class DNDR10 {
             }
 
             // 属性比例 第1属性[0.2,0.4]   第2属性[0.2,0.4]   第3属性[0.1,0.3]  第4属性[0.1,0.3]  第5属性[0.1,0.3]
-            //先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
+            // 先判断是否在范围内，在的话，为0，不在的话，然后进一步和上下限取差值，绝对值
             double ed1;
             double edx1 = exp1 / 23.0;
             if (edx1 >= 0.2 && edx1 < 0.4) {
@@ -2391,10 +2030,12 @@ public class DNDR10 {
 
                     String[] c1 =  rts.get(0);
                     // 执行修补操作
-                    String[] c2 = cu.correctTypeV2(c1);
-                    String[] c3 = cu.correctAttributeV2(c2);
+                    //String[] c2 = cu.correctTypeV2(c1);
 
-                    outMutate.add(c3);
+                    // FIXME
+                    //String[] c3 = cu.correctAttributeV2(c2);
+
+                    outMutate.add(c1);
 
 
                 } else {
@@ -2408,8 +2049,9 @@ public class DNDR10 {
                         //System.out.println("sList:"+sList);
                         itemArray[k] = allItemList.get(Integer.parseInt(sList.get(k))-1 > -1?Integer.parseInt(sList.get(k))-1:1);
                     }
-                    String[] c3 = cu.correctAttributeV2(itemArray);
-                    outMutate.add(c3);
+                    // 修订
+                    // String[] c3 = cu.correctAttributeV2(itemArray);
+                    outMutate.add(itemArray);
                 }
             }
         }
@@ -2540,15 +2182,6 @@ public class DNDR10 {
                 // 数组转字符串(逗号分隔),然后从题库中搜索
                 String ids = StringUtils.join(temp, ",");
 
-//                ArrayList<String> bachItemList = jdbcUtils.selectBachItem(ids);
-//
-//                // ArrayList 转 []
-//                // 交叉变异的针对的是题目   即试卷=个体  题目=基因
-//                String[] itemArray = new String[bachItemList.size()];
-//                for (int h = 0; h < bachItemList.size(); h++) {
-//                    itemArray[h] = bachItemList.get(h);
-//                }
-
                 List<String> sList = Arrays.asList(ids.split(","));
                 String[] itemArray = new String[sList.size()];
 
@@ -2588,18 +2221,6 @@ public class DNDR10 {
         }
 
 
-        /**
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0
-         * 0 , 0 , 0 , 0 , 1 , 0 , 0 , 0
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0
-         * 1 , 0 , 0 , 0 , 0 , 0 , 0 , 0
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0
-         * 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0
-         * 0 , 0 , 0 , 0 , 0 , 1 , 0 , 0
-         * 0 , 1 , 0 , 0 , 0 , 0 , 0 , 0
-         */
-
-
         // 2. 对距离矩阵进行去重
         // 2.1 获取将要合并的两个峰的下标  对ab排序,将小数字放在前面,然后使用HashSet解决数据重复问题
         HashSet<String> hs = new HashSet<>();
@@ -2616,9 +2237,6 @@ public class DNDR10 {
 
             }
         }
-        // 验证去重效果 hs.size(): 0 hs.toString(): []
-        //("验证去重效果 hs.size(): " + hs.size() + " hs.toString(): " + hs.toString());
-
 
         // 若无需要合并的因子,则跳过以下步骤直接返回null
         if (hs.size() > 0) {
@@ -2679,10 +2297,6 @@ public class DNDR10 {
                             // 将基因型转为list,使用list来判断相似个数
                             List<String> listA = stringToList(aids);
                             List<String> listB = stringToList(bids);
-
-                            // 假设上面ListA 和 ListB都存在数据
-                            // aids：3,4,9,28,34,36,43,52,59,102,116,126,129,138,145,213,230,233,247,267
-                            // bids：8,10,17,18,24,25,26,39,71,72,81,84,92,102,107,141,143,150,273,303
 
                             // 使用题目个数进行判断相似性
                             int counter = 0;
@@ -3248,16 +2862,12 @@ public class DNDR10 {
                     timeFlag =  false;
                     // 使用 break 替代 exit
                     System.out.println("退出！！");
-                    // System.exit(0);
                     break;
-
                 }
 
                 // 11.将inMutate和outMutate合并后赋值给 paperGenetic
                 paperGenetic = mergeToGene(inMutate, outMutate);
-
             }
-
 
         }
     }
